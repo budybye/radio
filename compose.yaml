@@ -1,0 +1,45 @@
+name: radio
+services:
+  mpd:
+    # Option A: Build locally (default)
+    build: .
+    # Option B: Use pre-built image from GHCR (uncomment below, comment out `build: .`)
+    # image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-your-username}/radio-mpd:latest
+    container_name: radio-mpd
+    volumes:
+      - ./music:/music
+      - ./config/mpd.conf:/etc/mpd.conf:ro
+      - ./config/config:/root/.ncmpcpp/config:ro
+      - mpd-data:/var/lib/mpd
+    # ports:
+    #   - "127.0.0.1:6600:6600"  # MPD control (mpc / ncmpcpp from host)
+    #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
+    # NOTE: Uncomment only if you need host-side access. Default: all access via Tunnel or `docker compose exec`
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: radio-tunnel
+    command: tunnel run --token ${TUNNEL_TOKEN:-}
+    # command: tunnel --url http://mpd:8000
+    restart: unless-stopped
+    depends_on:
+      - mpd
+      - app
+
+  app:
+    build: ./app
+    container_name: radio-app
+    # ports:
+    #   - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - mpd
+
+volumes:
+  mpd-data:
+
+networks:
+  default:
+    name: radio-network
+    driver: bridge

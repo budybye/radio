@@ -1,0 +1,44 @@
+name: Tag and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create tag and release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch --tags origin
+          latest_tag=$(git tag -l | sort -V | tail -n1)
+          if [ -z "$latest_tag" ]; then
+            latest_tag="0.0.0"
+          fi
+          echo "Latest tag: $latest_tag"
+
+          IFS='.' read -r major minor patch <<< "$latest_tag"
+          new_patch=$((patch + 1))
+          new_tag="$major.$minor.$new_patch"
+          echo "New tag: $new_tag"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git tag "$new_tag"
+          git push origin "$new_tag"
+
+          gh release create "$new_tag" \
+            --title="$new_tag" \
+            --notes="$(date +%Y-%m-%d)" \
+            --latest \
+            --generate-notes
