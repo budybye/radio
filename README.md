@@ -31,10 +31,11 @@ cd radio
 make setup
 
 # 3. 音楽ファイルを music/ に配置して起動
-make up      # ビルド・起動・自動キュー追加・ランダム再生開始
+make up-build # 初回: ビルド + 起動
+make up       # 2回目以降: 起動のみ（高速）
 ```
 
-> 全 `make` コマンド一覧は `make help` または [docs/tech.md](docs/tech.md) を参照。
+> 全 `make` コマンド一覧は [docs/tech.md](docs/tech.md) を参照。
 
 ### 環境変数
 
@@ -47,7 +48,8 @@ make up      # ビルド・起動・自動キュー追加・ランダム再生�
 ### 起動
 
 ```bash
-make up      # ビルド・起動・自動キュー追加・ランダム再生開始
+make up-build # 初回: ビルド + 起動
+make up       # 2回目以降: 起動のみ（高速）
 ```
 
 > `make up` 後にキューが空の場合、`scripts/entrypoint.sh` が自動で `mpc ls | mpc add` → `mpc random on` → `mpc play` を実行します。手動で操作したい場合は `make play`（ライブラリ更新 → キュー追加 → 再生）を使ってください。
@@ -83,6 +85,8 @@ https://your-tunnel-domain/
 Cloudflare Tunnel（cloudflared）
     │
     ├──► http://mpd:8000  ──► MP3 ストリーム（リスナー向け）
+    │
+    ├──► http://radio-app:5173  ──► Web UI（MPD 制御・SPA）
     │
     └──► 管理操作は `docker compose exec` のみ（ホストにポート公開なし）
              │

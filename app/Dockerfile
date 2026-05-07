@@ -1,19 +1,13 @@
-FROM node:slim
+FROM oven/bun:1.2.15-alpine
 
 WORKDIR /app
 
-RUN npm install -g bun@latest
-
-COPY package.json ./
-
-RUN bun install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY . .
-
 RUN bun run build
 
 EXPOSE 5173
 
-ENTRYPOINT [ "bun" ]
-
-CMD [ "run", "preview", "--", "--host", "0.0.0.0" ]
+CMD [ "bun", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173" ]

@@ -6,10 +6,10 @@
 |----------|------|-----------|-------------|
 | コンテナランタイム | Docker Engine | 29.4.0 | コンテナのビルド・実行・ネットワーク管理 |
 | オーケストレーション | Docker Compose | v2.35.2（Docker Desktop v5.1.2 内蔵） | マルチコンテナ構成の定義と起動 |
-| ベースOS | Alpine Linux | 3.19 | 軽量イメージ（約5MB）。musl libc ベース |
+| ベースOS | Alpine Linux | 3.20 | 軽量イメージ（約5MB）。musl libc ベース |
 | 音楽サーバー | MPD (Music Player Daemon) | 0.23.14 | HTTPD 出力によるストリーミング配信 |
 | エンコーダー | LAME | 3.100（Alpine パッケージ同梱） | MP3 エンコード（320kbps / 44100Hz） |
-| 公開基盤 | Cloudflare Tunnel (cloudflared) | 2026.3.0 | ゼロトラスト公開（ポート開放不要） |
+| 公開基盤 | Cloudflare Tunnel (cloudflared) | latest（イメージタグ） | ゼロトラスト公開（ポート開放不要）。固定バージョン移行は Phase 2 で検討 |
 | クライアント | mpc / ncmpcpp | mpc 0.35 / ncmpcpp 0.9.2（Alpine パッケージ） | MPD のコマンドライン・TUI クライアント |
 
 ### 採用する Web 標準・プロトコル
@@ -39,7 +39,8 @@ cd radio
 # 2a. Docker で起動（推奨）
 bash scripts/setup.sh  # Docker 環境構築（初回のみ）
 make setup             # .env 作成 + music/ 作成
-make up                # ビルド・起動・自動キュー追加・ランダム再生開始
+make up-build          # 初回: ビルド + 起動
+make up                # 2回目以降: 起動のみ（高速）
 
 # 2b. またはローカルに直接インストール（Ubuntu/Debian）
 bash scripts/install.sh ~/Music   # apt で MPD をインストールし設定
@@ -49,7 +50,8 @@ bash scripts/install.sh ~/Music   # apt で MPD をインストールし設定
 
 | コマンド | 内容 |
 |----------|------|
-| `make up` | コンテナをビルドして起動 |
+| `make up` | コンテナを起動（既存イメージを使用） |
+| `make up-build` | コンテナをビルドして起動 |
 | `make down` | コンテナを停止・削除 |
 | `make play` | 手動でライブラリ更新 → キュー追加 → 再生（自動再生失敗時のフォールバック） |
 | `make random` | ランダム再生モード ON |
@@ -114,6 +116,15 @@ services:
     #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
     restart: unless-stopped
 
+  app:
+    build: ./app
+    container_name: radio-app
+    # ports:
+    #   - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - mpd
+
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: radio-tunnel
@@ -121,6 +132,7 @@ services:
     restart: unless-stopped
     depends_on:
       - mpd
+      - app
 
 volumes:
   mpd-data:
@@ -133,10 +145,11 @@ networks:
 
 **設定のポイント**:
 - `build: .` → `Dockerfile` から MPD 環境をビルド
+- `build: ./app` → `app/Dockerfile` から Web UI（Vite + Hono SPA）をビルド
 - `./config/config:/root/.ncmpcpp/config:ro` → ncmpcpp 設定をコンテナ内にマウント
 - `ports` を **コメントアウト** → デフォルトではホスト側へのポート公開を避け、ローカル MPD 等との衝突を防止。アクセスは Tunnel 経由または `docker compose exec` のみ。モバイルアプリ等で直接制御する場合のみ `127.0.0.1:` プレフィックス付きで有効化
 - `networks` → `radio-network` として明示的に命名。サービス間通信と外部識別が容易になる
-- `depends_on` → Tunnel が MPD 起動後に開始されるよう依存関係を定義
+- `depends_on` → Tunnel が MPD と app 起動後に開始されるよう依存関係を定義
 
 ### `Dockerfile`
 

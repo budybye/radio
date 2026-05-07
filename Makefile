@@ -1,62 +1,75 @@
-.PHONY: up down logs setup play stop pause random sequential next prev status volume ncmpcpp test build clean restart
+DC := docker compose
+MPC := $(DC) exec mpd mpc
 
-up:
-	docker compose up -d --build
+.DEFAULT_GOAL := help
 
-down:
-	docker compose down
+.PHONY: help up up-build down restart logs status setup build clean test \
+        play stop pause next prev random sequential reload ncmpcpp
 
-logs:
-	docker compose logs -f
+# === Help ===
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Lifecycle:"
+	@echo "  up          Start all services (no rebuild)"
+	@echo "  up-build    Build & start all services"
+	@echo "  down        Stop & remove containers"
+	@echo "  restart     Restart all services"
+	@echo "  logs        Tail logs (Ctrl-C to quit)"
+	@echo "  build       Rebuild images (no cache)"
+	@echo "  clean       Stop & remove containers + volumes"
+	@echo ""
+	@echo "Setup:"
+	@echo "  setup       Create .env + music/"
+	@echo ""
+	@echo "Playback:"
+	@echo "  play        Resume playback"
+	@echo "  stop        Stop playback"
+	@echo "  pause       Toggle pause"
+	@echo "  next/prev   Skip track"
+	@echo "  random      Enable shuffle"
+	@echo "  sequential  Disable shuffle"
+	@echo "  status      Show current track & state"
+	@echo ""
+	@echo "Library:"
+	@echo "  reload      Re-scan music/ & rebuild queue"
+	@echo ""
+	@echo "Tools:"
+	@echo "  ncmpcpp     Open TUI player"
+	@echo "  test        Run integration tests"
 
-restart:
-	docker compose restart
+# === Lifecycle ===
+up:      ; $(DC) up -d
+up-build:; $(DC) up -d --build
+down:    ; $(DC) down
+restart: ; $(DC) restart
+logs:    ; $(DC) logs -f
+build:   ; $(DC) build --no-cache
+clean:   ; $(DC) down -v
 
+# === Setup ===
 setup:
-	@echo "=== Radio Setup ==="
-	@test -f .env || (cp .env.example .env && echo "Created .env from template. Edit it to set TUNNEL_TOKEN.")
+	@test -f .env || (cp .env.example .env && echo "Created .env — set TUNNEL_TOKEN.")
 	@mkdir -p music
-	@echo "Place your music files in ./music/"
-	@echo "Run 'make up' to start. Music auto-queues and plays automatically."
+	@echo "Drop files in ./music/ → make up"
 
-play:
-	docker compose exec mpd mpc update
-	docker compose exec mpd mpc ls | docker compose exec -T mpd mpc add
-	docker compose exec mpd mpc play
+# === Playback ===
+play:    ; $(MPC) play
+stop:    ; $(MPC) stop
+pause:   ; $(MPC) pause
+next:    ; $(MPC) next
+prev:    ; $(MPC) prev
+random:  ; $(MPC) random on
+sequential: ; $(MPC) random off
+status:  ; $(MPC) status
 
-stop:
-	docker compose exec mpd mpc stop
+# === Library ===
+reload:
+	$(MPC) update --wait
+	$(MPC) clear
+	$(MPC) ls | $(DC) exec -T mpd mpc add
+	$(MPC) play
 
-pause:
-	docker compose exec mpd mpc pause
-
-random:
-	docker compose exec mpd mpc random on
-
-sequential:
-	docker compose exec mpd mpc random off
-
-next:
-	docker compose exec mpd mpc next
-
-prev:
-	docker compose exec mpd mpc prev
-
-status:
-	docker compose exec mpd mpc status
-
-volume:
-	@echo "Note: mixer_type is 'none' — adjust volume on the client side (VLC, browser, etc.)"
-	@docker compose exec mpd mpc volume
-
-ncmpcpp:
-	docker compose exec -it mpd ncmpcpp
-
-test:
-	@bash scripts/test.sh
-
-build:
-	docker compose build --no-cache
-
-clean:
-	docker compose down -v
+# === Tools ===
+ncmpcpp: ; $(DC) exec -it mpd ncmpcpp
+test:    ; @bash scripts/test.sh

@@ -1,3 +1,4 @@
 .env
 music/*
 !music/123.mp3
+app/Dockerfile

@@ -8,7 +8,8 @@
 
 ```bash
 make setup   # Creates .env + music/
-make up      # Build, start, auto-queue, random play
+make up-build # First time: build + start + auto-queue + random play
+make up       # Next runs: start only (faster)
 make test    # Health checks
 ```
 
@@ -40,6 +41,7 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 | `compose.yaml` | Service definitions, mounts, env vars | Medium |
 | `Dockerfile` | Alpine base image build | Low |
 | `Makefile` | Operational commands | Medium |
+| `app/Dockerfile` | Web UI (Vite + Hono SPA) build | Low |
 | `scripts/entrypoint.sh` | Auto-queue + random play on startup | Low |
 | `scripts/test.sh` | Integration tests (7 checks) | Medium |
 | `music/` | Music files (bind mount, gitignored) | High |
@@ -54,14 +56,17 @@ Full directory layout → [`docs/directory.md`](docs/directory.md)
 ```
 Listener (VLC/browser) ──► Cloudflare Tunnel ──► cloudflared
                                                         │
-                                                  ┌─────┴─────┐
-                                                  │ MPD:6600  │
-                                                  │ HTTPD:8000│
-                                                  └─────┬─────┘
-                                                        │
-                                                  ┌─────┴─────┐
-                                                  │ ./music/  │
-                                                  └───────────┘
+                              ┌─────────────────────────┼─────────────────────────┐
+                              │                         │                         │
+                              ▼                         ▼                         ▼
+                        ┌─────────┐              ┌──────────┐              ┌─────────┐
+                        │MPD:6600 │              │app:5173  │              │./music/ │
+                        │HTTPD:8000              │Web UI    │              └─────────┘
+                        └────┬────┘              └──────────┘
+                             │
+                        ┌────┴────┐
+                        │ ./music/│
+                        └─────────┘
 ```
 
 **Control**: `mpc` / `ncmpcpp` → `mpd:6600`  

@@ -27,8 +27,8 @@
 ### 中優先度
 
 - [x] **自動プレイリスト化**: `scripts/entrypoint.sh` で MPD 起動後に空キューを自動検出 → `mpc ls | mpc add` → `mpc play`（2024-??）
-- [ ] **Web UI（最小版）**: 現在再生中の曲情報と簡易なプレイコントロール（HTML + fetch で MPD HTTP ストリーム + 別途制御 API）
-- [ ] **GitHub Actions CI**: Dockerfile ビルド・MPD 設定構文検証・ポート到達性テストの自動化
+- [x] **Web UI（最小版）**: `app/` に Vite + Hono SPA を構築。`/api` で MPD 制御、`/` で SPA 配信（2024-??）
+- [x] **GitHub Actions CI**: `.github/workflows/build.yaml`（GHCR マルチアーキビルド）と `tag.yaml`（自動タグ付け・リリース）を設定
 - [ ] `.env.example` の充実化: オプション設定（ビットレート変更、max_clients 調整）のコメント追加
 
 ### 低優先度

@@ -27,7 +27,7 @@ export default defineConfig({
         emptyOutDir: false,
         rollupOptions: {
           input: "src/index.ts",
-          external: ["cloudflare:workers"],
+          external: ["cloudflare:workers", "cloudflare:sockets"],
         },
       },
     },
@@ -39,7 +39,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,svg,ttf}"],
+        globPatterns: ["**/*.{js,css,html,png,svg,wolf2}"],
         navigateFallback: "",
       },
       pwaAssets: { image: "./public/logo.svg" },

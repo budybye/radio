@@ -16,6 +16,18 @@ services:
     #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
     # NOTE: Uncomment only if you need host-side access. Default: all access via Tunnel or `docker compose exec`
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mpc status >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    mem_limit: 512m
+    cpus: "1.50"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -24,8 +36,16 @@ services:
     # command: tunnel --url http://mpd:8000
     restart: unless-stopped
     depends_on:
-      - mpd
-      - app
+      mpd:
+        condition: service_healthy
+      app:
+        condition: service_started
+    mem_limit: 128m
+    cpus: "0.50"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   app:
     build: ./app
@@ -34,7 +54,14 @@ services:
     #   - "8000:8000"
     restart: unless-stopped
     depends_on:
-      - mpd
+      mpd:
+        condition: service_healthy
+    mem_limit: 256m
+    cpus: "1.00"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mpd-data:

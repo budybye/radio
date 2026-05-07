@@ -1,4 +1,4 @@
-import { app } from "../src";
+import app from "../src";
 
 export default {
   fetch: app.fetch,
