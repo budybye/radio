@@ -20,7 +20,7 @@ Docker + MPD + Cloudflare Tunnel で個人音楽をインターネットラジ�
 | Docker Engine | 24.0+ |
 | Docker Compose | 2.20+ |
 
-### インストール
+### セットアップ & 起動
 
 ```bash
 # 1. リポジトリをクローン
@@ -30,29 +30,21 @@ cd radio
 # 2. セットアップ（.env 作成 + music/ 作成）
 make setup
 
-# 3. 音楽ファイルを music/ に配置して起動
+# 3. TUNNEL_TOKEN を .env に設定（公開配信する場合）
+#    取得方法: Cloudflare Zero Trust → Networks → Tunnels → Create a tunnel
+
+# 4. 音楽ファイルを music/ に配置
+
+# 5. 起動
 make up-build # 初回: ビルド + 起動
 make up       # 2回目以降: 起動のみ（高速）
 ```
-
-> 全 `make` コマンド一覧は [docs/tech.md](docs/tech.md) を参照。
-
-### 環境変数
-
-`.env.example` をコピーし、`TUNNEL_TOKEN` を設定してください。
-
-- `TUNNEL_TOKEN` の取得方法: [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Zero Trust → Networks → Tunnels → Create a tunnel → トークンをコピー
 
 > ⚠️ `.env` は `.gitignore` に登録済みです。決してコミットしないでください。
 
-### 起動
+`make up` 後、キューが空の場合は `scripts/entrypoint.sh` が自動で全曲を追加 → ランダム再生を開始します。手動でライブラリを更新したい場合は `make reload` を使ってください。
 
-```bash
-make up-build # 初回: ビルド + 起動
-make up       # 2回目以降: 起動のみ（高速）
-```
-
-> `make up` 後にキューが空の場合、`scripts/entrypoint.sh` が自動で `mpc ls | mpc add` → `mpc random on` → `mpc play` を実行します。手動で操作したい場合は `make play`（ライブラリ更新 → キュー追加 → 再生）を使ってください。
+全 `make` コマンド一覧は下記「操作ガイド」を参照。詳細は [docs/tech.md](docs/tech.md) もどうぞ。
 
 #### Pre-built イメージを使う（オプション）
 
@@ -75,6 +67,21 @@ https://your-tunnel-domain/
 ```
 
 > Cloudflare Tunnel ダッシュボードで Public Hostname の Service を `http://mpd:8000` に設定してください。
+
+### Web UI で操作する（オプション）
+
+ブラウザからプレイリスト・再生制御できる Web UI も同梱されています。アクセス方法は2つ：
+
+**A. Cloudflare Tunnel で公開する（推奨）**
+Tunnel の Public Hostname を追加し、Service を `http://app:5173` に設定してください。
+
+**B. ローカルで直接アクセスする**
+`compose.yaml` の `app` サービスの `ports:` をアンコメントしてから `make restart`：
+```yaml
+    ports:
+      - "127.0.0.1:5173:5173"
+```
+ブラウザで `http://localhost:5173` を開きます。
 
 ## アーキテクチャ
 
@@ -101,26 +108,59 @@ Cloudflare Tunnel（cloudflared）
 開発環境の構築、テスト実行、コーディング規約は `AGENTS.md` に定義されています。
 
 ```bash
-make test    # ヘルスチェック実行
-make logs    # リアルタイムログ表示
-make status  # 現在の再生状態を表示
+make test      # 統合テスト（7項目のヘルスチェック）
+make logs      # リアルタイムログ表示
+make status    # 現在の再生状態を表示
+make ncmpcpp   # TUI プレイヤーを開く
 ```
 
 ## 操作ガイド
 
-### MPC コマンド一覧
+### Make コマンド一覧
 
-| コマンド | 説明 |
-|---------|------|
-| `mpc play` | 再生 |
-| `mpc pause` | 一時停止 |
-| `mpc next` | 次の曲 |
-| `mpc prev` | 前の曲 |
-| `mpc volume 80` | 音量 80%（※無効 — クライアント側で調整） |
-| `mpc clear` | プレイリストをクリア |
-| `mpc add <path>` | 曲を追加 |
-| `mpc update` | ライブラリを更新 |
-| `mpc status` | 現在の状態を表示 |
+```bash
+# ライフサイクル
+make up-build   # 初回: ビルド + 起動
+make up         # 起動のみ
+make down       # 停止
+make restart    # 再起動
+make build      # イメージ再ビルド（キャッシュ無し）
+make clean      # 停止 + ボリューム削除
+
+# 再生制御
+make play       # 再生
+make stop       # 停止
+make pause      # 一時停止 / 再開
+make next       # 次の曲
+make prev       # 前の曲
+make random     # ランダム再生 ON
+make sequential # ランダム再生 OFF
+
+# ライブラリ
+make reload     # ライブラリ再スキャン + キュー再構築 + 再生
+
+# ツール
+make status     # 現在の状態を表示
+make ncmpcpp    # TUI プレイヤーを開く
+make test       # 統合テスト実行
+make logs       # ログを tail
+```
+
+> `make` だけ打つと全コマンドのヘルプが表示されます。
+
+### MPC コマンド（コンテナ内直接操作）
+
+```bash
+docker compose exec mpd mpc play
+docker compose exec mpd mpc pause
+docker compose exec mpd mpc next
+docker compose exec mpd mpc prev
+docker compose exec mpd mpc status
+docker compose exec mpd mpc update   # ライブラリ更新
+docker compose exec mpd mpc clear    # プレイリストクリア
+```
+
+> `mpc volume` はコンテナ内にハードウェアミキサーがないため無効です。音量調整はクライアント側（VLC / ブラウザ）で行ってください。
 
 ### ncmpcpp（TUI クライアント）
 
@@ -174,7 +214,7 @@ docker compose exec -it mpd ncmpcpp
 | [docs/directory.md](docs/directory.md) | ディレクトリ構造・規約 |
 | [docs/problems.md](docs/problems.md) | 既知の問題・リスク |
 | [docs/references.md](docs/references.md) | 参考資料リンク集 |
-| [AGENTS.md](AGENTS.md) | 開発ルール・ガイドライン（英語） |
+| [AGENTS.md](AGENTS.md) | 開発ルール・クイックスタート・ガイドライン |
 
 ## トラブルシューティング
 

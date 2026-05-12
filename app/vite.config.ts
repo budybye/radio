@@ -38,10 +38,8 @@ export default defineConfig({
     ssrPlugin(),
     VitePWA({
       registerType: "autoUpdate",
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,png,svg,wolf2}"],
-        navigateFallback: "",
-      },
+      devOptions: { enabled: true },
+      workbox: { navigateFallback: "" },
       pwaAssets: { image: "./public/logo.svg" },
     }),
   ],

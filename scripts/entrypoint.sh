@@ -1,5 +1,5 @@
-#!/bin/sh
-set -e
+#!/usr/bin/env bash
+# set -e
 
 # Ensure MPD data directory ownership
 chown -R mpd:audio /var/lib/mpd
@@ -13,7 +13,7 @@ chown -R mpd:audio /var/lib/mpd
     if [ "$(mpc playlist | wc -l)" -eq 0 ]; then
         mpc update --wait
         mpc ls | mpc add
-        mpc random on && mpc play
+        mpc random on && mpc repeat on && mpc play
     fi
 ) >/tmp/entrypoint-bg.log 2>&1 &
 
