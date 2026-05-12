@@ -1,14 +1,11 @@
-FROM node:slim
+FROM oven/bun:slim
 
 WORKDIR /app
 
-RUN npm install -g bun
-
 COPY package.json ./
-RUN bun install
+RUN bun install --allow-scripts
 
 COPY . .
-
 RUN bun run build
 
 EXPOSE 5173
