@@ -1,6 +1,18 @@
 # 🎵 Docker MPD Internet Radio
 
-Docker + MPD + Cloudflare Tunnel で個人音楽をインターネットラジオとして配信します。不特定多数のリスナーがブラウザや音楽プレイヤーからアクセス可能です。
+個人の音楽ファイルをインターネットラジオとして配信する Docker 構成です。Docker + MPD + Cloudflare Tunnel で、ポート開放不要・安全に誰でも聴けるストリーミング環境を数分で構築できます。
+
+## 目次
+
+- [機能](#機能)
+- [クイックスタート](#クイックスタート)
+- [アーキテクチャ](#アーキテクチャ)
+- [開発](#開発)
+- [操作ガイド](#操作ガイド)
+- [設定のポイント](#設定のポイント)
+- [ドキュメント](#ドキュメント)
+- [トラブルシューティング](#トラブルシューティング)
+- [ライセンス](#ライセンス)
 
 ## 機能
 
@@ -70,18 +82,18 @@ https://your-tunnel-domain/
 
 ### Web UI で操作する（オプション）
 
-ブラウザからプレイリスト・再生制御できる Web UI も同梱されています。アクセス方法は2つ：
+ブラウザからプレイリスト・再生制御できる Web UI も同梱されています。
 
-**A. Cloudflare Tunnel で公開する（推奨）**
-Tunnel の Public Hostname を追加し、Service を `http://app:5173` に設定してください。
+| 方法 | 手順 | 推奨度 |
+|------|------|--------|
+| **A. Cloudflare Tunnel で公開** | Tunnel の Public Hostname を追加し、Service を `http://app:5173` に設定 | ⭐ 推奨 |
+| **B. ローカルで直接アクセス** | `compose.yaml` の `app` サービスの `ports:` をアンコメント → `make restart` → `http://localhost:5173` | 開発時 |
 
-**B. ローカルで直接アクセスする**
-`compose.yaml` の `app` サービスの `ports:` をアンコメントしてから `make restart`：
+**B の compose.yaml 変更例：**
 ```yaml
     ports:
       - "127.0.0.1:5173:5173"
 ```
-ブラウザで `http://localhost:5173` を開きます。
 
 ## アーキテクチャ
 
@@ -189,18 +201,15 @@ docker compose exec -it mpd ncmpcpp
 
 ## 設定のポイント
 
+ラジオ配信に最適化した主要設定は以下の3つです。詳細な設定ファイル解説は [docs/tech.md](docs/tech.md) を参照してください。
+
 | 設定 | 値 | 理由 |
 |-----|---|------|
 | `always_on yes` | 有効 | 再生停止時もリスナー接続を維持（ラジオ配信に必須） |
-| `tags yes` | 有効 | 曲名・アーティスト情報をストリームに含める |
 | `mixer_type none` | 無効 | コンテナ内にハードウェアミキサーがないため |
 | `auto_update yes` | 有効 | ファイル追加後自動反映 |
-| `entrypoint.sh` | 自動実行 | MPD 起動後に空キューを検出 → 自動で曲追加 + ランダム再生開始 |
-| `fifo` 出力 | `/var/lib/mpd/mpd.fifo` | ncmpcpp の visualizer 用データソース |
 
 ※ `mixer_type none` のため、音量調整はクライアント側（VLC 等）で行ってください。`mpc volume` は無効です。
-
-詳細な設定ファイル解説は [docs/tech.md](docs/tech.md) を参照してください。
 
 ## ドキュメント
 

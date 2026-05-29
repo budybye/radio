@@ -4,7 +4,7 @@ services:
     # Option A: Build locally (default)
     build: .
     # Option B: Use pre-built image from GHCR (uncomment below, comment out `build: .`)
-    # image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-your-username}/radio-mpd:latest
+    # image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-budybye}/radio-mpd:latest
     container_name: radio-mpd
     volumes:
       - ./music:/music
@@ -22,9 +22,30 @@ services:
       timeout: 3s
       retries: 6
       start_period: 10s
-    mem_limit: 384m
+    # mem_limit: 384m
     # mem_limit: 512m
-    # cpus: "1.50"
+
+  mpc-bridge:
+    build: ./mpc-bridge
+    container_name: radio-mpc-bridge
+    environment:
+      MPD_HOST: mpd
+      MPD_PORT: "6600"
+    depends_on:
+      mpd:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'wget -qO- ''http://127.0.0.1:8080/mpd.cgi?cmd=ping'' 2>/dev/null | grep -q ''"ok":true''',
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+    # mem_limit: 64m
 
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -35,20 +56,20 @@ services:
     depends_on:
       mpd:
         condition: service_healthy
-    mem_limit: 128m
-    # cpus: "0.50"
-
-  app:
-    build: ./app
-    container_name: radio-app
-    # ports:
-    #   - "5173:5173"
-    restart: unless-stopped
-    depends_on:
-      mpd:
+      mpc-bridge:
         condition: service_healthy
-    mem_limit: 256m
-    # cpus: "1.00"
+    # mem_limit: 128m
+
+  # app:
+  #   build: ./app
+  #   container_name: radio-app
+  #   # ports:
+  #   #   - "5173:5173"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     mpd:
+  #       condition: service_healthy
+  #   mem_limit: 256m
 
 volumes:
   mpd-data:
