@@ -14,11 +14,25 @@ radio/
 ├── AGENTS.md             # AI エージェント向け開発ガイドライン
 ├── .github/
 │   └── workflows/        # GitHub Actions CI/CD（イメージビルド・自動リリース）
-├── app/                  # Web UI（Vite + Hono SPA）— MPD 制御・SPA 配信
+├── mpc-bridge/           # MPD プロトコル HTTP ブリッジ（TCP 接続プール）
+│   ├── main.go
+│   ├── go.mod
+│   └── Dockerfile
+├── workers/              # Web UI（Vite + Hono Workers）— MPD 制御・SPA 配信
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── vite.config.ts
-│   └── src/
+│   ├── worker/           # Wrangler entry
+│   └── app/
+│       ├── client.tsx    # Inertia クライアント入口
+│       ├── style.css
+│       ├── inertia.tsx   # Inertia SSR シェル
+│       ├── lib/          # 共有ロジック (radio 型・client 等)
+│       ├── schemas/      # Valibot（API 入力 + MPD レコード）
+│       ├── server/       # Hono SSR + MPD API + RPC
+│       │   ├── mpd/      # command / parse / song / current-song / routes
+│       │   └── rpc.ts    # capnweb サーバー
+│       └── pages/        # Inertia ページ
 ├── config/
 │   ├── mpd.conf          # MPD 設定ファイル（コンテナ内 /etc/mpd.conf にマウント）
 │   └── config            # ncmpcpp 設定ファイル（コンテナ内 /root/.ncmpcpp/config にマウント）
@@ -43,7 +57,8 @@ radio/
 
 | パス | 役割 |
 |------|------|
-| `app/` | Web UI（Vite + Hono SPA）のソースコードとビルド設定。`/api` で MPD 制御、`/` で SPA 配信 |
+| `mpc-bridge/` | MPD TCP 6600 を HTTP `/mpd.cgi` に変換。Workers から Tunnel 経由で利用 |
+| `workers/` | Web UI（Vite + Hono Workers）。MPD 制御 RPC + Inertia SPA 配信 |
 | `config/` | MPD の設定ファイル（`mpd.conf`）と ncmpcpp 設定ファイル（`config`）を配置。コンテナ起動時に `/etc/mpd.conf` と `/root/.ncmpcpp/config` へ read-only マウントされる |
 | `music/` | 配信対象の音楽ファイル（MP3, FLAC 等）を配置。`auto_update` により自動的にライブラリに反映される |
 | `docs/` | プロジェクトの技術文書・仕様書を配置。README.md からリンクされる |
@@ -61,7 +76,7 @@ radio/
 
 - **音楽ファイル** → `music/` に直接追加。サブディレクトリ可。`auto_update` で自動反映
 - **MPD 設定変更** → `config/mpd.conf` を編集後、`docker compose restart mpd` で反映
-- **Web UI 変更** → `app/` 内を編集後、`docker compose build app` で反映
+- **Web UI 変更** → `workers/` を編集後、`cd workers && bun run deploy`
 - **新しいサービス追加** → `compose.yaml` にサービス定義を追加し、`Dockerfile` が必要な場合はプロジェクトルートまたはサービスディレクトリに配置
 - **新しい make ターゲット追加** → `Makefile` に追加後、`docs/tech.md` の「Makefile コマンド一覧」テーブルに反映
 - **新しいテスト項目追加** → `scripts/test.sh` に追加後、`docs/test.md` のテスト内容テーブルに反映

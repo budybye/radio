@@ -40,8 +40,9 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 | `config/config`         | ncmpcpp UI settings                    | Low              |
 | `compose.yaml`          | Service definitions, mounts, env vars  | Medium           |
 | `Dockerfile`            | Alpine base image build                | Low              |
+| `mpc-bridge/main.go`    | HTTP→MPD TCP pool (Workers/Tunnel)     | Medium           |
 | `Makefile`              | Operational commands                   | Medium           |
-| `app/Dockerfile`        | Web UI (Vite + Hono SPA) build         | Low              |
+| `workers/Dockerfile`    | Web UI (Vite + Hono SPA) build         | Low              |
 | `scripts/entrypoint.sh` | Auto-queue + random play on startup    | Low              |
 | `scripts/test.sh`       | Integration tests (7 checks)           | Medium           |
 | `music/`                | Music files (bind mount, gitignored)   | High             |

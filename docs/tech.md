@@ -112,49 +112,45 @@ services:
       - ./config/config:/root/.ncmpcpp/config:ro
       - mpd-data:/var/lib/mpd
     # ports:
-    #   - "127.0.0.1:6600:6600"  # MPD control (mpc / ncmpcpp from host)
-    #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
+    #   - "127.0.0.1:6600:6600"
+    #   - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
-  app:
-    build: ./app
-    container_name: radio-app
-    # ports:
-    #   - "8000:8000"
-    restart: unless-stopped
+  mpc-bridge:
+    build: ./mpc-bridge
+    environment:
+      MPD_HOST: mpd
+      MPD_PORT: "6600"
+      POOL_SIZE: "4"
     depends_on:
-      - mpd
+      mpd:
+        condition: service_healthy
 
   tunnel:
     image: cloudflare/cloudflared:latest
-    container_name: radio-tunnel
     command: tunnel run --token ${TUNNEL_TOKEN:-}
-    restart: unless-stopped
     depends_on:
-      - mpd
-      - app
+      mpd:
+        condition: service_healthy
+      mpc-bridge:
+        condition: service_healthy
 
 volumes:
   mpd-data:
-
-networks:
-  default:
-    name: radio-network
-    driver: bridge
 ```
 
 **設定のポイント**:
-- `build: .` → `Dockerfile` から MPD 環境をビルド
-- `build: ./app` → `app/Dockerfile` から Web UI（Vite + Hono SPA）をビルド
+- `mpc-bridge` → Workers が Tunnel 経由で MPD コマンドを実行する HTTP ゲートウェイ
+- `build: .` → ルート `Dockerfile` から MPD 環境をビルド
 - `./config/config:/root/.ncmpcpp/config:ro` → ncmpcpp 設定をコンテナ内にマウント
-- `ports` を **コメントアウト** → デフォルトではホスト側へのポート公開を避け、ローカル MPD 等との衝突を防止。アクセスは Tunnel 経由または `docker compose exec` のみ。モバイルアプリ等で直接制御する場合のみ `127.0.0.1:` プレフィックス付きで有効化
-- `networks` → `radio-network` として明示的に命名。サービス間通信と外部識別が容易になる
-- `depends_on` → Tunnel が MPD と app 起動後に開始されるよう依存関係を定義
+- `ports` を **コメントアウト** → デフォルトではホスト側へのポート公開を避ける。アクセスは Tunnel 経由または `docker compose exec` のみ
+- `networks` → `radio-network` として明示的に命名
+- Web UI は `workers/` を Cloudflare Workers へ deploy（compose には含めない）
 
 ### `Dockerfile`
 
 ```dockerfile
-FROM alpine:3.19
+FROM alpine:3.20
 
 RUN apk add --no-cache mpd mpc ncmpcpp && \
     mkdir -p /var/lib/mpd/playlists /music && \
@@ -216,5 +212,31 @@ visualizer_type = wave_filled
 | `auto_update yes` | 有効 | music/ へのファイル追加を自動検出 |
 | `encoder lame` / `bitrate 320` | MP3 320kbps | 音質と帯域のバランス |
 | `format 44100:16:2` | CD 品質 | 互換性のある標準サンプリングレート |
-| `max_clients 10` | 10 接続 | MPD HTTPD 出力の同時接続上限 |
+| `max_clients 20` | 20 接続 | MPD HTTPD 出力の同時接続上限 |
 | `fifo` 出力 | `/var/lib/mpd/mpd.fifo` | ncmpcpp の visualizer 用データソース |
+
+## Workers: MpdAgent DO + Cap'n Web
+
+本番 UI は Cloudflare Workers（`workers/`）。MPD ポーリングは **Agents SDK `MpdAgent` DO** が global 1 本。Agent ルーティングは **`hono-agents` の `agentsMiddleware`** が Hono チェーン内で `/agents/*` を処理する。
+
+### 経路
+
+| 経路 | 用途 | 実装 |
+|------|------|------|
+| `useAgent` + `/agents/MpdAgent/radio` | React クライアント（推奨） | `use-mpd-agent.ts` |
+| Cap'n Web `/rpc` | 外部クライアント・HTTP batch | `RadioApiServer` → DO |
+| Hono `/api/mpd/*` | キュー操作（add/delete） | `mpdCommand` → mpc-bridge |
+
+Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。Cap'n Web の `watchCurrentSong` は DO の `waitNextState(epoch)` でイベント待ち（500ms ポーリングなし）。React は Cap'n Web より Agents SDK を優先。
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|----------|------|
+| `workers/worker/mpd-agent.ts` | DO: poll, state, metrics, callables |
+| `workers/app/server/rpc.ts` | Cap'n Web → DO ブリッジ |
+| `workers/app/lib/radio/use-mpd-agent.ts` | React `useAgent` watch |
+| `workers/app/server/middleware.ts` | `hono-agents` middleware |
+| `mpc-bridge/main.go` | MPD TCP 接続プール |
+
+公式: [Agents SDK](https://developers.cloudflare.com/agents/) / [Durable Objects](https://developers.cloudflare.com/durable-objects/) / [MPD Protocol](https://mpd.readthedocs.io/en/latest/protocol.html)
