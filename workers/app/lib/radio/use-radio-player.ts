@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
-import type { CurrentSongClient } from "./client";
+import type { CurrentSongClient } from "./serialize";
+import { useCurrentSong } from "./use-current-song";
 import { useMpdAgentWatch } from "./use-mpd-agent";
 
+function streamOrigin(streamUrl: string): string {
+  return new URL(streamUrl).origin;
+}
+
+/** エラー再接続時のみ cache bust（初回 play は warm した接続を再利用） */
 function liveStreamUrl(base: string): string {
   return `${base}?_${Date.now()}`;
+}
+
+function hasWarmStreamSrc(audio: HTMLAudioElement, streamUrl: string): boolean {
+  if (!audio.src) return false;
+  try {
+    return new URL(audio.src).origin === streamOrigin(streamUrl);
+  } catch {
+    return false;
+  }
 }
 
 function disconnectAudio(audio: HTMLAudioElement): void {
@@ -29,14 +44,11 @@ export function useRadioPlayer({
 }: UseRadioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSong, setCurrentSong] = useState(initialSong);
-  const songRef = useRef(currentSong);
+  const currentSong = useCurrentSong(initialSong);
   const intentRef = useRef(false);
   const genRef = useRef(0);
-  const watchRef = useRef<ReturnType<typeof useMpdAgentWatch> | null>(null);
   const lastMetaRefreshRef = useRef(0);
-
-  songRef.current = currentSong;
+  const { isActive, refresh } = useMpdAgentWatch();
 
   const stop = useCallback(() => {
     genRef.current++;
@@ -46,29 +58,47 @@ export function useRadioPlayer({
     setIsPlaying(false);
   }, []);
 
-  const connect = useCallback(async () => {
-    if (!intentRef.current) return;
-
+  /** ホバー時のみバッファ温める（マウント時は呼ばない＝ライブ遅れを抑える） */
+  const prepareStream = useCallback(() => {
+    if (intentRef.current) return;
     const audio = audioRef.current;
-    if (!audio) return;
-
-    const gen = ++genRef.current;
-    disconnectAudio(audio);
-    audio.src = liveStreamUrl(streamUrl);
+    if (!audio || hasWarmStreamSrc(audio, streamUrl)) return;
+    audio.src = streamUrl;
     audio.load();
+  }, [streamUrl]);
 
-    try {
-      await audio.play();
-      if (gen !== genRef.current) return;
-      if (!intentRef.current) {
+  const connect = useCallback(
+    async (options?: { forceReload?: boolean }) => {
+      if (!intentRef.current) return;
+
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const gen = ++genRef.current;
+      const warm = hasWarmStreamSrc(audio, streamUrl);
+
+      if (!warm || options?.forceReload) {
         disconnectAudio(audio);
-        return;
+        audio.src = options?.forceReload
+          ? liveStreamUrl(streamUrl)
+          : streamUrl;
+        audio.load();
       }
-      setIsPlaying(true);
-    } catch {
-      if (gen === genRef.current) stop();
-    }
-  }, [stop, streamUrl]);
+
+      try {
+        await audio.play();
+        if (gen !== genRef.current) return;
+        if (!intentRef.current) {
+          disconnectAudio(audio);
+          return;
+        }
+        setIsPlaying(true);
+      } catch {
+        if (gen === genRef.current) stop();
+      }
+    },
+    [stop, streamUrl],
+  );
 
   const toggle = useCallback(() => {
     if (intentRef.current) {
@@ -76,16 +106,17 @@ export function useRadioPlayer({
       return;
     }
     intentRef.current = true;
+    setIsPlaying(true);
     void connect();
   }, [connect, stop]);
 
   const reconnectAudioIfWanted = useCallback(() => {
     if (!intentRef.current) return;
-    void connect();
+    void connect({ forceReload: true });
   }, [connect]);
 
   const refreshMetadata = useCallback(async () => {
-    if (watchRef.current?.isActive()) return;
+    if (isActive()) return;
 
     const now = Date.now();
     if (now - lastMetaRefreshRef.current < METADATA_REFRESH_DEBOUNCE_MS) {
@@ -94,12 +125,27 @@ export function useRadioPlayer({
     lastMetaRefreshRef.current = now;
 
     try {
-      const next = await watchRef.current?.refresh();
-      if (next !== undefined) setCurrentSong(next);
+      await refresh();
     } catch {
       /* 前の曲名を維持 */
     }
-  }, []);
+  }, [isActive, refresh]);
+
+  useEffect(() => {
+    let link: HTMLLinkElement | null = null;
+    try {
+      const origin = streamOrigin(streamUrl);
+      link = document.createElement("link");
+      link.rel = "preconnect";
+      link.href = origin;
+      document.head.appendChild(link);
+    } catch {
+      /* invalid streamUrl – skip preconnect */
+    }
+    return () => {
+      link?.remove();
+    };
+  }, [streamUrl]);
 
   useEffect(() => {
     const onVis = () => {
@@ -111,15 +157,13 @@ export function useRadioPlayer({
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [reconnectAudioIfWanted, refreshMetadata]);
 
-  const watch = useMpdAgentWatch(setCurrentSong, () => songRef.current);
-  watchRef.current = watch;
-
   useEffect(() => () => stop(), [stop]);
 
   return {
     audioRef,
     isPlaying,
     toggle,
+    prepareStream,
     onAudioError: reconnectAudioIfWanted,
     currentSong,
   };

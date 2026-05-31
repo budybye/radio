@@ -3,5 +3,4 @@ declare global {
     Bindings: CloudflareEnv;
   }
 }
-
 export {};

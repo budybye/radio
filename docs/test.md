@@ -2,19 +2,17 @@
 
 ## テスト戦略
 
-本プロジェクトはインフラ構成（Docker + MPD + Tunnel）が主体で、アプリケーションコードが存在しない。そのため、テストピラミッドは以下のように限定される：
+本プロジェクトは **Docker スタック（MPD + Tunnel）** と **Workers アプリ（`workers/`）** の二層。自動テストの中心はシェル統合テスト。Workers は型チェックと（将来）Vitest プールを想定：
 
 ```
         ┌─────────┐
-        │   E2E   │  実際のクライアント接続テスト
-        │ （手動+ │  （ブラウザ・音楽プレイヤーでストリーム再生）
-        │  自動）  │
+        │   E2E   │  ブラウザ / 実 Tunnel / 本番 Workers
+        │ （手動） │
        ┌┴─────────┴┐
-       │ Integration │  コンテナ間連携・エンドポイント到達性
-       │   （自動）   │  （curl / nc での接続確認）
+       │ Integration │  make test, mpc-bridge, /mpd/ping
+       │   （自動）   │
       ┌┴─────────────┴┐
-      │    Unit/Static  │  設定ファイル構文検証・ビルドテスト
-      │    （自動）      │  （Dockerfile lint、MPD --test）
+      │  Unit / Static  │  docker build, compose config, tsc (workers)
       └─────────────────┘
 ```
 
@@ -66,7 +64,17 @@ make test
 - **コンテナ起動フロー**: 100%（CI または手動で `docker compose up --build` を毎回検証）
 - **ストリーミング品質**: 手動確認（主観的な音質チェック、メタデータ表示確認）
 
-> 数値カバレッジ（行数等）は対象外 — 本プロジェクトにアプリケーションコードが存在しないため。
+> MPD スタックは数値カバレッジ対象外。Workers は `bunx tsc --noEmit`（`workers/tsconfig.json`）で型安全を担保。
+
+### Workers（手動）
+
+| 項目 | コマンド | 期待 |
+|------|----------|------|
+| 型チェック | `cd workers && bunx tsc --noEmit` | エラーなし |
+| ローカル UI | `cd workers && bun run dev` | Home / posts が表示 |
+| 診断 | `curl https://044g.com/mpd/ping` 等 | JSON で reachable |
+
+Vitest（`@cloudflare/vitest-pool-workers`）は依存に含むが、現状テストファイル未配置。
 
 ## テスト実行
 
@@ -98,7 +106,9 @@ bash scripts/test.sh
 
 ## CI/CD でのテスト実行
 
-現時点では CI/CD は未設定。推奨される GitHub Actions ワークフロー：
+**Docker イメージ**: [`.github/workflows/build.yaml`](../.github/workflows/build.yaml) で GHCR ビルド。[`tag.yaml`](../.github/workflows/tag.yaml) でリリースタグ。
+
+**Workers**: リポジトリ CI に未統合（ローカル `tsc` / `bun run deploy`）。将来の CI 例：
 
 ```yaml
 # 概念的な CI パイプライン（将来導入時の参考）

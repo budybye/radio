@@ -100,10 +100,39 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 ### MPD 制御プロトコル（管理者向け）
 
-| インターフェース | ポート | 説明 |
-|------------------|--------|------|
-| MPD Protocol | 6600 | TCP ベースのテキストプロトコル（mpc, ncmpcpp, 各種クライアント） |
-| ncmpcpp (TUI) | コンテナ内 | 対話的なターミナルクライアント |
+| インターフェース | ポート / パス | 説明 |
+|------------------|---------------|------|
+| MPD Protocol | 6600（コンテナ内部） | TCP テキストプロトコル（mpc, ncmpcpp） |
+| mpc-bridge | `mpc.*` → `/mpd.cgi?cmd=` | Tunnel 経由 HTTP。Access Service Token で保護 |
+| Workers `/posts` | 044g.com | キュー CRUD。Basic（read）/ Basic or Bearer（write） |
+| ncmpcpp (TUI) | コンテナ内 | 対話的ターミナルクライアント |
+
+### Workers 診断エンドポイント
+
+| Method | パス | 説明 |
+|--------|------|------|
+| GET | `/status` | MPD status JSON |
+| GET | `/currentsong` | 現在曲（`Result` シリアライズ） |
+| GET | `/mpd/ping` | mpc-bridge + MPD 到達性 |
+
+### Workers: 現在曲データフロー
+
+```
+[SSR GET /]
+  fetchCurrentSong() ──RPC──► MpdAgent.getCurrentSongView()
+       │                         │
+       │                         └── pollTick ──► mpc-bridge ──► MPD
+       └── Inertia props.song
+
+[Browser Home]
+  useRadioPlayer()
+    ├── useMpdAgentWatch() ──WS/stream──► watchCurrentSong()
+    │         └── useCurrentSongMutate() → SWR キー CURRENT_SONG_SWR_KEY
+    └── useCurrentSong() ← SWR 読み取り（fetcher なし = push 専用）
+```
+
+- **削除済み**: Cap'n Web RPC、`client.ts`、Hub/Watch 用の別モジュール分割
+- **ops**: `GET /currentsong` は `getCurrentSongResult()` を JSON で返す（ライブ UI とは独立）
 
 ## 状態管理
 
@@ -154,3 +183,14 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
   - リスナー数増加には Icecast 等のリレーサーバー導入が一般的解決策
   - 現段階では「動作確認・個人用途」が主目的のため、過度な構成は避ける
 - **結果**: シンプルな運用で開発を進められる。将来的にリスナー増加・統計収集等が必要になった場合、Icecast リレーまたは MPD 前段にリバースプロキシを検討
+
+### ADR-004: mpc サブドメインを Cloudflare Access で保護
+
+- **ステータス**: 承認済み
+- **状況**: `mpc.*` を Tunnel で HTTP 公開すると、認証なしで MPD 制御 API（stop / clear / playlist 等）が全世界から到達可能になる
+- **決定**: `mpc.044g.com` に Cloudflare Access を適用。Policy は Service Auth（Service Token のみ Allow）+ Block（Everyone）
+- **理由**:
+  - CORS 制限は curl / スクリプトを防げない
+  - Workers から mpc-bridge へ fetch する際、`CF-Access-Client-Id/Secret` ヘッダで認証
+  - ストリーム（`mpd.*`）と UI（`044g.com`）は公開のまま維持
+- **結果**: 制御面のみ閉じ、Tunnel の利点（ポート開放不要）は維持。Worker secrets に Service Token を登録

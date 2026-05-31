@@ -1,5 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { MpdAddInput } from "../schemas/mpd";
+
+import type { PostFormErrors, PostSongInput } from "../schemas/posts";
 
 const pathToField = (
   path: StandardSchemaV1.Issue["path"],
@@ -17,18 +18,18 @@ const pathToField = (
 
 export const toFieldErrors = (
   issues: readonly StandardSchemaV1.Issue[],
-): Record<string, string> => {
-  const out: Record<string, string> = {};
+): PostFormErrors => {
+  const out: PostFormErrors = {};
   for (const issue of issues) {
     const key = pathToField(issue.path);
     if (!key || key in out) continue;
-    out[key] = issue.message;
+    out[key as keyof PostSongInput] = issue.message;
   }
   return out;
 };
 
-export const recoverInput = (data: unknown): MpdAddInput => {
-  const obj = (data ?? {}) as Partial<MpdAddInput>;
+export const recoverInput = (data: unknown): PostSongInput => {
+  const obj = (data ?? {}) as Partial<PostSongInput>;
   return {
     file: typeof obj.file === "string" ? obj.file : "",
   };

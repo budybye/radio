@@ -1,9 +1,8 @@
 import type { PageProps } from "../pages.gen";
-import { MpdAgentMetrics } from "../components/MpdAgentMetrics";
 import { useRadioPlayer } from "../lib/radio/use-radio-player";
 
 export default function Home({ song, config }: PageProps<"Home">) {
-  const { audioRef, isPlaying, toggle, onAudioError, currentSong } =
+  const { audioRef, isPlaying, toggle, prepareStream, onAudioError, currentSong } =
     useRadioPlayer({
       initialSong: song ?? null,
       streamUrl: config.streamUrl,
@@ -28,12 +27,12 @@ export default function Home({ song, config }: PageProps<"Home">) {
 
       <button
         className="btn btn-circle mx-auto size-20 text-5xl"
+        type="button"
+        onPointerEnter={prepareStream}
         onClick={toggle}
       >
         {isPlaying ? "🔇" : "▶️"}
       </button>
-
-      <MpdAgentMetrics />
     </div>
   );
 }

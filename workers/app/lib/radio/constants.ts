@@ -5,5 +5,6 @@ export const WS_RECONNECT_BASE_MS = 2_000;
 export const WS_RECONNECT_MAX_MS = 30_000;
 /** visibility 復帰時の metadata HTTP 再取得デバウンス */
 export const METADATA_REFRESH_DEBOUNCE_MS = 3_000;
+export const CURRENT_SONG_SWR_KEY = "radio/current-song";
 export const SSR_CURRENT_SONG_CACHE_MS = 3_000;
 export const TITLE_FALLBACK = "320kbps";

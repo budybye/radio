@@ -7,6 +7,7 @@
 | P-001 | ~~ncmpcpp の動作確認未完了~~ | — | ✅ 解決済み。コンテナ内で `docker compose exec -it mpd ncmpcpp` を実行し、TUI の表示・操作が正常に機能することを確認済み | — |
 | P-002 | `mixer_type none` によるサーバ側音量調整不可 | 低 | クライアント側（VLC / ブラウザ）での音量調整を推奨する運用ドキュメントを整備 | 未設定 |
 | P-003 | MPD HTTPD 出力の `max_clients = 10` 制限 | 高（将来） | 同時接続リスナーが 10 を超える場合、新規接続が拒否される。Phase 2 で Icecast リレーまたは nginx 等のストリームリバースプロキシを MPD 前段に配置して対応を検討 | 未設定 |
+| P-004 | ~~mpc サブドメインが認証なし公開~~ | — | ✅ 解決済み。Cloudflare Access（Service Auth + Block）+ Worker Service Token ヘッダ | — |
 
 ## 既知の不具合と制限
 
@@ -38,7 +39,7 @@
 |------|------|----------|
 | `cloudflared:latest` タグの使用 | 再現性が低下（予期しないバージョン変更） | `compose.yaml` で固定バージョン（例: `2026.3.0`）に変更し、更新時に意図的にバージョンアップする |
 | `max_clients` ハードコーディング | スケール時の設定変更漏れリスク | `mpd.conf` の `max_clients` を環境変数またはビルド引数で外部化する |
-| ヘルスチェック未設定 | Tunnel が MPD 準備完了前に起動し、一時的に接続エラーを返す可能性 | `compose.yaml` に `healthcheck` を追加し、`depends_on` の `condition: service_healthy` を使用する |
+| ヘルスチェック未設定 | ~~Tunnel が MPD 準備完了前に起動~~ | ✅ `compose.yaml` に mpd / mpc-bridge healthcheck + `depends_on: service_healthy` 済み |
 
 ## リスク登録
 
@@ -46,13 +47,13 @@
 |--------|----------|------|------|
 | Cloudflare Tunnel 接続断 | 低 | 高（公開不可） | `restart: unless-stopped` で自動復旧。監視通知は未設定（将来対応） |
 | 音楽ファイルの著作権問題 | 中 | 高（法的） | 配信する音楽は自己所有・著作権フリーのみに限定。公開範囲の再検討が必要な場合あり |
-| Alpine パッケージの非互換更新 | 低 | 中（ビルド失敗） | `Dockerfile` で `alpine:3.19` を固定。Alpine メジャーバージョンアップ時は `mpd` パッケージの互換性を確認 |
+| Alpine パッケージの非互換更新 | 低 | 中（ビルド失敗） | `Dockerfile` で `alpine:3.20` を固定。Alpine メジャーバージョンアップ時は `mpd` パッケージの互換性を確認 |
 | MPD DB 破損 | 低 | 中（ライブラリ消失） | named volume（`mpd-data`）のバックアップ手順を確立。`mpd.db` は手動で削除・再生成可能 |
 | 帯域圧迫（大量同時接続） | 低（現状） / 高（将来） | 高 | 現状 `max_clients: 10` で制限。将来 Icecast リレー or CDN 配信への移行を検討 |
 
 ## 調査中
 
-- [ ] ncmpcpp の ncurses 互換性（Alpine 3.19 + ホストのターミナルエミュレータ依存）
+- [ ] ncmpcpp の ncurses 互換性（Alpine 3.20 + ホストのターミナルエミュレータ依存）
 - [ ] MPD の `replaygain` 機能が HTTPD 出力に適用されるか
 - [ ] Cloudflare Tunnel の無料プラン帯域制限と、ストリーミング配信への影響
 - [ ] ブラウザ `<audio>` タグでストリーム再生中に途切れる問題の再現性確認

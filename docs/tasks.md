@@ -7,7 +7,7 @@
 | Phase 0: 環境構築 | Docker + MPD + Tunnel の基本構成を構築し、ローカルでストリーミング確認 | — | ✅ 完了 |
 | Phase 1: 動作確認 | ncmpcpp / mpc からの操作、Cloudflare Tunnel 経由での外部接続、タグ情報伝送を検証 | — | 🔄 進行中 |
 | Phase 2: 複数ユーザー対応 | 同時接続リスナー数の拡張、接続管理、リスナー統計の収集基盤 | TBD | ⏳ 未開始 |
-| Phase 3: 管理 UI | Web ベースのプレイリスト操作・ステータス表示・リスナー数モニタリング | TBD | ⏳ 未開始 |
+| Phase 3: 管理 UI | Web ベースのプレイリスト操作・ステータス表示・リスナー数モニタリング | TBD | 🔄 進行中 — 詳細は [requirements.md](requirements.md#phase-3-管理-ui進行中) |
 
 ## 現在のフォーカス
 
@@ -21,13 +21,13 @@
 ### 高優先度
 
 - [ ] **同時接続数の拡張設計**: MPD HTTPD 出力の max_clients 上限突破のため Icecast リレーまたはリバースプロキシ検討
-- [ ] **ヘルスチェック追加**: `compose.yaml` に MPD サービスの `healthcheck` を定義し、Tunnel 起動前に MPD 準備完了を保証
+- [ ] **ヘルスチェック追加**: ~~`compose.yaml` に MPD サービスの `healthcheck` を定義~~ ✅ 完了
 - [ ] **音量制御の代替策**: `mixer_type none` によるサーバ側音量調整不可の代替（クライアント側ガイド or リプレイゲイン設定）
 
 ### 中優先度
 
 - [x] **自動プレイリスト化**: `scripts/entrypoint.sh` で MPD 起動後に空キューを自動検出 → `mpc ls | mpc add` → `mpc play`（2024-??）
-- [x] **Web UI（最小版）**: `app/` に Vite + Hono SPA を構築。`/api` で MPD 制御、`/` で SPA 配信（2024-??）
+- [x] **Web UI（Workers）**: `workers/` に Vite + Hono + MpdAgent DO。`/posts` でキュー CRUD、Basic/Bearer 認証
 - [x] **GitHub Actions CI**: `.github/workflows/build.yaml`（GHCR マルチアーキビルド）と `tag.yaml`（自動タグ付け・リリース）を設定
 - [ ] `.env.example` の充実化: オプション設定（ビットレート変更、max_clients 調整）のコメント追加
 

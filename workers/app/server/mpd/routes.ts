@@ -1,16 +1,10 @@
 import { Hono } from "hono";
 import { Result } from "better-result";
 
-import {
-  mpcBaseUrl,
-  mpcBridgePing,
-  mpdPingErr,
-  type MpdPingOk,
-  type MpdPingErr,
-} from "./transport";
-import { getCurrentSongResult, getStatusResult } from "./current-song";
-
-type MpdPingResponse = MpdPingOk | MpdPingErr;
+import type { MpdPingOk, MpdPingResponse } from "../../schemas/mpd";
+import { mpcBaseUrl, mpcBridgePing, mpdPingErr } from "./ping";
+import { getCurrentSongResult } from "./current-song";
+import { getStatusResult } from "./status";
 
 export const mpd = new Hono<Env>()
   .get("/status", async (c) => {
@@ -28,15 +22,15 @@ export const mpd = new Hono<Env>()
     const target = mpcBaseUrl();
     const ping = await mpcBridgePing();
     if (ping.isErr()) {
-      return c.json(ping.error satisfies MpdPingErr, 502);
+      return c.json(ping.error, 502);
     }
 
-    const result = await getStatusResult();
-    if (result.isErr()) {
-      return c.json(mpdPingErr(target, result.error.message), 502);
+    const status = await getStatusResult();
+    if (status.isErr()) {
+      return c.json(mpdPingErr(target, status.error.message), 502);
     }
 
-    const parsed = result.value;
+    const parsed = status.value;
     const body: MpdPingOk = {
       ok: true,
       target,

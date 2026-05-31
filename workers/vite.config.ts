@@ -7,9 +7,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  resolve: {
-    mainFields: ["module", "main"],
-  },
   environments: {
     client: {
       build: {

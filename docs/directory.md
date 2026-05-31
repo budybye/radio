@@ -22,17 +22,22 @@ radio/
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── worker/           # Wrangler entry
+│   ├── wrangler.jsonc
+│   ├── worker/           # Wrangler entry + MpdAgent DO
 │   └── app/
 │       ├── client.tsx    # Inertia クライアント入口
 │       ├── style.css
 │       ├── inertia.tsx   # Inertia SSR シェル
-│       ├── lib/          # 共有ロジック (radio 型・client 等)
-│       ├── schemas/      # Valibot（API 入力 + MPD レコード）
-│       ├── server/       # Hono SSR + MPD API + RPC
-│       │   ├── mpd/      # command / parse / song / current-song / routes
-│       │   └── rpc.ts    # capnweb サーバー
-│       └── pages/        # Inertia ページ
+│       ├── lib/
+│       │   ├── validation.ts
+│       │   └── radio/    # 型・serialize・errors・use-* hooks
+│       ├── schemas/      # Valibot（mpd.ts: プロトコル / posts.ts: 管理 UI）
+│       ├── server/       # Hono SSR + MPD API
+│       │   ├── index.tsx
+│       │   ├── middleware.ts   # basic / bearer / hono-agents
+│       │   ├── posts-routes.ts # /posts CRUD + auth
+│       │   └── mpd/            # bridge, transport, playlist, routes 等
+│       └── pages/        # Inertia ページ (Home, Posts/*)
 ├── config/
 │   ├── mpd.conf          # MPD 設定ファイル（コンテナ内 /etc/mpd.conf にマウント）
 │   └── config            # ncmpcpp 設定ファイル（コンテナ内 /root/.ncmpcpp/config にマウント）
@@ -43,7 +48,7 @@ radio/
 │   ├── setup.sh          # Docker 環境セットアップスクリプト（Ubuntu/Debian）
 │   └── test.sh           # ヘルスチェックスクリプト（make test で実行）
 └── docs/                 # プロジェクトドキュメント
-    ├── requirements.md   # 要件定義
+    ├── requirements.md   # 要件定義（Phase 3 進捗含む）
     ├── design.md         # 設計仕様・ADR
     ├── tech.md           # 技術仕様・スタック
     ├── test.md           # テスト方針
@@ -58,7 +63,7 @@ radio/
 | パス | 役割 |
 |------|------|
 | `mpc-bridge/` | MPD TCP 6600 を HTTP `/mpd.cgi` に変換。Workers から Tunnel 経由で利用 |
-| `workers/` | Web UI（Vite + Hono Workers）。MPD 制御 RPC + Inertia SPA 配信 |
+| `workers/` | Web UI（Vite + Hono Workers）。MpdAgent DO + Inertia SPA。本番は `bun run deploy` |
 | `config/` | MPD の設定ファイル（`mpd.conf`）と ncmpcpp 設定ファイル（`config`）を配置。コンテナ起動時に `/etc/mpd.conf` と `/root/.ncmpcpp/config` へ read-only マウントされる |
 | `music/` | 配信対象の音楽ファイル（MP3, FLAC 等）を配置。`auto_update` により自動的にライブラリに反映される |
 | `docs/` | プロジェクトの技術文書・仕様書を配置。README.md からリンクされる |

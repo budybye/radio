@@ -215,28 +215,66 @@ visualizer_type = wave_filled
 | `max_clients 20` | 20 接続 | MPD HTTPD 出力の同時接続上限 |
 | `fifo` 出力 | `/var/lib/mpd/mpd.fifo` | ncmpcpp の visualizer 用データソース |
 
-## Workers: MpdAgent DO + Cap'n Web
+## Workers: MpdAgent DO + Hono
 
 本番 UI は Cloudflare Workers（`workers/`）。MPD ポーリングは **Agents SDK `MpdAgent` DO** が global 1 本。Agent ルーティングは **`hono-agents` の `agentsMiddleware`** が Hono チェーン内で `/agents/*` を処理する。
 
-### 経路
+### サブドメイン
+
+| ホスト | 役割 | 公開 |
+|--------|------|:----:|
+| `044g.com` | Web UI（Workers） | ✅ リスナー + 管理 |
+| `mpd.044g.com` | MP3 ストリーム（Tunnel → MPD HTTPD） | ✅ 聴取のみ |
+| `mpc.044g.com` | mpc-bridge（MPD 制御 HTTP） | 🔒 Access Service Token のみ |
+
+### 現在曲の取得経路
 
 | 経路 | 用途 | 実装 |
 |------|------|------|
-| `useAgent` + `/agents/MpdAgent/radio` | React クライアント（推奨） | `use-mpd-agent.ts` |
-| Cap'n Web `/rpc` | 外部クライアント・HTTP batch | `RadioApiServer` → DO |
-| Hono `/api/mpd/*` | キュー操作（add/delete） | `mpdCommand` → mpc-bridge |
+| `useAgent` + `/agents/MpdAgent/radio` | React クライアント（ライブ） | `use-mpd-agent.ts` → DO `watchCurrentSong` |
+| DO `getCurrentSongView` | SSR / refresh | `current-song.ts` |
+| `GET /currentsong` | ops / curl | `mpd/routes.ts` |
 
-Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。Cap'n Web の `watchCurrentSong` は DO の `waitNextState(epoch)` でイベント待ち（500ms ポーリングなし）。React は Cap'n Web より Agents SDK を優先。
+Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。ライブ更新は MpdAgent DO `watchCurrentSong` 一本（Cap'n Web RPC は削除済み）。
+
+### HTTP ルート（Workers）
+
+| Method | Path | 認証 | 説明 |
+|--------|------|------|------|
+| GET | `/` | なし | リスナー Home |
+| GET | `/status`, `/currentsong`, `/mpd/ping` | なし | 診断・ops |
+| GET | `/posts*` | Basic | 管理 UI 閲覧 |
+| POST/PATCH/DELETE | `/posts*` | Basic or Bearer | キュー CRUD（Inertia or API） |
+
+### Worker シークレット
+
+| 名前 | 用途 |
+|------|------|
+| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | mpc.044g.com Access Service Token |
+| `USERNAME` / `PASSWORD` | 管理 UI Basic Auth |
+| `TOKEN` | 管理 API Bearer（write 用 `basicOrBearer`） |
+
+```bash
+cd workers
+bunx wrangler secret put CF_ACCESS_CLIENT_ID
+bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
+bunx wrangler secret put USERNAME
+bunx wrangler secret put PASSWORD
+bunx wrangler secret put TOKEN
+```
 
 ### 関連ファイル
 
 | ファイル | 役割 |
 |----------|------|
-| `workers/worker/mpd-agent.ts` | DO: poll, state, metrics, callables |
-| `workers/app/server/rpc.ts` | Cap'n Web → DO ブリッジ |
+| `workers/worker/mpd-agent.ts` | DO: poll, state, watch, metrics |
+| `workers/app/server/mpd/bridge.ts` | mpc-bridge fetch + Access ヘッダ |
+| `workers/app/server/mpd/playlist.ts` | キュー CRUD (better-result) |
+| `workers/app/server/posts-routes.ts` | /posts HTTP + auth |
 | `workers/app/lib/radio/use-mpd-agent.ts` | React `useAgent` watch |
-| `workers/app/server/middleware.ts` | `hono-agents` middleware |
+| `workers/app/server/middleware.ts` | basic / bearer / hono-agents |
 | `mpc-bridge/main.go` | MPD TCP 接続プール |
 
-公式: [Agents SDK](https://developers.cloudflare.com/agents/) / [Durable Objects](https://developers.cloudflare.com/durable-objects/) / [MPD Protocol](https://mpd.readthedocs.io/en/latest/protocol.html)
+詳細は [workers/README.md](../workers/README.md)。
+
+公式: [Agents SDK](https://developers.cloudflare.com/agents/) / [Durable Objects](https://developers.cloudflare.com/durable-objects/) / [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) / [MPD Protocol](https://mpd.readthedocs.io/en/latest/protocol.html)

@@ -15,7 +15,10 @@ import type {
   CurrentSongPayload,
   CurrentSongView,
 } from "../app/lib/radio/types";
-import { mpdBridgeCommand } from "../app/server/mpd/bridge";
+import {
+  mpcAccessFromEnv,
+  mpdBridgeCommand,
+} from "../app/server/mpd/bridge";
 import { parseMpdResponse } from "../app/server/mpd/parse";
 import { recordToCurrentSong } from "../app/server/mpd/song";
 import { watchTick } from "../app/server/mpd/watch-tick";
@@ -25,6 +28,11 @@ export { MPD_AGENT_INSTANCE };
 type StateWaiter = { epoch: number; resolve: () => void };
 
 export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
+  static override options = {
+    hibernate: true,
+    hungScheduleTimeoutSeconds: 120, //bridge+Tunnel が遅いとき
+  };
+
   override initialState: MpdAgentState = {
     songid: "",
     song: null,
@@ -64,7 +72,10 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     }
   }
 
-  private waitForStateChange(afterEpoch: number, timeoutMs = 60_000): Promise<void> {
+  private waitForStateChange(
+    afterEpoch: number,
+    timeoutMs = 60_000,
+  ): Promise<void> {
     if (this.stateEpoch > afterEpoch) return Promise.resolve();
     return new Promise((resolve) => {
       const timer = setTimeout(resolve, timeoutMs);
@@ -122,9 +133,15 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
 
   private bridge(cmd: string) {
     return this.retry(
-      () => mpdBridgeCommand(this.env.MPC_HOST, cmd),
-      { maxAttempts: 3 },
-    );
+      () =>
+        mpdBridgeCommand(
+          this.env.MPC_HOST,
+          cmd,
+          mpcAccessFromEnv(this.env),
+        ),
+      {
+      maxAttempts: 3,
+    });
   }
 
   private async tick(): Promise<boolean> {
@@ -174,9 +191,13 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     return changed;
   }
 
-  private viewForSubscriber(clientSongid?: string): Result<CurrentSongView, MpdError> {
+  private viewForSubscriber(
+    clientSongid?: string,
+  ): Result<CurrentSongView, MpdError> {
     if (this.state.lastError) {
-      return Result.err(new MpdTransportError({ message: this.state.lastError }));
+      return Result.err(
+        new MpdTransportError({ message: this.state.lastError }),
+      );
     }
 
     const songid = this.state.songid;
@@ -185,11 +206,16 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     }
     if (!songid) return Result.ok(null);
     if (!this.state.song) return Result.ok(null);
-    return Result.ok({ ...this.state.song, songid } satisfies CurrentSongPayload);
+    return Result.ok({
+      ...this.state.song,
+      songid,
+    } satisfies CurrentSongPayload);
   }
 
   @callable()
-  getCurrentSongView(clientSongid?: string): SerializedResult<CurrentSongView, MpdError> {
+  getCurrentSongView(
+    clientSongid?: string,
+  ): SerializedResult<CurrentSongView, MpdError> {
     return Result.serialize(this.viewForSubscriber(clientSongid));
   }
 

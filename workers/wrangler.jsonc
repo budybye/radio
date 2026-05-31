@@ -11,10 +11,6 @@
     "pattern": "044g.com",
     "custom_domain": true,
   },
-  "vars": {
-    "MPD_HOST": "mpd.044g.com",
-    "MPC_HOST": "mpc.044g.com"
-  },
   "durable_objects": {
     "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
   },

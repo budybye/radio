@@ -80,20 +80,24 @@ https://your-tunnel-domain/
 
 > Cloudflare Tunnel ダッシュボードで Public Hostname の Service を `http://mpd:8000` に設定してください。
 
-### Web UI で操作する（オプション）
+### Web UI で操作する
 
-ブラウザからプレイリスト・再生制御できる Web UI も同梱されています。
+Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose には含めない）。
 
-| 方法 | 手順 | 推奨度 |
-|------|------|--------|
-| **A. Cloudflare Tunnel で公開** | Tunnel の Public Hostname を追加し、Service を `http://app:5173` に設定 | ⭐ 推奨 |
-| **B. ローカルで直接アクセス** | `compose.yaml` の `app` サービスの `ports:` をアンコメント → `make restart` → `http://localhost:5173` | 開発時 |
-
-**B の compose.yaml 変更例：**
-```yaml
-    ports:
-      - "127.0.0.1:5173:5173"
+```bash
+cd workers
+bun install
+bun run deploy
 ```
+
+| ホスト | 用途 |
+|--------|------|
+| `044g.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
+| `mpd.044g.com` | MP3 ストリーム URL（`radio-config` が参照） |
+
+ローカル開発: `cd workers && bun run dev` → `http://localhost:5173`
+
+詳細は [workers/README.md](workers/README.md) と [docs/tech.md](docs/tech.md) の Workers 節。
 
 ## アーキテクチャ
 
@@ -101,16 +105,16 @@ https://your-tunnel-domain/
 リスナー（ブラウザ / VLC / アプリ）
     │ HTTPS
     ▼
-Cloudflare Tunnel（cloudflared）
+Cloudflare（Workers UI + Tunnel エッジ）
     │
-    ├──► http://mpd:8000  ──► MP3 ストリーム（リスナー向け）
+    ├──► mpd.* ──► MPD HTTPD ──► MP3 ストリーム
     │
-    ├──► http://radio-app:5173  ──► Web UI（MPD 制御・SPA）
+    ├──► mpc.* ──► mpc-bridge ──► MPD TCP 6600（Access 保護）
     │
-    └──► 管理操作は `docker compose exec` のみ（ホストにポート公開なし）
+    └──► 044g.com ──► Workers（Web UI + MpdAgent DO）
              │
              ▼
-        MPD コンテナ（Alpine Linux + MPD 0.23.14）
+        Docker: MPD + mpc-bridge + cloudflared
 ```
 
 詳細は [docs/design.md](docs/design.md) を参照してください。
@@ -215,7 +219,8 @@ docker compose exec -it mpd ncmpcpp
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [docs/requirements.md](docs/requirements.md) | 要件定義・機能要件 |
+| [docs/README.md](docs/README.md) | **索引** — 読む順・システム概要・Workers コードマップ |
+| [docs/requirements.md](docs/requirements.md) | 要件定義・Phase 3 進捗 |
 | [docs/design.md](docs/design.md) | システム設計・アーキテクチャ・ADR |
 | [docs/tech.md](docs/tech.md) | 技術スタック・環境構築手順・`make` コマンド一覧 |
 | [docs/test.md](docs/test.md) | テスト戦略・検証手順 |
@@ -224,6 +229,7 @@ docker compose exec -it mpd ncmpcpp
 | [docs/problems.md](docs/problems.md) | 既知の問題・リスク |
 | [docs/references.md](docs/references.md) | 参考資料リンク集 |
 | [AGENTS.md](AGENTS.md) | 開発ルール・クイックスタート・ガイドライン |
+| [workers/README.md](workers/README.md) | Workers 開発・ルート・シークレット |
 
 ## トラブルシューティング
 

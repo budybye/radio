@@ -48,6 +48,6 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 | `music/`                | Music files (bind mount, gitignored)   | High             |
 | `.env`                  | Secret tokens (gitignored)             | First setup only |
 
-Full directory layout → [`docs/directory.md`](docs/directory.md)
+Full directory layout → [`docs/directory.md`](docs/directory.md) · doc index → [`docs/README.md`](docs/README.md)
 
 ---

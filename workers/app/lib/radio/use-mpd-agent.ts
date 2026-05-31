@@ -1,6 +1,6 @@
 import { useAgent } from "agents/react";
 import { type SerializedResult } from "better-result";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   WS_RECONNECT_BASE_MS,
@@ -17,45 +17,39 @@ import {
   type CurrentSongClient,
 } from "./serialize";
 import type { CurrentSongView } from "./types";
+import { useCurrentSongMutate } from "./use-current-song";
 
-export type MpdAgentWatchHandle = {
-  /** Agents WebSocket + streaming watch が生きてる */
-  isActive: () => boolean;
-  /** watch 切断時の metadata 再取得（Cap'n Web HTTP 不要） */
-  refresh: () => Promise<CurrentSongClient | null>;
-};
+function songFromAgentState(state: MpdAgentState): CurrentSongClient | null {
+  if (!state.songid || !state.song) return null;
+  return { ...state.song, songid: state.songid };
+}
 
 /**
- * MpdAgent DO へ useAgent 接続し、watchCurrentSong streaming で metadata を受信。
- * Cap'n Web RPC watch の置き換え。
+ * MpdAgent DO へ useAgent 接続し、watchCurrentSong streaming で SWR キャッシュを更新。
  */
-export function useMpdAgentWatch(
-  onUpdate: (song: CurrentSongClient | null) => void,
-  getCache: () => CurrentSongClient | null,
-): MpdAgentWatchHandle {
-  const onUpdateRef = useRef(onUpdate);
-  const getCacheRef = useRef(getCache);
-  const cacheRef = useRef(getCache());
+export function useMpdAgentWatch() {
+  const { get, set } = useCurrentSongMutate();
   const streamActiveRef = useRef(false);
   const reconnectAttemptRef = useRef(0);
-
-  onUpdateRef.current = onUpdate;
-  getCacheRef.current = getCache;
 
   const agent = useAgent<MpdAgentState>({
     agent: MPD_AGENT_NAME,
     name: MPD_AGENT_INSTANCE,
     onStateUpdate: (state) => {
-      // 接続直後の bootstrap（streaming 開始前）
       if (streamActiveRef.current) return;
-      if (!state.songid || !state.song) {
-        cacheRef.current = null;
-      } else {
-        cacheRef.current = { ...state.song, songid: state.songid };
-      }
-      onUpdateRef.current(cacheRef.current);
+      void set(songFromAgentState(state));
     },
   });
+
+  const applySerialized = useCallback(
+    async (
+      serialized: SerializedResult<CurrentSongView, MpdError>,
+    ): Promise<CurrentSongClient | null> => {
+      await set((prev) => currentSongFromSerialized(serialized, prev));
+      return get();
+    },
+    [get, set],
+  );
 
   const isActive = useCallback(
     () =>
@@ -98,27 +92,20 @@ export function useMpdAgentWatch(
       }
       if (cancelled) return;
 
-      cacheRef.current = getCacheRef.current();
       streamActiveRef.current = true;
       reconnectAttemptRef.current = 0;
 
       try {
         await agent.call(
           "watchCurrentSong",
-          [cacheRef.current?.songid],
+          [get()?.songid],
           {
             stream: {
               onChunk: (chunk) => {
                 if (cancelled) return;
-                const serialized = chunk as SerializedResult<
-                  CurrentSongView,
-                  MpdError
-                >;
-                cacheRef.current = currentSongFromSerialized(
-                  serialized,
-                  cacheRef.current,
+                void applySerialized(
+                  chunk as SerializedResult<CurrentSongView, MpdError>,
                 );
-                onUpdateRef.current(cacheRef.current);
               },
               onError: () => {
                 streamActiveRef.current = false;
@@ -140,24 +127,22 @@ export function useMpdAgentWatch(
       streamActiveRef.current = false;
       clearReconnect();
     };
-  }, [agent]);
+  }, [agent, applySerialized, get]);
 
   const refresh = useCallback(async (): Promise<CurrentSongClient | null> => {
     try {
       await agent.ready;
       const serialized = (await agent.call("getCurrentSongView", [
-        cacheRef.current?.songid,
+        get()?.songid,
       ])) as SerializedResult<CurrentSongView, MpdError>;
-      cacheRef.current = currentSongFromSerialized(
-        serialized,
-        cacheRef.current,
-      );
-      onUpdateRef.current(cacheRef.current);
-      return cacheRef.current;
+      return await applySerialized(serialized);
     } catch {
-      return cacheRef.current;
+      return get();
     }
-  }, [agent]);
+  }, [agent, applySerialized, get]);
 
-  return { isActive, refresh };
+  return useMemo(
+    () => ({ isActive, refresh }),
+    [isActive, refresh],
+  );
 }

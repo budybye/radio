@@ -22,7 +22,6 @@ services:
       timeout: 3s
       retries: 6
       start_period: 10s
-    # mem_limit: 512m
 
   mpc-bridge:
     build: ./mpc-bridge
@@ -45,7 +44,6 @@ services:
       timeout: 3s
       retries: 6
       start_period: 5s
-    # mem_limit: 64m
 
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -58,7 +56,16 @@ services:
         condition: service_healthy
       mpc-bridge:
         condition: service_healthy
-    # mem_limit: 128m
+
+  # app:
+  #   build: ./workers
+  #   container_name: radio-app
+  #   # ports:
+  #   #   - "127.0.0.1:5173:5173"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     mpd:
+  #       condition: service_healthy
 
 volumes:
   mpd-data:
