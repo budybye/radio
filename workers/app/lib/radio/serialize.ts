@@ -1,8 +1,4 @@
-import {
-  type AnyTaggedError,
-  Result,
-  type SerializedResult,
-} from "better-result";
+import { Result, type SerializedResult } from "better-result";
 
 import {
   MpcHttpError,
@@ -46,15 +42,6 @@ export function mpdWireEqual(
   if (a === b) return true;
   if (!a || !b) return false;
   return a._tag === b._tag && (a.message ?? "") === (b.message ?? "");
-}
-
-/** TaggedError は toJSON を持つ。RPC は structuredClone が toJSON を踏まないので先に平オブジェクト化する */
-export function serializeResult<T, E extends AnyTaggedError>(
-  result: Result<T, E>,
-): SerializedResult<T, E> {
-  if (result.isOk()) return { status: "ok", value: result.value };
-  // SAFETY: TaggedError.toJSON() matches SerializedResult error slot for AnyTaggedError.
-  return { status: "error", error: result.error.toJSON() as E };
 }
 
 export type SerializedMpdResult<T> = SerializedResult<T, MpdErrorWire>;

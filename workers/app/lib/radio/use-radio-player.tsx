@@ -77,10 +77,13 @@ export function useRadioPlayer({
       connecting: false,
     });
   const songRef = useRef(currentSong);
-  songRef.current = currentSong;
   const intentRef = useRef(false);
   const genRef = useRef(0);
   const lastMetaRefreshRef = useRef(0);
+
+  useEffect(() => {
+    songRef.current = currentSong;
+  }, [currentSong]);
 
   const engageAgent = useCallback(() => {
     setAgentEngaged(true);
@@ -188,13 +191,13 @@ export function useRadioPlayer({
   }, [connect, engageAgent, stop]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((muted) => {
-      const next = !muted;
-      const audio = audioRef.current;
-      if (audio) audio.muted = next;
-      return next;
-    });
+    setIsMuted((muted) => !muted);
   }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) audio.muted = isMuted;
+  }, [isMuted]);
 
   const reconnectAudioIfWanted = useCallback(() => {
     if (!intentRef.current) return;

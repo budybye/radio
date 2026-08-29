@@ -64,13 +64,3 @@ export async function fetchCurrentSongResult(): Promise<
   };
   return Result.ok(song);
 }
-
-/** SSR 境界での劣化ラッパー（失敗時は undefined） */
-export async function fetchCurrentSong(): Promise<
-  CurrentSongPayload | undefined
-> {
-  return (await fetchCurrentSongResult()).match({
-    ok: (song) => song,
-    err: () => undefined,
-  });
-}

@@ -30,10 +30,13 @@ export function GlobeSpeaker({
   const listenerRef = useRef(listenerCount);
   const mpdStateRef = useRef(mpdState);
   const errorRef = useRef(hasError);
-  activeRef.current = active;
-  listenerRef.current = listenerCount;
-  mpdStateRef.current = mpdState;
-  errorRef.current = hasError;
+
+  useEffect(() => {
+    activeRef.current = active;
+    listenerRef.current = listenerCount;
+    mpdStateRef.current = mpdState;
+    errorRef.current = hasError;
+  }, [active, listenerCount, mpdState, hasError]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

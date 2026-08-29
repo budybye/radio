@@ -26,11 +26,3 @@ export async function fetchListenerCountResult(): Promise<
   };
   return Result.ok(count);
 }
-
-/** SSR 境界での劣化ラッパー（失敗時は 0） */
-export async function fetchListenerCount(): Promise<number> {
-  return (await fetchListenerCountResult()).match({
-    ok: (count) => count,
-    err: () => 0,
-  });
-}

@@ -79,9 +79,15 @@ function useMpdAgentWatch({
   onConnectionStatus,
 }: MpdAgentSyncInnerProps) {
   const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
   const onConnectionStatusRef = useRef(onConnectionStatus);
-  onConnectionStatusRef.current = onConnectionStatus;
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
+  useEffect(() => {
+    onConnectionStatusRef.current = onConnectionStatus;
+  }, [onConnectionStatus]);
 
   const agent = useAgent<MpdAgentState>({
     agent: MPD_AGENT_NAME,
