@@ -90,17 +90,16 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 図: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
 
-| データ | SSR (`GET /`) | CSR（Play ホバー後） |
+| データ | SSR (`GET /`) | CSR（Play 後） |
 |--------|---------------|----------------------|
-| **現在曲** | `fetchCurrentSong()` → DO `getCurrentSongView()`（冷起動時 1 tick） | `useAgent` `onStateUpdate` |
+| **現在曲** | `fetchCurrentSong()` → mpc-bridge 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
 | **リスナー数** | `fetchListenerCount()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
 | **MPD state** | — | `useAgent` `onStateUpdate` |
 
 **設計意図**
 
-- **曲メタ**: DO が `tick()` で `status` + `currentsong` をパースし、RPC / state push の正本にする。SSR は接続クライアントがいなければ `getCurrentSongView` 内で 1 tick してから返す。
-- **リスナー数 SSR**: 毎ページロードで DO を起こさないため bridge 直叩き。preview HTTP smoke の `listenerCount` はこの SSR 値。
-- **ライブ更新**: `setWatchActive` / `setPlaybackActive` で poll 連鎖を開始し、変化時のみ `setState` → WebSocket push。
+- **曲メタ SSR / ops**: `fetchCurrentSong` と `GET /currentsong` は mpc-bridge 直叩き（DO を起こさない）。
+- **曲メタ ライブ**: Play 後に `useAgent` が接続し、DO の `tick()` が正本。変化時のみ `setState` → WebSocket push。
 
 ### Workers: Home UI（GlobeSpeaker）
 
@@ -108,7 +107,7 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 |------------|------|------|
 | Home ページ | `workers/app/pages/Home.tsx` | 単一カラム。中央に大きな GlobeSpeaker、下に now-playing、dock に play/mute |
 | GlobeSpeaker | `workers/app/components/GlobeSpeaker.tsx` | cobe 3D 地球儀（canvas `.globe-speaker`）。東京 HUB マーカー、再生/リスナー数でモーション |
-| プレイヤー | `workers/app/lib/radio/use-radio-player.tsx` | audio、mute、lazy `engageAgent()`、tab visibility で watch 制御 |
+| プレイヤー | `workers/app/lib/radio/use-radio-player.tsx` | audio、mute、Play 時のみ `engageAgent()`、ホバーは audio 温めのみ |
 | Agent 同期 | `workers/app/lib/radio/use-mpd-agent.tsx` | `MpdAgentSync` — Play 後のみ WebSocket。`setWatchActive` / `setPlaybackActive` |
 | MpdAgent DO | `workers/worker/mpd-agent.ts` | `shouldConnectionBeReadonly`、二段ポーリング、`listenerCount` state push |
 

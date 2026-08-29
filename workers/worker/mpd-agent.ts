@@ -135,7 +135,7 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     if (outcome.changed) this.setState(outcome.state);
   }
 
-  /** Home 等マウント中は低速ポーリングで listener / mpdState を配信 */
+  /** Play 後の watch 用。接続直後の tick は pollTick 連鎖に任せる（余分な bridge 呼び出しを避ける） */
   @callable()
   async setWatchActive(active: boolean) {
     const { connection } = getCurrentAgent<MpdAgent>();
@@ -146,8 +146,6 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     }));
     if (!active) return;
     this.ensurePollChain();
-    const outcome = await this.tick(this.state);
-    if (outcome.changed) this.setState(outcome.state);
   }
 
   async pollTick() {

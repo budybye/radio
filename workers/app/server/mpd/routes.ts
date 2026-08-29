@@ -51,9 +51,9 @@ export function createMpdRoutes() {
     "/currentsong",
     describeRoute({
       tags: ["mpd"],
-      summary: "Current song (MpdAgent-backed)",
+      summary: "Current song (mpc-bridge)",
       description:
-        "Returns `SerializedMpdResult<CurrentSongView>`. Pass `songid` to receive `{ unchanged: true }` when unchanged.",
+        "Returns `SerializedMpdResult<CurrentSongView>` from mpc-bridge. Pass `songid` to receive `{ unchanged: true }` when unchanged.",
       security: [{ basicAuth: [] }],
       parameters: [
         {

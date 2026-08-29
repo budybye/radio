@@ -1,22 +1,12 @@
 import { Result } from "better-result";
-import { env } from "cloudflare:workers";
-import {
-  MpdTransportError,
-  mpdErrorFromUnknown,
-  type MpdError,
-} from "../../lib/radio/errors";
+
+import type { MpdError } from "../../lib/radio/errors";
 
 import type {
   CurrentSongPayload,
   CurrentSongView,
 } from "../../lib/radio/types";
 import { SSR_CURRENT_SONG_CACHE_MS } from "../../lib/radio/constants";
-import {
-  deserializeCurrentSongView,
-  parseSerializedCurrentSongFromAgentCall,
-  type RpcSerializedEnvelopeWire,
-} from "../../lib/radio/serialize";
-import { mpdAgentStub } from "../../../worker/mpd-agent";
 import { mpdCommand } from "./bridge";
 import { currentSongFromMpdBridgeResponses } from "./bridge-current-song";
 import { parseMpdStatus } from "./parse";
@@ -29,25 +19,21 @@ let ssrSongCache: {
 export async function getCurrentSongResult(
   clientSongid?: string,
 ): Promise<Result<CurrentSongView, MpdError>> {
-  const fetched = await Result.tryPromise({
-    try: async () => {
-      const stub = await mpdAgentStub(env);
-      return await stub.getCurrentSongView(clientSongid);
-    },
-    catch: mpdErrorFromUnknown,
-  });
-  return fetched.andThen((wire) => {
-    // SAFETY: DO RPC returns structured-clone JSON; invalid shapes fail envelope parse.
-    const serialized = parseSerializedCurrentSongFromAgentCall(
-      wire as RpcSerializedEnvelopeWire | null,
-    );
-    if (!serialized) {
-      return Result.err(
-        new MpdTransportError({ message: "invalid SerializedResult envelope" }),
-      );
-    }
-    return deserializeCurrentSongView(serialized);
-  });
+  const status = await mpdCommand("status");
+  if (status.isErr()) return Result.err(status.error);
+
+  const statusRaw = status.value;
+  const songid = parseMpdStatus(statusRaw).status.songid ?? "";
+  if (!songid) return Result.ok(null);
+  if (clientSongid !== undefined && clientSongid === songid) {
+    return Result.ok({ unchanged: true as const, songid });
+  }
+
+  const current = await mpdCommand("currentsong");
+  if (current.isErr()) return Result.err(current.error);
+
+  const song = currentSongFromMpdBridgeResponses(statusRaw, current.value);
+  return Result.ok(song ?? null);
 }
 
 /** Inertia SSR 用（mpc-bridge 直叩き。DO を起こさない）。失敗時は undefined。 */

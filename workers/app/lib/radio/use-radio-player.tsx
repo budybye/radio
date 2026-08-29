@@ -129,17 +129,17 @@ export function useRadioPlayer({
     const audio = audioRef.current;
     if (audio) disconnectAudio(audio);
     setIsPlaying(false);
+    setAgentEngaged(false);
   }, []);
 
-  /** ホバー時に WS 接続 + バッファ温め（マウント時は呼ばない） */
+  /** ホバー時にストリームを温めるだけ（DO / WS は Play 時まで接続しない） */
   const prepareStream = useCallback(() => {
-    engageAgent();
     if (intentRef.current) return;
     const audio = audioRef.current;
     if (!audio || hasWarmStreamSrc(audio, streamUrl)) return;
     audio.src = streamUrl;
     audio.load();
-  }, [engageAgent, streamUrl]);
+  }, [streamUrl]);
 
   const connect = useCallback(
     async (options?: { forceReload?: boolean }) => {

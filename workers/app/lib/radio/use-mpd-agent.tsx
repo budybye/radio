@@ -225,7 +225,7 @@ export type MpdAgentSyncProps = {
   onConnectionStatus?: (status: MpdAgentConnectionStatus) => void;
 };
 
-/** Play ホバー / クリック後にのみマウントし、WS 接続コストを抑える */
+/** Play クリック後にのみマウントし、WS 接続コストを抑える */
 export function MpdAgentSync({
   engaged,
   watchActive,
