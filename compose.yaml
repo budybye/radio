@@ -1,4 +1,7 @@
 name: radio
+
+# Core stack: mpd + mpc-bridge (always started by `make up`).
+# Optional tunnel: `make up-tunnel` or `docker compose --profile tunnel up -d`.
 services:
   mpd:
     # Option A: Build locally (default)
@@ -11,6 +14,9 @@ services:
       - ./config/mpd.conf:/etc/mpd.conf:ro
       - ./config/config:/root/.ncmpcpp/config:ro
       - mpd-data:/var/lib/mpd
+    expose:
+      - "6600"
+      - "8000"
     # ports:
     #   - "127.0.0.1:6600:6600"  # MPD control (mpc / ncmpcpp from host)
     #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
@@ -30,6 +36,8 @@ services:
       MPD_HOST: mpd
       MPD_PORT: "6600"
       POOL_SIZE: "4"
+    expose:
+      - "8080"
     depends_on:
       mpd:
         condition: service_healthy
@@ -46,10 +54,12 @@ services:
       start_period: 5s
 
   tunnel:
+    profiles: ["tunnel"]
     image: cloudflare/cloudflared:latest
     container_name: radio-tunnel
-    command: tunnel run --token ${TUNNEL_TOKEN:-}
-    # command: tunnel --url http://mpd:8000
+    env_file:
+      - .env
+    command: tunnel run --token ${TUNNEL_TOKEN:?Set TUNNEL_TOKEN in .env for tunnel profile}
     restart: unless-stopped
     depends_on:
       mpd:

@@ -10,7 +10,7 @@ SCRIPTS := scripts
 E2E     := $(SCRIPTS)/e2e
 
 .PHONY: help setup \
-        up up-build down restart logs build clean \
+        up up-build up-tunnel down restart logs build clean \
         play stop pause next prev random sequential status reload ncmpcpp .check-mpd \
         test test-workers test-all test-e2e-stub test-e2e-workers test-e2e-prod
 
@@ -20,8 +20,9 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Lifecycle:"
-	@echo "  up            Start all services (no rebuild)"
-	@echo "  up-build      Build & start all services"
+	@echo "  up            Start mpd + mpc-bridge (no tunnel)"
+	@echo "  up-build      Build & start core services"
+	@echo "  up-tunnel     Start core + Cloudflare tunnel (needs TUNNEL_TOKEN)"
 	@echo "  down          Stop & remove containers"
 	@echo "  restart       Restart all services"
 	@echo "  logs          Tail logs (Ctrl-C to quit)"
@@ -50,9 +51,9 @@ help:
 	@echo "  test          Docker integration tests"
 	@echo "  test-workers  Workers unit tests (vitest)"
 	@echo "  test-all      test-workers + test"
-	@echo "  test-e2e-stub     Unit + mpd-stub contract (no dev server)"
-	@echo "  test-e2e-workers  Deployed smoke (RADIO_E2E_WORKERS_URL)"
-	@echo "  test-e2e-prod     Prod smoke (RADIO_E2E_ALLOW_PROD=1)"
+	@echo "  test-e2e-stub     vitest + mpd-stub HTTP contract"
+	@echo "  test-e2e-workers  Deployed smoke (HTTP + opencli when installed)"
+	@echo "  test-e2e-prod     Prod HTTP smoke (RADIO_E2E_PROD_URL)"
 
 # ─── Guards ──────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,9 @@ up:
 
 up-build:
 	$(DC) up -d --build
+
+up-tunnel:
+	$(DC) --profile tunnel up -d
 
 down:
 	$(DC) down
@@ -139,10 +143,10 @@ test-workers:
 test-all: test-workers test
 
 test-e2e-stub:
-	@bash $(E2E)/local.sh
+	@cd workers && bun run test
 
 test-e2e-workers:
-	@bash $(E2E)/preview.sh
+	@bash $(E2E)/smoke-deployed.sh workers
 
 test-e2e-prod:
-	@bash $(E2E)/prod-smoke.sh
+	@bash $(E2E)/smoke-deployed.sh prod

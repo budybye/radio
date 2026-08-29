@@ -10,6 +10,7 @@
     "preview": "vp preview --port 5173",
     "deploy": "bash scripts/deploy.sh",
     "test": "vitest run",
+    "test:smoke": "bun run test/smoke.ts",
     "test:watch": "vitest",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
     "cf-secret": "wrangler secret bulk .env",

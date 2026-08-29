@@ -47,9 +47,11 @@ make setup
 
 # 4. 音楽ファイルを music/ に配置
 
-# 5. 起動
-make up-build # 初回: ビルド + 起動
-make up       # 2回目以降: 起動のみ（高速）
+# 5. 起動（ローカル MPD のみ）
+make up-build
+
+# 公開配信する場合（TUNNEL_TOKEN 設定後）
+make up-tunnel
 ```
 
 > ⚠️ `.env` は `.gitignore` に登録済みです。決してコミットしないでください。

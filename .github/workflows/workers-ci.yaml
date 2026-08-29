@@ -1,4 +1,4 @@
-# Reusable Workers verification: unit → lint → build → mpd-stub contract.
+# Reusable Workers verification: unit → lint → build (mpd-stub HTTP in vitest).
 # Called from workers-test.yaml, tag.yaml, and build.yaml.
 name: Workers CI (reusable)
 
@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    name: Unit, lint, build, mpd-stub
+    name: Unit, lint, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -33,7 +33,3 @@ jobs:
 
       - name: Build
         run: bun run build
-
-      - name: mpd-stub HTTP contract
-        working-directory: ${{ github.workspace }}
-        run: bash scripts/e2e/mpd-stub-contract.sh

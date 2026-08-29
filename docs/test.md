@@ -4,7 +4,7 @@
 
 | ティア | 対象 URL | 内容 | コマンド |
 |--------|----------|------|----------|
-| **stub** | （なし） | vitest + mpd-stub contract | `make test-e2e-stub` |
+| **stub** | （なし） | vitest（fixture parse + mpd-stub HTTP） | `make test-e2e-stub` |
 | **workers** | `https://radio.*.workers.dev` | deploy 後の構造 smoke | `make test-e2e-workers` |
 | **prod** | カスタムドメイン | 読み取りのみ | `RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod` |
 
@@ -20,18 +20,18 @@ make test-e2e-workers
 
 | ステップ | 検証 |
 |----------|------|
-| `http-smoke.sh` | HTTP 200 + Inertia shell |
+| `workers/test/smoke.ts` | HTTP 200 + Inertia shell |
 | `opencli-home.sh` | ハイドレーション後 `LISTENERS` / `.globe-speaker` |
 
-fixture 値（リスナー数 3 等）は **vitest + mpd-stub contract** で検証（deploy 不要）。
+fixture 値（リスナー数 3 等）は **vitest**（`mpd-fixture-contract.test.ts` + `mpd-stub-http.test.ts`）で検証（deploy 不要）。
 
 ### prod ティア
 
 ```bash
-RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod
+make test-e2e-prod
 ```
 
-ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込み。
+`smoke-deployed.sh prod` が `RADIO_E2E_ALLOW_PROD=1` を設定。ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込み。
 
 ## Workers ユニットテスト
 
@@ -44,7 +44,7 @@ cd workers && bun run test
 
 | ワークフロー | 内容 |
 |-------------|------|
-| `workers-test.yaml` | vitest → lint → build → mpd-stub contract |
+| `workers-test.yaml` | vitest（mpd-stub HTTP 含む）→ lint → build |
 
 CI に opencli / workers.dev smoke は入れません（手動）。
 

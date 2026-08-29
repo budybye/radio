@@ -57,10 +57,9 @@ radio/
 │   ├── entrypoint.sh
 │   ├── setup.sh
 │   ├── test.sh
-│   └── e2e/              # E2E スクリプト（local/preview/prod）
+│   └── e2e/              # E2E スクリプト（deployed smoke + opencli）
 │       ├── lib/contract.sh
-│       ├── local.sh
-│       ├── mpd-stub-contract.sh
+│       ├── smoke-deployed.sh
 │       └── start-mpd-stub.sh
 ├── openspec/
 │   ├── specs/            # 振る舞い仕様の正本（archive 後）

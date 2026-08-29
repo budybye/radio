@@ -69,12 +69,12 @@ else
     check_warn "No music files in ./music/"
 fi
 
-# 6. Tunnel container
+# 6. Tunnel container (optional — `make up-tunnel`)
 echo -n "[6/7] Tunnel container... "
 if docker compose ps tunnel 2>/dev/null | grep -q "Up"; then
     check_pass
 else
-    check_warn "Tunnel not running (check .env TUNNEL_TOKEN)"
+    check_warn "Tunnel not running (optional: make up-tunnel with TUNNEL_TOKEN in .env)"
 fi
 
 # 7. ncmpcpp config
