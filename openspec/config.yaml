@@ -1,0 +1,9 @@
+schema: spec-driven
+
+context: |
+  Project: radio — Docker MPD + Cloudflare Tunnel + Cloudflare Workers (Hono + Inertia + MpdAgent DO).
+  Stack: Alpine MPD, Go mpc-bridge, TypeScript Workers, better-result@^3, Valibot.
+  Golden Rules: never commit secrets; never expose ports without 127.0.0.1; music/ is bind mount only.
+  Validation: `make test`, `make test-workers`, `cd workers && bun run build`, `cd workers && bun run test`.
+  Docs: docs/README.md (index), docs/openspec.md (workflow), docs/patterns/ (code templates).
+  Active work: `openspec list`; behavior specs: openspec/specs/ after archive.

@@ -41,9 +41,6 @@ bash scripts/setup.sh  # Docker 環境構築（初回のみ）
 make setup             # .env 作成 + music/ 作成
 make up-build          # 初回: ビルド + 起動
 make up                # 2回目以降: 起動のみ（高速）
-
-# 2b. またはローカルに直接インストール（Ubuntu/Debian）
-bash scripts/install.sh ~/Music   # apt で MPD をインストールし設定
 ```
 
 ### Makefile コマンド一覧
@@ -183,15 +180,10 @@ cmpcpp_directory = /root/.ncmpcpp
 mpd_host = localhost
 mpd_port = 6600
 mpd_music_dir = /music
-
-# Visualizer（MPD の fifo 出力と連携）
-visualizer_data_source = /var/lib/mpd/mpd.fifo
-visualizer_type = wave_filled
 ```
 
 **設定のポイント**:
 - `ncmpcpp_directory` → `/root/.ncmpcpp`（コンテナ内のホームディレクトリ）
-- `visualizer_data_source` → MPD の fifo 出力 `/var/lib/mpd/mpd.fifo` と一致させる必要あり
 - `mouse_support = yes` → マウス操作有効（ターミナルエミュレータ依存）
 
 ### `mpd.conf`
@@ -213,11 +205,12 @@ visualizer_type = wave_filled
 | `encoder lame` / `bitrate 320` | MP3 320kbps | 音質と帯域のバランス |
 | `format 44100:16:2` | CD 品質 | 互換性のある標準サンプリングレート |
 | `max_clients 20` | 20 接続 | MPD HTTPD 出力の同時接続上限 |
-| `fifo` 出力 | `/var/lib/mpd/mpd.fifo` | ncmpcpp の visualizer 用データソース |
 
 ## Workers: MpdAgent DO + Hono
 
-本番 UI は Cloudflare Workers（`workers/`）。MPD ポーリングは **Agents SDK `MpdAgent` DO** が global 1 本。Agent ルーティングは **`hono-agents` の `agentsMiddleware`** が Hono チェーン内で `/agents/*` を処理する。
+本番 UI は Cloudflare Workers（`workers/`）。MPD ポーリングは **Agents SDK `MpdAgent` DO** が global 1 本。
+
+**デプロイ手順（フォーク / メンテナの違い・secrets 表）は [deploy-fork.md](deploy-fork.md) を正本とする。** 以下はルート・認証のリファレンスのみ。
 
 ### サブドメイン
 
@@ -231,18 +224,18 @@ visualizer_type = wave_filled
 
 | 経路 | 用途 | 実装 |
 |------|------|------|
-| `useAgent` + `/agents/MpdAgent/radio` | React クライアント（ライブ） | `use-mpd-agent.ts` → DO `watchCurrentSong` |
+| DO state push + `useAgent` | React クライアント（ライブ） | `use-mpd-agent.ts` → `onStateUpdate` |
 | DO `getCurrentSongView` | SSR / refresh | `current-song.ts` |
 | `GET /currentsong` | ops / curl | `mpd/routes.ts` |
 
-Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。ライブ更新は MpdAgent DO `watchCurrentSong` 一本（Cap'n Web RPC は削除済み）。
+Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。ライブ更新は MpdAgent DO の state ブロードキャスト一本（Agents SDK。Cap'n Web RPC は削除済み）。
 
 ### HTTP ルート（Workers）
 
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
 | GET | `/` | なし | リスナー Home |
-| GET | `/status`, `/currentsong`, `/mpd/ping` | なし | 診断・ops |
+| GET | `/status`, `/currentsong`, `/mpd/ping` | Basic | 診断・ops |
 | GET | `/posts*` | Basic | 管理 UI 閲覧 |
 | POST/PATCH/DELETE | `/posts*` | Basic or Bearer | キュー CRUD（Inertia or API） |
 
@@ -250,24 +243,17 @@ Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは D
 
 | 名前 | 用途 |
 |------|------|
-| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | mpc.044g.com Access Service Token |
+| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | mpc Access Service Token |
 | `USERNAME` / `PASSWORD` | 管理 UI Basic Auth |
 | `TOKEN` | 管理 API Bearer（write 用 `basicOrBearer`） |
 
-```bash
-cd workers
-bunx wrangler secret put CF_ACCESS_CLIENT_ID
-bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
-bunx wrangler secret put USERNAME
-bunx wrangler secret put PASSWORD
-bunx wrangler secret put TOKEN
-```
+登録手順・フォーク向け注意は [deploy-fork.md](deploy-fork.md) を参照。
 
 ### 関連ファイル
 
 | ファイル | 役割 |
 |----------|------|
-| `workers/worker/mpd-agent.ts` | DO: poll, state, watch, metrics |
+| `workers/worker/mpd-agent.ts` | DO: poll, state push |
 | `workers/app/server/mpd/bridge.ts` | mpc-bridge fetch + Access ヘッダ |
 | `workers/app/server/mpd/playlist.ts` | キュー CRUD (better-result) |
 | `workers/app/server/posts-routes.ts` | /posts HTTP + auth |

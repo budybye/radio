@@ -7,54 +7,40 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 | 目的 | 順番 |
 |------|------|
 | 初めて触る | [README.md](../README.md) → [AGENTS.md](../AGENTS.md) → [tech.md](tech.md) |
+| **フォークして Workers だけデプロイ** | [deploy-fork.md](deploy-fork.md) → [workers/README.md](../workers/README.md) |
 | 仕様・要件 | [requirements.md](requirements.md) → [design.md](design.md) |
+| 変更計画・実装 | [openspec.md](openspec.md) → `openspec list` → 対象 change の `tasks.md` |
 | Workers 開発 | [workers/README.md](../workers/README.md) → [tech.md#workers-mpdagent-do--hono](tech.md) |
+| コードパターン | [patterns/README.md](patterns/README.md) → [patterns/better-result.md](patterns/better-result.md) |
 | 運用・障害 | [problems.md](problems.md) → [test.md](test.md) |
-| タスク把握 | [tasks.md](tasks.md) |
+| マイルストーン | [tasks.md](tasks.md) |
+| **図解（アーキテクチャ・認証・デプロイ）** | [diagrams.md](diagrams.md) |
 
 ## ドキュメント一覧
 
 | ファイル | 内容 |
 |----------|------|
+| [diagrams.md](diagrams.md) | **図解** — システム・認証・デプロイ・テスト・docs 階層（Mermaid） |
 | [requirements.md](requirements.md) | 機能 / 非機能要件、Phase 3 進捗、用語集 |
-| [design.md](design.md) | アーキテクチャ図、モジュール責務、ADR、API 一覧 |
+| [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare（フォーク向け手順） |
+| [design.md](design.md) | モジュール責務、ADR、API 一覧（図は diagrams.md） |
+| [openspec.md](openspec.md) | OpenSpec ワークフロー、三層モデル、archive 手順 |
+| [patterns/README.md](patterns/README.md) | 再利用可能なコードパターン索引 |
 | [tech.md](tech.md) | スタック、Makefile、compose、Workers ルート・secrets |
 | [directory.md](directory.md) | リポジトリツリーと命名規約 |
 | [tasks.md](tasks.md) | マイルストーン・バックログ |
-| [test.md](test.md) | テスト方針（Docker + Workers） |
+| [test.md](test.md) | テスト方針（Docker + Workers + E2E ティア） |
 | [problems.md](problems.md) | 既知の問題・リスク |
-| [references.md](references.md) | 外部リンク |
+| [references.md](references.md) | 外部リンク・内部索引 |
 | [workers/README.md](../workers/README.md) | Workers 専用（ディレクトリ・ルート・開発コマンド） |
 
-## システム概要（1 枚）
+## システム概要
 
-```
-リスナー / 管理 UI
-    │
-    ▼ HTTPS
-044g.com (Workers: Hono + Inertia + MpdAgent DO)
-    │ fetch + CF-Access-Client-* 
-    ▼ Tunnel
-mpc.044g.com (mpc-bridge → MPD :6600)     mpd.044g.com (MPD HTTPD :8000 MP3)
-    │                                          │
-    └──────────────────┬───────────────────────┘
-                       ▼
-              radio-mpd コンテナ (music/, mpd.conf)
-```
+アーキテクチャ図・認証マトリクス・デプロイフローは **[diagrams.md](diagrams.md)** を参照。
 
 **制御の原則**: ブラウザは MPD TCP に直接触れない。ポーリングとライブ push は **MpdAgent DO 1 本**。キュー CRUD は Workers → mpc-bridge → MPD。
 
-**現在曲**: SSR は `fetchCurrentSong`（DO RPC + 短 TTL キャッシュ）→ クライアントは `useMpdAgentWatch` が DO `watchCurrentSong` で **SWR キャッシュ**（`use-current-song.ts`）を更新。Cap'n Web RPC は廃止。
-
-## コードマップ（Workers 主要）
-
-| 領域 | パス |
-|------|------|
-| DO ポーリング | `workers/worker/mpd-agent.ts` |
-| HTTP ルート組立 | `workers/app/server/index.tsx`, `middleware.ts` |
-| 管理 UI API | `workers/app/server/posts-routes.ts`, `mpd/playlist.ts` |
-| MPD HTTP 診断 | `workers/app/server/mpd/routes.ts`, `ping.ts`, `status.ts` |
-| クライアント | `workers/app/lib/radio/use-mpd-agent.ts`, `use-current-song.ts`, `use-radio-player.ts` |
+**現在曲**: SSR は `fetchCurrentSong`（DO RPC + 短 TTL キャッシュ）→ クライアントは `useMpdAgentWatch` が DO state を `use-radio-player` の React state に反映。
 
 ## graphify
 

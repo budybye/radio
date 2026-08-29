@@ -29,8 +29,13 @@
 
 | ドキュメント | パス | 内容 |
 |--------------|------|------|
+| 索引 | [README.md](README.md) | 読む順・ドキュメント一覧 |
+| 図解 | [diagrams.md](diagrams.md) | アーキテクチャ・認証・デプロイ（Mermaid） |
 | 要件定義 | [requirements.md](requirements.md) | 機能要件・非機能要件 |
-| 設計仕様 | [design.md](design.md) | アーキテクチャ・ADR |
+| 設計仕様 | [design.md](design.md) | モジュール責務・ADR |
+| フォークデプロイ | [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare 手順 |
+| OpenSpec | [openspec.md](openspec.md) | ワークフロー・archive |
+| コードパターン | [patterns/README.md](patterns/README.md) | better-result 等テンプレート |
 | 技術仕様 | [tech.md](tech.md) | スタック詳細・設定ファイル解説 |
 | テスト方針 | [test.md](test.md) | テスト戦略と検証手順 |
 | タスク管理 | [tasks.md](tasks.md) | マイルストーン・バックログ |

@@ -1,3 +1,4 @@
+# Auto patch tag + GitHub Release on main. Gated by Workers CI before tagging.
 name: Tag and Release
 
 on:
@@ -5,9 +6,18 @@ on:
     branches:
       - main
 
+concurrency:
+  group: tag-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  verify:
+    uses: ./.github/workflows/workers-ci.yaml
+
   release:
+    needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:

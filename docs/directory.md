@@ -6,56 +6,78 @@
 radio/
 ├── .env                  # 環境変数（TUNNEL_TOKEN — .gitignore対象）
 ├── .env.example          # 環境変数テンプレート
-├── .gitignore            # Git 除外設定
-├── Makefile              # 便利コマンド（make up / test / ncmpcpp / random / sequential 等）
+├── .env.e2e.example      # E2E ティア用環境変数テンプレート
+├── .gitignore
+├── Makefile              # 便利コマンド（make up / test / test-e2e-* 等）
 ├── compose.yaml          # Docker Compose 構成定義
 ├── Dockerfile            # MPD 実行環境のビルド定義
 ├── README.md             # プロジェクト概要とクイックスタート
 ├── AGENTS.md             # AI エージェント向け開発ガイドライン
 ├── .github/
-│   └── workflows/        # GitHub Actions CI/CD（イメージビルド・自動リリース）
+│   └── workflows/
+│       ├── build.yaml            # GHCR イメージビルド
+│       ├── tag.yaml              # main への自動タグ + Release
+│       ├── workers-ci.yaml       # 再利用可能 Workers CI（unit/lint/build/stub）
+│       └── workers-test.yaml     # PR/push 時 Workers CI トリガー
 ├── mpc-bridge/           # MPD プロトコル HTTP ブリッジ（TCP 接続プール）
 │   ├── main.go
 │   ├── go.mod
 │   └── Dockerfile
 ├── workers/              # Web UI（Vite + Hono Workers）— MPD 制御・SPA 配信
-│   ├── Dockerfile
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── wrangler.jsonc
+│   ├── wrangler.jsonc    # 既定=フォーク、env.production=メンテナ本番
+│   ├── .dev.vars.example # ローカル secrets テンプレート
+│   ├── tools/
+│   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
+│   ├── test/             # E2E フィクスチャ（opencli）
 │   ├── worker/           # Wrangler entry + MpdAgent DO
 │   └── app/
-│       ├── client.tsx    # Inertia クライアント入口
+│       ├── client.tsx
 │       ├── style.css
-│       ├── inertia.tsx   # Inertia SSR シェル
+│       ├── inertia.tsx
+│       ├── components/   # GlobeSpeaker 等 UI コンポーネント
 │       ├── lib/
 │       │   ├── validation.ts
+│       │   ├── text/     # control-chars 等
 │       │   └── radio/    # 型・serialize・errors・use-* hooks
-│       ├── schemas/      # Valibot（mpd.ts: プロトコル / posts.ts: 管理 UI）
+│       ├── schemas/      # Valibot（mpd.ts / posts.ts）
 │       ├── server/       # Hono SSR + MPD API
 │       │   ├── index.tsx
-│       │   ├── middleware.ts   # basic / bearer / hono-agents
-│       │   ├── posts-routes.ts # /posts CRUD + auth
-│       │   └── mpd/            # bridge, transport, playlist, routes 等
+│       │   ├── middleware.ts
+│       │   ├── posts-routes.ts
+│       │   └── mpd/      # bridge, playlist, routes 等
 │       └── pages/        # Inertia ページ (Home, Posts/*)
 ├── config/
-│   ├── mpd.conf          # MPD 設定ファイル（コンテナ内 /etc/mpd.conf にマウント）
-│   └── config            # ncmpcpp 設定ファイル（コンテナ内 /root/.ncmpcpp/config にマウント）
-├── music/                # 配信対象音楽ファイル（コンテナにマウント）
+│   ├── mpd.conf
+│   └── config            # ncmpcpp 設定
+├── music/                # 配信対象音楽ファイル
 ├── scripts/
-│   ├── entrypoint.sh     # コンテナ起動スクリプト（MPD 起動 + 空キュー時の自動再生）
-│   ├── install.sh        # Ubuntu/Debian 用ローカルインストールスクリプト（Docker 不要）
-│   ├── setup.sh          # Docker 環境セットアップスクリプト（Ubuntu/Debian）
-│   └── test.sh           # ヘルスチェックスクリプト（make test で実行）
+│   ├── entrypoint.sh
+│   ├── setup.sh
+│   ├── test.sh
+│   └── e2e/              # E2E スクリプト（local/preview/prod）
+│       ├── local.sh
+│       ├── mpd-stub-contract.sh
+│       └── start-mpd-stub.sh
+├── openspec/
+│   ├── specs/            # 振る舞い仕様の正本（archive 後）
+│   └── changes/          # 進行中 change + archive/
+├── graphify-out/         # コード構造レポート（graphify）
 └── docs/                 # プロジェクトドキュメント
-    ├── requirements.md   # 要件定義（Phase 3 進捗含む）
-    ├── design.md         # 設計仕様・ADR
-    ├── tech.md           # 技術仕様・スタック
-    ├── test.md           # テスト方針
-    ├── tasks.md          # タスク・マイルストーン
-    ├── directory.md      # 本ファイル（ディレクトリ構造）
-    ├── problems.md       # 既知の問題・リスク
-    └── references.md     # 参考資料リンク集
+    ├── README.md         # 索引
+    ├── diagrams.md       # Mermaid 図（アーキテクチャ・認証・デプロイ等）
+    ├── deploy-fork.md    # フォーク向け Deploy to Cloudflare
+    ├── openspec.md       # OpenSpec ワークフロー
+    ├── patterns/         # コードパターン（better-result 等）
+    ├── requirements.md
+    ├── design.md
+    ├── tech.md
+    ├── test.md
+    ├── tasks.md
+    ├── directory.md      # 本ファイル
+    ├── problems.md
+    └── references.md
 ```
 
 ## ディレクトリの責務
@@ -63,27 +85,30 @@ radio/
 | パス | 役割 |
 |------|------|
 | `mpc-bridge/` | MPD TCP 6600 を HTTP `/mpd.cgi` に変換。Workers から Tunnel 経由で利用 |
-| `workers/` | Web UI（Vite + Hono Workers）。MpdAgent DO + Inertia SPA。本番は `bun run deploy` |
-| `config/` | MPD の設定ファイル（`mpd.conf`）と ncmpcpp 設定ファイル（`config`）を配置。コンテナ起動時に `/etc/mpd.conf` と `/root/.ncmpcpp/config` へ read-only マウントされる |
-| `music/` | 配信対象の音楽ファイル（MP3, FLAC 等）を配置。`auto_update` により自動的にライブラリに反映される |
-| `docs/` | プロジェクトの技術文書・仕様書を配置。README.md からリンクされる |
+| `workers/` | Web UI（Vite + Hono Workers）。MpdAgent DO + Inertia SPA |
+| `workers/tools/oxlint/` | anti-slop Oxlint プラグイン（vendored） |
+| `scripts/e2e/` | opencli E2E スクリプト・mpd-stub |
+| `openspec/` | 振る舞い仕様（specs）と変更計画（changes） |
+| `config/` | MPD / ncmpcpp 設定。コンテナ起動時に read-only マウント |
+| `music/` | 配信対象音楽ファイル。`auto_update` で自動反映 |
+| `docs/` | 恒久ドキュメント。索引は `docs/README.md` |
 
 ## ファイル命名規則
 
 | 対象 | 規約 |
 |------|------|
-| Docker 関連 | `Dockerfile`（大文字 D、拡張子なし）、`compose.yaml`（小文字、拡張子 `.yaml`） |
-| 設定ファイル | `*.conf`（MPD 設定）、`*.env*`（環境変数） |
-| ドキュメント | `*.md`（Markdown）、小文字・スネークケース |
-| 音楽ファイル | 元ファイル名をそのまま保持（MPD がタグを優先して表示） |
+| Docker 関連 | `Dockerfile`（大文字 D）、`compose.yaml` |
+| 設定ファイル | `*.conf`（MPD）、`*.env*`（環境変数） |
+| ドキュメント | `*.md`（Markdown）、小文字・ケバブケース |
+| 音楽ファイル | 元ファイル名をそのまま保持 |
 
 ## 新規ファイル追加時のガイドライン
 
-- **音楽ファイル** → `music/` に直接追加。サブディレクトリ可。`auto_update` で自動反映
-- **MPD 設定変更** → `config/mpd.conf` を編集後、`docker compose restart mpd` で反映
-- **Web UI 変更** → `workers/` を編集後、`cd workers && bun run deploy`
-- **新しいサービス追加** → `compose.yaml` にサービス定義を追加し、`Dockerfile` が必要な場合はプロジェクトルートまたはサービスディレクトリに配置
-- **新しい make ターゲット追加** → `Makefile` に追加後、`docs/tech.md` の「Makefile コマンド一覧」テーブルに反映
-- **新しいテスト項目追加** → `scripts/test.sh` に追加後、`docs/test.md` のテスト内容テーブルに反映
-- **ドキュメント追加** → `docs/` 内に配置し、`README.md` の「Documentation」テーブルにリンクを追加
-- **環境変数追加** → `.env.example` にテンプレート追加 → `docs/tech.md` の環境変数表更新 → `AGENTS.md` 更新
+- **音楽ファイル** → `music/` に直接追加。`auto_update` で自動反映
+- **MPD 設定変更** → `config/mpd.conf` 編集後 `docker compose restart mpd`
+- **Web UI 変更** → `workers/` 編集後、フォークは `wrangler deploy`、メンテナは `bun run deploy`
+- **新しいサービス追加** → `compose.yaml` に追加、`docs/tech.md` 更新
+- **新しい make ターゲット** → `Makefile` + `docs/tech.md` のコマンド表
+- **新しいテスト** → `scripts/test.sh` または `workers/` vitest + `docs/test.md`
+- **ドキュメント追加** → `docs/` に配置し `docs/README.md` の一覧にリンク
+- **環境変数追加** → `.env.example` + `docs/tech.md` + `AGENTS.md`

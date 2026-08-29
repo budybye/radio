@@ -1,5 +1,7 @@
 # 要件定義
 
+> **詳細な振る舞い要件**は `openspec/specs/`（archive 後）または進行中 change の `openspec/changes/<name>/specs/` を正本とする。本書はプロジェクト概要・Phase サマリ・用語集。
+
 ## プロジェクト概要
 
 Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers を組み合わせ、個人所有の音楽ファイルを不特定多数のリスナーに向けてインターネットラジオとして配信するシステム。開発中のプロジェクトで、将来的には複数ユーザーの同時接続や管理機能の拡張を見据えている。
@@ -27,7 +29,7 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 
 - [ ] **複数ユーザー（リスナー）対応**: 同時接続リスナー数を現在の上限から拡張し、接続管理機能を追加
 - [x] **管理 UI（Web ベース）**: `workers/` の Cloudflare Workers + Inertia SPA でキュー CRUD・現在曲表示（Phase 3 一部完了）
-- [ ] **リスナー数モニタリング**: MpdAgent DO の metrics を管理画面に統合（UI は未接続）
+- [x] **リスナー数モニタリング**: Home 画面に MPD `listeners` を表示（SSR + MpdAgent state push）。管理 UI 全体の統計ダッシュボードは未着手
 - [ ] **エンコード品質切り替え**: ビットレート・フォーマットの動的変更（128kbps / 320kbps 等）
 
 ### Could Have
@@ -36,24 +38,27 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 - [ ] **リスナー統計**: 接続数・視聴時間のログ収集
 - [ ] **IRC / WebSocket 連携**: 現在再生中の曲情報を外部チャット等に連携
 
-## Phase 3: 管理 UI（進行中）
+## Phase 3: 管理 UI（ほぼ完了）
 
 ### 完了済み
 
 | 機能 | 実装 | 備考 |
 |------|------|------|
-| リスナー画面 | `GET /`（Home） | SSR + MpdAgent DO `watchCurrentSong` |
+| リスナー画面 | `GET /`（Home） | SSR + Agents SDK state push、バスレフ UI |
+| リスナー数表示 | Home ヘッダー / LCD 付近 | MPD `listeners`、ライブ更新 |
 | 現在曲ライブ更新 | Agents SDK `useAgent` | Cap'n Web watch は廃止 |
 | キュー一覧・詳細 | `GET /posts*` | Basic 認証 |
 | キュー追加・更新・削除 | `POST/PATCH/DELETE /posts*` | Basic or Bearer |
 | MPD エラー処理 | better-result `Result` | 境界で `tryPromise`、HTTP で `match` |
 | 入力バリデーション | Valibot（`schemas/mpd.ts`, `schemas/posts.ts`） | Hono `sValidator` |
-| 診断 API | `/status`, `/currentsong`, `/mpd/ping` | 認証なし（ops 用） |
+| 診断 API | `/status`, `/currentsong`, `/mpd/ping` | Basic（ops 用） |
+| Workers CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
+| E2E ティア | `scripts/e2e/` + `make test-e2e-*` | local / preview / prod |
+| フォーク Deploy | Deploy to Cloudflare ボタン | [deploy-fork.md](deploy-fork.md) |
 
 ### 未完了 / バックログ
 
 - [ ] 管理 UI からの MPD status 表示（`/status` は API のみ）
-- [ ] リスナー数・poll metrics の画面表示（DO `getPollMetrics` は実装済み、UI 未接続）
 - [ ] 管理画面全体への Cloudflare Access（現状は Basic/Bearer のみ）
 
 ## 非機能要件
@@ -71,6 +76,7 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 - **`mpc.*` は Cloudflare Access で保護**（Service Token のみ Allow、それ以外 Block）
 - Workers → mpc-bridge は `CF-Access-Client-Id/Secret` ヘッダ必須
 - 管理 UI: `GET /posts*` は Basic、`POST/PATCH/DELETE` は Basic or Bearer
+- 診断 API: `/status`, `/currentsong`, `/mpd/ping` は Basic（ops 用）
 - リスナー向け `/`, `/agents/*` は認証なし（公開ラジオ前提）
 - 機密情報（`TUNNEL_TOKEN`, `USERNAME`, `PASSWORD`, `TOKEN`, Access secrets）は Wrangler secrets / `.env` 管理、ソースコードに含めない
 
@@ -108,7 +114,8 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [design.md](design.md) | アーキテクチャ・ADR・エンドポイント一覧 |
+| [diagrams.md](diagrams.md) | 図解（アーキテクチャ・認証・デプロイ） |
+| [design.md](design.md) | モジュール責務・ADR・エンドポイント一覧 |
 | [tech.md](tech.md) | スタック・secrets・Workers 詳細 |
 | [tasks.md](tasks.md) | マイルストーン・バックログ |
 | [README.md](README.md) | ドキュメント索引・読む順 |

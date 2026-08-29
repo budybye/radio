@@ -32,6 +32,20 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 
 ---
 
+## Documentation & OpenSpec
+
+| What | Where |
+|------|-------|
+| Doc index | [`docs/README.md`](docs/README.md) |
+| OpenSpec workflow | [`docs/openspec.md`](docs/openspec.md) |
+| Code patterns | [`docs/patterns/README.md`](docs/patterns/README.md) |
+| Active changes | `openspec list` → `openspec/changes/<name>/tasks.md` |
+| Behavior specs | `openspec/specs/` (after archive) |
+
+**Rule**: アクティブな実装タスクは `docs/tasks.md` に書かず、OpenSpec change の `tasks.md` を正本とする。恒久リファレンスのみ `docs/` を更新する。
+
+---
+
 ## Quick Reference
 
 | File                    | Role                                   | Change Frequency |
@@ -42,7 +56,6 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 | `Dockerfile`            | Alpine base image build                | Low              |
 | `mpc-bridge/main.go`    | HTTP→MPD TCP pool (Workers/Tunnel)     | Medium           |
 | `Makefile`              | Operational commands                   | Medium           |
-| `workers/Dockerfile`    | Web UI (Vite + Hono SPA) build         | Low              |
 | `scripts/entrypoint.sh` | Auto-queue + random play on startup    | Low              |
 | `scripts/test.sh`       | Integration tests (7 checks)           | Medium           |
 | `music/`                | Music files (bind mount, gitignored)   | High             |

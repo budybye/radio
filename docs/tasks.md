@@ -9,7 +9,18 @@
 | Phase 2: 複数ユーザー対応 | 同時接続リスナー数の拡張、接続管理、リスナー統計の収集基盤 | TBD | ⏳ 未開始 |
 | Phase 3: 管理 UI | Web ベースのプレイリスト操作・ステータス表示・リスナー数モニタリング | TBD | 🔄 進行中 — 詳細は [requirements.md](requirements.md#phase-3-管理-ui進行中) |
 
-## 現在のフォーカス
+## アクティブ作業は OpenSpec
+
+進行中の実装タスク・チェックリストは **`docs/tasks.md` ではなく OpenSpec** を正本とする。
+
+```bash
+openspec list
+openspec status --change <name>
+```
+
+手順は [openspec.md](openspec.md) を参照。
+
+## 現在のフォーカス（インフラ・検証）
 
 - [x] ncmpcpp の正常動作確認（コンテナ内 TUI 操作）
 - [ ] 外部クライアント（MPod / MPad / MPDroid）からの接続確認

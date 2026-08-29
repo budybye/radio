@@ -1,34 +1,10 @@
 # 設計仕様
 
+> **変更スコープの設計**は進行中は `openspec/changes/<name>/design.md`、システム全体のアーキテクチャ・ADR は本書を正本とする。
+
 ## アーキテクチャ概要
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        インターネット                        │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ HTTPS / WSS
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│         Cloudflare（Workers UI + Tunnel エッジ）             │
-│  workers/ ──fetch──► mpc.* ホスト名                          │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ Tunnel
-                       ▼
-         ┌─────────────┴─────────────┐
-         ▼                           ▼
-┌─────────────────┐         ┌──────────────────┐
-│  mpd:8000       │         │  mpc-bridge:8080 │
-│  HTTP MP3       │         │  /mpd.cgi?cmd=   │
-│  （リスナー）    │         │  （制御 HTTP）    │
-└────────┬────────┘         └────────┬─────────┘
-         │                           │ TCP 6600（内部）
-         └───────────┬───────────────┘
-                     ▼
-┌──────────────────────────────────────────┐
-│  MPD コンテナ（Alpine 3.20）             │
-│  music/ + mpd.conf + lame HTTP 出力      │
-└──────────────────────────────────────────┘
-```
+システムトポロジ・認証マトリクスは **[diagrams.md](diagrams.md)** を正本とする（Mermaid 図）。
 
 ### 原則と Web 標準
 
@@ -43,11 +19,6 @@
 - **責任**: MPD 実行環境の構築（Alpine 3.20 + mpd/mpc/ncmpcpp）
 - **依存**: `alpine:3.20` ベースイメージ
 - **公開インターフェース**: ポート 6600（制御）, 8000（ストリーム）
-
-### `workers/Dockerfile`
-- **責任**: Web UI のローカル Docker 実行用（任意）。本番は `bun run deploy`
-- **依存**: `workers/` ソース
-- **公開インターフェース**: ポート 5173（HTTP）— compose には含めない
 
 ### `compose.yaml`
 - **責任**: Docker スタック（MPD + mpc-bridge + Tunnel + ボリューム）
@@ -109,11 +80,11 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 ### Workers 診断エンドポイント
 
-| Method | パス | 説明 |
-|--------|------|------|
-| GET | `/status` | MPD status JSON |
-| GET | `/currentsong` | 現在曲（`Result` シリアライズ） |
-| GET | `/mpd/ping` | mpc-bridge + MPD 到達性 |
+| Method | パス | 説明 | 認証 |
+|--------|------|------|------|
+| GET | `/status` | MPD status JSON | Basic |
+| GET | `/currentsong` | 現在曲（`Result` シリアライズ） | Basic |
+| GET | `/mpd/ping` | mpc-bridge + MPD 到達性 | Basic |
 
 ### Workers: 現在曲データフロー
 
@@ -126,13 +97,14 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 [Browser Home]
   useRadioPlayer()
-    ├── useMpdAgentWatch() ──WS/stream──► watchCurrentSong()
-    │         └── useCurrentSongMutate() → SWR キー CURRENT_SONG_SWR_KEY
-    └── useCurrentSong() ← SWR 読み取り（fetcher なし = push 専用）
+    ├── useState (currentSong)
+    └── useMpdAgentWatch()
+          ├── onStateUpdate ──► DO state push（変化 tick のみ）
+          └── refresh() ──► getCurrentSongView RPC（visibility 復帰時）
 ```
 
-- **削除済み**: Cap'n Web RPC、`client.ts`、Hub/Watch 用の別モジュール分割
-- **ops**: `GET /currentsong` は `getCurrentSongResult()` を JSON で返す（ライブ UI とは独立）
+- **削除済み**: Cap'n Web RPC、SWR、`use-current-song.ts`、`client.ts`
+- **ops**: `GET /currentsong` は `getCurrentSongResult()` を JSON で返す（Basic 認証）
 
 ## 状態管理
 

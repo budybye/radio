@@ -84,16 +84,26 @@ https://your-tunnel-domain/
 
 Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose には含めない）。
 
+#### フォークして自分の Cloudflare に載せる（Deploy to Cloudflare）
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/budybye/radio&directory=workers)
+
+ボタンで **Workers のみ** がデプロイされます。MPD / Tunnel は別途 [クイックスタート](#クイックスタート) の Docker スタックが必要です。
+
+デプロイ後のチェックリスト（vars・secrets・Access・Tunnel）は **[docs/deploy-fork.md](docs/deploy-fork.md)** を参照。
+
+#### このリポジトリのメンテナが手動デプロイする場合
+
 ```bash
 cd workers
 bun install
-bun run deploy
+bun run deploy   # wrangler deploy --env production（044g.com）
 ```
 
 | ホスト | 用途 |
 |--------|------|
 | `044g.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
-| `mpd.044g.com` | MP3 ストリーム URL（`radio-config` が参照） |
+| `mpd.044g.com` | MP3 ストリーム URL（Home の `config.streamUrl` が参照） |
 
 ローカル開発: `cd workers && bun run dev` → `http://localhost:5173`
 
@@ -117,7 +127,7 @@ Cloudflare（Workers UI + Tunnel エッジ）
         Docker: MPD + mpc-bridge + cloudflared
 ```
 
-詳細は [docs/design.md](docs/design.md) を参照してください。
+詳細は [docs/diagrams.md](docs/diagrams.md) と [docs/design.md](docs/design.md) を参照してください。
 
 ## 開発
 
@@ -219,7 +229,8 @@ docker compose exec -it mpd ncmpcpp
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [docs/README.md](docs/README.md) | **索引** — 読む順・システム概要・Workers コードマップ |
+| [docs/README.md](docs/README.md) | **索引** — 読む順・ドキュメント一覧 |
+| [docs/diagrams.md](docs/diagrams.md) | **図解** — アーキテクチャ・認証・デプロイ（Mermaid） |
 | [docs/requirements.md](docs/requirements.md) | 要件定義・Phase 3 進捗 |
 | [docs/design.md](docs/design.md) | システム設計・アーキテクチャ・ADR |
 | [docs/tech.md](docs/tech.md) | 技術スタック・環境構築手順・`make` コマンド一覧 |
