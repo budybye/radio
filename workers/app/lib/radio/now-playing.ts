@@ -2,13 +2,12 @@ import type { CurrentSongClient } from "./serialize";
 
 const INSTRUMENTAL_TITLE_SUFFIX = /\s*[(–—-]\s*instrumental\s*\)?\s*$/i;
 
-/** Strip redundant "(Instrumental)" / "- Instrumental" from MPD Title tags for display. */
-export function cleanSongTitle(title: string): string {
+function cleanSongTitle(title: string): string {
   const cleaned = title.replace(INSTRUMENTAL_TITLE_SUFFIX, "").trim();
   return cleaned.length > 0 ? cleaned : title.trim();
 }
 
-export function isInstrumentalTrack(title: string, file: string): boolean {
+function isInstrumentalTrack(title: string, file: string): boolean {
   return INSTRUMENTAL_TITLE_SUFFIX.test(title) || /instrumental/i.test(file);
 }
 

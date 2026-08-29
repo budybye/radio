@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "mpd-stub E2E contract — status.txt / currentsong.txt と E2E アサーションの正本",
+  "description": "mpd-stub E2E contract — status.txt / currentsong*.txt と UI 表示期待値の正本",
   "status": {
     "listeners": 3,
     "state": "play",
@@ -11,6 +11,32 @@
     "Artist": "Fixture Artist",
     "Title": "E2E Dummy Song",
     "Album": "Test Fixtures"
+  },
+  "currentsongInstrumental": {
+    "file": "music/Super Cat - Ghetto Red Hot - Instrumental.mp3",
+    "Artist": "Super Cat",
+    "Title": "Ghetto Red Hot (Instrumental)",
+    "Album": ""
+  },
+  "display": {
+    "regular": {
+      "headline": "E2E Dummy Song",
+      "artist": "Fixture Artist",
+      "album": "Test Fixtures",
+      "variant": null
+    },
+    "instrumental": {
+      "headline": "Ghetto Red Hot",
+      "artist": "Super Cat",
+      "album": "",
+      "variant": "instrumental"
+    },
+    "noSong": {
+      "headline": "mpd radio",
+      "artist": "",
+      "album": "",
+      "variant": null
+    }
   },
   "ui": {
     "listenersLabel": "LISTENERS",
