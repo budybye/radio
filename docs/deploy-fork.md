@@ -13,7 +13,7 @@
 | URL | 誰 | コマンド |
 |-----|-----|----------|
 | `https://radio.<account>.workers.dev` | 全員 | `bun run deploy`（フォークは `workers/.env` なし） |
-| カスタムドメイン（任意） | メンテナ | ダッシュボードで Worker `radio` にバインド |
+| カスタムドメイン（任意） | メンテナ | `workers/.env` の `WORKER_CUSTOM_DOMAIN`（`bun run deploy` で自動バインド） |
 
 **Worker 名は常に `radio` 一つ。**
 
@@ -24,7 +24,8 @@ cp workers/.env.example workers/.env
 # MPD_HOST / MPC_HOST を実ホスト名に編集
 
 cd workers && bun run deploy
-# → Worker "radio" + radio.*.workers.dev + カスタムドメイン（ダッシュボード）
+# → Worker "radio" + radio.*.workers.dev
+# WORKER_CUSTOM_DOMAIN を workers/.env に書けばカスタムドメインも deploy 時にバインド
 ```
 
 ### フォーク
@@ -53,6 +54,7 @@ make setup   # 両方の .env を example から作成
 | `TUNNEL_TOKEN` | ルート `.env` | Docker Compose |
 | `RADIO_E2E_WORKERS_URL` / `RADIO_E2E_PROD_URL` | ルート `.env` | `make test-e2e-*` |
 | `MPD_HOST` / `MPC_HOST` | `workers/.env` | `deploy.sh` → `wrangler --var` |
+| `WORKER_CUSTOM_DOMAIN` | `workers/.env` | `deploy.sh` → `wrangler --domain`（任意） |
 | `CF_ACCESS_*`, `USERNAME`, `PASSWORD`, `TOKEN` | `workers/.env` | `bun run dev`（`.dev.vars` へ symlink）、`wrangler secret bulk` |
 
 `wrangler.jsonc` にはプレースホルダ vars のみ。本番ホスト名は **repo に載せず** `workers/.env` に書く。
@@ -87,7 +89,15 @@ make setup   # 両方の .env を example から作成
 
 ### 3. カスタムドメイン（任意）
 
-ダッシュボード **Workers → radio → Domains & Routes** で追加。
+`workers/.env` に書いて `bun run deploy`（推奨）:
+
+```bash
+WORKER_CUSTOM_DOMAIN=your-domain.com
+```
+
+`deploy.sh` が `wrangler deploy --domain your-domain.com` を付与します。ゾーンが同じ Cloudflare アカウントにあれば DNS レコードも自動作成されます。`workers_dev: true` のまま **`radio.*.workers.dev` も併用可能**です。
+
+代替: ダッシュボード **Workers → radio → Domains & Routes**、または `wrangler.jsonc` の `routes` + `custom_domain: true`（tracked には本番ドメインを載せないこと）。
 
 ### 4. E2E smoke
 
@@ -106,6 +116,7 @@ RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod
 |------|------|
 | `radio-production.*` が出る | 古い deploy の残骸。`bun run deploy` で `radio` に統一 |
 | 本番がプレースホルダ vars | `workers/.env` を作って `bun run deploy` |
+| カスタムドメイン deploy 失敗 | 既存 CNAME を削除するか、ゾーンが同一 CF アカウントか確認 |
 | OpenAPI がカスタムドメインで見える | 意図的に 404（`*.workers.dev` とローカル dev のみ） |
 
 図解: [diagrams.md#deploy-flow](diagrams.md#deploy-flow)

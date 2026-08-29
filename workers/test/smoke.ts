@@ -67,11 +67,12 @@ function resolveBaseUrl(): string {
 
 function guardTier(base: string): E2ETier {
   const rawTier = process.env.RADIO_E2E_TIER;
-  const tier = parseTier(rawTier === "local" ? undefined : rawTier);
 
   if (rawTier === "local") {
     fail("local tier removed — use workers tier or vitest + mpd-stub contract");
   }
+
+  const tier = parseTier(rawTier);
 
   if (tier === "prod") {
     if (process.env.RADIO_E2E_ALLOW_PROD !== "1") {
