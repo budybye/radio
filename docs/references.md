@@ -13,6 +13,8 @@
 | MPD — HTTPD Output | https://www.musicpd.org/doc/html/plugins.html#httpd | HTTPD 出力プラグインの設定項目（`max_clients`、`always_on`、`tags` 等） |
 | LAME MP3 Encoder | https://lame.sourceforge.io/ | MP3 エンコーダーの仕様と品質設定 |
 | Cloudflare Tunnel | https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/ | Zero Trust ネットワーク公開の公式ガイド |
+| Cloudflare Agents SDK | https://developers.cloudflare.com/agents/ | MpdAgent DO、`useAgent`、callable RPC、hibernation |
+| Cloudflare Durable Objects | https://developers.cloudflare.com/durable-objects/ | MpdAgent の永続化・SQLite |
 | cloudflared Docker | https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/deploy-tunnels/tunnel-with-docker/ | Docker 環境での Tunnel デプロイ手順 |
 | mpc (Music Player Client) | https://www.musicpd.org/clients/mpc/ | コマンドラインクライアントのリファレンス |
 | ncmpcpp | https://ncmpcpp.rybczak.net/ | TUI クライアントの公式サイトとキーバインド一覧 |

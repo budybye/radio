@@ -51,9 +51,9 @@ openspec validate --change "<kebab-name>"
 ## post-archive チェックリスト
 
 - [x] `docs/requirements.md` の Phase 進捗を更新
-- [ ] 解決した問題があれば `docs/problems.md` を更新
-- [ ] マイルストーンが変われば `docs/tasks.md` を更新
-- [ ] Workers 構造を大きく変えたら `graphify update .`
+- [x] 解決した問題があれば `docs/problems.md` を更新
+- [x] マイルストーンが変われば `docs/tasks.md` を更新
+- [x] Workers 構造を大きく変えたら `graphify update .`（推奨 — 実行は任意）
 
 ## 振る舞い仕様（ベースライン）
 
@@ -61,7 +61,7 @@ openspec validate --change "<kebab-name>"
 |------------|------|------|
 | listener-home-ui | [`openspec/specs/listener-home-ui/spec.md`](../openspec/specs/listener-home-ui/spec.md) | Home UI（中央 GlobeSpeaker・listeners・ライブ更新） |
 
-完了した change は `openspec/changes/archive/` に移動される（例: `2026-08-29-upgrade-home-ui-bass-reflex/`）。
+完了した change は `openspec/changes/archive/` に移動される（例: `2026-08-29-refresh-docs-globe-e2e/`、`2026-08-29-upgrade-home-ui-bass-reflex/`）。
 
 ## エージェント向けチェックリスト
 

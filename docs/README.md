@@ -44,4 +44,4 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 
 ## graphify
 
-構造探索は `graphify-out/GRAPH_REPORT.md`（コミット `6cdb419` 時点）。**未コミットの Workers 変更後は `graphify update .` を推奨。**
+構造探索は `graphify-out/GRAPH_REPORT.md`。**Workers / OpenSpec を大きく変えたら `graphify update .` を推奨。**

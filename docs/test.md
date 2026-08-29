@@ -100,6 +100,8 @@ opencli セッション: `RADIO_E2E_OPENCLI_SESSION`（既定 `radio-e2e`）
 
 **目的**: `wrangler deploy`（既定 `workers_dev: true`）または `deploy:preview` 後、Workers バンドル・DO binding・HTML 配信が壊れていないことを確認。
 
+> **本番 deploy 後の注意**: `bun run deploy`（`env.production`）は `workers_dev: false` のため、既存の `radio.*.workers.dev` URL は **404** になります。preview E2E を再開するには `bun run deploy:preview` で `radio-preview.*.workers.dev` を別途デプロイしてください。
+
 **検証しないもの**: fixture のリスナー数 3、Fixture Artist（本番 MPD の実データに依存するため）。
 
 本番ビルドの SSR は **Inertia JSON シェル**のみ（`<div id="app">` + `data-page`）。DOM マーカー（`LISTENERS`, `.globe-speaker`）はクライアントハイドレーション後に出るため:
@@ -110,9 +112,9 @@ opencli セッション: `RADIO_E2E_OPENCLI_SESSION`（既定 `radio-e2e`）
 | `opencli-home.sh` | ハイドレーション後の `LISTENERS` / `.globe-speaker` |
 
 ```bash
-cd workers && bun run deploy          # 既定 → https://radio.<account>.workers.dev
+cd workers && wrangler deploy --config wrangler.jsonc   # フォーク既定 → https://radio.<account>.workers.dev
 # または
-cd workers && bun run deploy:preview  # env.preview（radio-preview 名）
+cd workers && bun run deploy:preview  # env.preview（radio-preview 名）— 本番 deploy 後の preview E2E 用
 
 export RADIO_E2E_PREVIEW_URL=https://radio.<account>.workers.dev
 make test-e2e-preview

@@ -108,8 +108,11 @@ flowchart TD
 | コマンド | 向き先 | 利用者 |
 |----------|--------|--------|
 | Deploy ボタン → 既定 env | `mpd.example.com` プレースホルダ | フォーク |
-| `wrangler deploy`（env なし） | 同上 | フォーク |
-| `bun run deploy` | `--env production`（044g.com） | **メンテナのみ** |
+| `wrangler deploy --config wrangler.jsonc`（env なし） | 同上 | フォーク |
+| `bun run deploy` | `--env production --config wrangler.jsonc`（044g.com） | **メンテナのみ** |
+| `bun run deploy:preview` | `--env preview --config wrangler.jsonc`（`radio-preview.*`） | メンテナ / E2E |
+
+> **注意**: `vpr build` 後の `dist/radio/wrangler.json` はフォーク既定 vars のまま。本番 / preview vars を効かせるには deploy 時に `--config wrangler.jsonc` が必須。詳細: [deploy-fork.md](deploy-fork.md#deploy-pitfall)
 
 詳細: [deploy-fork.md](deploy-fork.md)
 

@@ -77,9 +77,24 @@ bunx wrangler secret put TOKEN
 
 | コマンド | 説明 |
 |----------|------|
-| `cd workers && wrangler deploy` | **推奨** — ルート `wrangler.jsonc` の既定 env（プレースホルダ vars） |
+| `cd workers && wrangler deploy --config wrangler.jsonc` | **推奨** — ルート `wrangler.jsonc` の既定 env（プレースホルダ vars） |
 | Deploy ボタン | 上記と同じ既定 env で初回デプロイ + Workers Builds 設定 |
-| `cd workers && bun run deploy` | ⚠️ **`--env production`（044g.com）** — メンテナ専用。フォークでは使わない |
+| `cd workers && bun run deploy` | ⚠️ **`--env production --config wrangler.jsonc`（044g.com）** — メンテナ専用。フォークでは使わない |
+| `cd workers && bun run deploy:preview` | `wrangler deploy --env preview --config wrangler.jsonc` → `radio-preview.*.workers.dev` |
+
+### `vpr build` と `wrangler.jsonc` の落とし穴 {#deploy-pitfall}
+
+`bun run deploy` / `deploy:preview` は先に `vpr build` を実行し、`dist/radio/wrangler.json` を生成します。この生成物は **フォーク既定 vars**（`mpd.example.com`）のままです。
+
+**本番 vars（`mpd.044g.com`）や preview env を効かせるには、deploy 時に必ず `--config wrangler.jsonc` を付けること。** `workers/package.json` の deploy スクリプトはこれを明示しています。
+
+```bash
+# メンテナ本番（正）
+vpr build && wrangler deploy --env production --config wrangler.jsonc
+
+# 誤り例 — dist の wrangler.json だけが使われ、mpd.example.com がデプロイされる
+vpr build && wrangler deploy --env production
+```
 
 ### よくある落とし穴
 
@@ -87,7 +102,9 @@ bunx wrangler secret put TOKEN
 |------|------|------|
 | ストリームが聴けない | vars が `mpd.example.com` のまま | 自分の Tunnel ホスト名に変更 |
 | mpc 操作が失敗 | Access Token 未設定 / ポリシー不一致 | Service Token を secrets に登録 |
-| 044g.com の曲が流れる | `bun run deploy` を実行した | `wrangler deploy`（env なし）を使う |
+| 044g.com の曲が流れる | `bun run deploy` を実行した | `wrangler deploy --config wrangler.jsonc`（env なし）を使う |
+| 本番 deploy 後も `mpd.example.com` | `--config wrangler.jsonc` なしで deploy | `bun run deploy` または `--config wrangler.jsonc` を付与 |
+| preview URL が 404 | 本番 deploy 後 `workers_dev: false` | `bun run deploy:preview` で別 Worker を再デプロイ |
 | Workers Builds が upstream を参照 | ボタン URL が budybye のまま | フォーク URL に差し替え |
 
 図解: [diagrams.md#deploy-flow](diagrams.md#deploy-flow)
@@ -95,7 +112,7 @@ bunx wrangler secret put TOKEN
 ## メンテナ向け（044g.com）
 
 ```bash
-cd workers && bun run deploy   # wrangler deploy --env production
+cd workers && bun run deploy   # vpr build && wrangler deploy --env production --config wrangler.jsonc
 ```
 
 `env.production` では `MPD_HOST=mpd.044g.com`, `MPC_HOST=mpc.044g.com`, `workers_dev: false` が設定されています。
@@ -103,7 +120,7 @@ cd workers && bun run deploy   # wrangler deploy --env production
 プレビュー環境:
 
 ```bash
-cd workers && bun run deploy:preview   # wrangler deploy --env preview
+cd workers && bun run deploy:preview   # vpr build && wrangler deploy --env preview --config wrangler.jsonc
 ```
 
 ## 関連ドキュメント

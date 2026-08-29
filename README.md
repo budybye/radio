@@ -97,8 +97,10 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 ```bash
 cd workers
 bun install
-bun run deploy   # wrangler deploy --env production（044g.com）
+bun run deploy   # vpr build && wrangler deploy --env production --config wrangler.jsonc（044g.com）
 ```
+
+> `vpr build` は `dist/radio/wrangler.json`（フォーク既定 vars）を生成します。本番 vars を効かせるには `--config wrangler.jsonc` が必須 — `bun run deploy` はこれを含みます。詳細: [docs/deploy-fork.md](docs/deploy-fork.md)
 
 | ホスト | 用途 |
 |--------|------|

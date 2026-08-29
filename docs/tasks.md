@@ -7,7 +7,7 @@
 | Phase 0: 環境構築 | Docker + MPD + Tunnel の基本構成を構築し、ローカルでストリーミング確認 | — | ✅ 完了 |
 | Phase 1: 動作確認 | ncmpcpp / mpc からの操作、Cloudflare Tunnel 経由での外部接続、タグ情報伝送を検証 | — | 🔄 進行中 |
 | Phase 2: 複数ユーザー対応 | 同時接続リスナー数の拡張、接続管理、リスナー統計の収集基盤 | TBD | ⏳ 未開始 |
-| Phase 3: 管理 UI | Web ベースのプレイリスト操作・ステータス表示・リスナー数モニタリング | TBD | 🔄 進行中 — 詳細は [requirements.md](requirements.md#phase-3-管理-ui進行中) |
+| Phase 3: 管理 UI | Web ベースのプレイリスト操作・ステータス表示・リスナー数モニタリング | TBD | 🔄 **ほぼ完了** — GlobeSpeaker Home、E2E ティア、フォーク Deploy。詳細は [requirements.md](requirements.md#phase-3-管理-uiほぼ完了) |
 
 ## アクティブ作業は OpenSpec
 

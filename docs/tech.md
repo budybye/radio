@@ -220,15 +220,28 @@ mpd_music_dir = /music
 | `mpd.044g.com` | MP3 ストリーム（Tunnel → MPD HTTPD） | ✅ 聴取のみ |
 | `mpc.044g.com` | mpc-bridge（MPD 制御 HTTP） | 🔒 Access Service Token のみ |
 
+### Home データフロー（曲メタ / リスナー数）
+
+図: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
+
+| データ | SSR (`GET /`) | CSR（Play ホバー後） |
+|--------|---------------|----------------------|
+| **現在曲** | `fetchCurrentSong()` → DO `getCurrentSongView()`（冷起動時 1 tick） | `useAgent` `onStateUpdate` |
+| **リスナー数** | `fetchListenerCount()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
+| **MPD state** | — | `useAgent` `onStateUpdate` |
+
+**設計意図**: 曲メタは DO が正本（パース・RPC・push を一元化）。リスナー数 SSR は DO を起こさず bridge 直叩き（コスト抑制）。preview HTTP smoke の `listenerCount` は SSR 値、opencli はハイドレーション後のライブ値。
+
 ### 現在曲の取得経路
 
 | 経路 | 用途 | 実装 |
 |------|------|------|
-| DO state push + `useAgent` | React クライアント（ライブ） | `use-mpd-agent.ts` → `onStateUpdate` |
+| DO state push + `useAgent` | React クライアント（ライブ） | `use-mpd-agent.tsx` → `onStateUpdate` |
 | DO `getCurrentSongView` | SSR / refresh | `current-song.ts` |
+| bridge `status` 直叩き | SSR リスナー数のみ | `listener-count.ts` |
 | `GET /currentsong` | ops / curl | `mpd/routes.ts` |
 
-Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。ライブ更新は MpdAgent DO の state ブロードキャスト一本（Agents SDK。Cap'n Web RPC は削除済み）。
+Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは DO と mpc-bridge だけ**。ライブ更新は MpdAgent DO の state ブロードキャスト一本（[Agents SDK](https://developers.cloudflare.com/agents/)。Cap'n Web RPC は削除済み）。
 
 ### HTTP ルート（Workers）
 
@@ -257,7 +270,8 @@ Workers は生 TCP 6600 不可（Tunnel HTTP のみ）。**MPD を叩くのは D
 | `workers/app/server/mpd/bridge.ts` | mpc-bridge fetch + Access ヘッダ |
 | `workers/app/server/mpd/playlist.ts` | キュー CRUD (better-result) |
 | `workers/app/server/posts-routes.ts` | /posts HTTP + auth |
-| `workers/app/lib/radio/use-mpd-agent.ts` | React `useAgent` watch |
+| `workers/app/lib/radio/use-mpd-agent.tsx` | React `useAgent` watch（lazy connect） |
+| `workers/app/server/mpd/listener-count.ts` | SSR リスナー数（bridge 直叩き） |
 | `workers/app/server/middleware.ts` | basic / bearer / hono-agents |
 | `mpc-bridge/main.go` | MPD TCP 接続プール |
 

@@ -26,7 +26,8 @@ radio/
 ├── workers/              # Web UI（Vite + Hono Workers）— MPD 制御・SPA 配信
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── wrangler.jsonc    # 既定=フォーク、env.production=メンテナ本番
+│   ├── wrangler.jsonc    # 既定=フォーク、env.production=044g.com、env.preview=E2E
+│   │                     # deploy: vpr build && wrangler deploy --env production --config wrangler.jsonc
 │   ├── .dev.vars.example # ローカル secrets テンプレート
 │   ├── tools/
 │   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
@@ -111,7 +112,7 @@ radio/
 
 - **音楽ファイル** → `music/` に直接追加。`auto_update` で自動反映
 - **MPD 設定変更** → `config/mpd.conf` 編集後 `docker compose restart mpd`
-- **Web UI 変更** → `workers/` 編集後、フォークは `wrangler deploy`、メンテナは `bun run deploy`
+- **Web UI 変更** → `workers/` 編集後、フォークは `wrangler deploy --config wrangler.jsonc`、メンテナは `bun run deploy`（`--env production --config wrangler.jsonc`）
 - **新しいサービス追加** → `compose.yaml` に追加、`docs/tech.md` 更新
 - **新しい make ターゲット** → `Makefile` + `docs/tech.md` のコマンド表
 - **新しいテスト** → `scripts/test.sh` または `workers/` vitest + `docs/test.md`
