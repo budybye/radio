@@ -18,22 +18,10 @@
   },
   "env": {
     "production": {
-      "name": "radio",
-      "workers_dev": false,
-      "vars": {
-        "MPD_HOST": "mpd.044g.com",
-        "MPC_HOST": "mpc.044g.com"
-      },
-      "durable_objects": {
-        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
-      }
-    },
-    "preview": {
-      "name": "radio-preview",
       "workers_dev": true,
       "vars": {
-        "MPD_HOST": "mpd.044g.com",
-        "MPC_HOST": "e2e-dummy"
+        "MPD_HOST": "mpd.example.com",
+        "MPC_HOST": "mpc.example.com"
       },
       "durable_objects": {
         "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]

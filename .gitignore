@@ -1,4 +1,6 @@
 .env
+.env.e2e
+.env.production
 music/*
 !music/123.mp3
 # Local Pi runtime state

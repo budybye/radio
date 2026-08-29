@@ -216,9 +216,9 @@ mpd_music_dir = /music
 
 | ホスト | 役割 | 公開 |
 |--------|------|:----:|
-| `044g.com` | Web UI（Workers） | ✅ リスナー + 管理 |
-| `mpd.044g.com` | MP3 ストリーム（Tunnel → MPD HTTPD） | ✅ 聴取のみ |
-| `mpc.044g.com` | mpc-bridge（MPD 制御 HTTP） | 🔒 Access Service Token のみ |
+| `your-domain.com` | Web UI（Workers） | ✅ リスナー + 管理 |
+| `mpd.your-domain.com` | MP3 ストリーム（Tunnel → MPD HTTPD） | ✅ 聴取のみ |
+| `mpc.your-domain.com` | mpc-bridge（MPD 制御 HTTP） | 🔒 Access Service Token のみ |
 
 ### Home データフロー（曲メタ / リスナー数）
 

@@ -12,7 +12,7 @@ flowchart TB
   end
 
   subgraph cf["Cloudflare"]
-  Workers["Workers<br/>Hono + Inertia + MpdAgent DO<br/>044g.com"]
+  Workers["Workers<br/>Hono + Inertia + MpdAgent DO<br/>your-domain.com"]
   Tunnel["Tunnel エッジ"]
   Access["Access<br/>mpc.* のみ"]
   end
@@ -84,14 +84,14 @@ flowchart LR
 ```mermaid
 flowchart TD
   Fork["フォーク利用者"]
-  Maintainer["メンテナ（044g.com）"]
+  Maintainer["メンテナ（your-domain.com）"]
   Btn["Deploy to Cloudflare ボタン"]
   WranglerDefault["wrangler deploy<br/>（env なし）"]
   BunDeploy["bun run deploy<br/>--env production"]
   ForkVars["vars: mpd.example.com<br/>workers_dev: true"]
-  ProdVars["vars: mpd.044g.com<br/>workers_dev: false"]
-  ForkWorker["*.workers.dev"]
-  ProdWorker["044g.com"]
+  ProdVars["vars: .env.production<br/>workers_dev: true"]
+  ForkWorker["radio.*.workers.dev"]
+  ProdWorker["radio-production.*.workers.dev<br/>+ カスタムドメイン（任意）"]
 
   Fork --> Btn
   Btn --> WranglerDefault
@@ -109,10 +109,9 @@ flowchart TD
 |----------|--------|--------|
 | Deploy ボタン → 既定 env | `mpd.example.com` プレースホルダ | フォーク |
 | `wrangler deploy --config wrangler.jsonc`（env なし） | 同上 | フォーク |
-| `bun run deploy` | `--env production --config wrangler.jsonc`（044g.com） | **メンテナのみ** |
-| `bun run deploy:preview` | `--env preview --config wrangler.jsonc`（`radio-preview.*`） | メンテナ / E2E |
+| `bun run deploy` | `--env production --config wrangler.jsonc`（`.env.production` のホスト名） | **メンテナのみ** |
 
-> **注意**: `vpr build` 後の `dist/radio/wrangler.json` はフォーク既定 vars のまま。本番 / preview vars を効かせるには deploy 時に `--config wrangler.jsonc` が必須。詳細: [deploy-fork.md](deploy-fork.md#deploy-pitfall)
+> **注意**: `vpr build` 後の `dist/radio/wrangler.json` はフォーク既定 vars のまま。メンテナ vars を効かせるには deploy 時に `--config wrangler.jsonc` と `--env production` が必須。詳細: [deploy-fork.md](deploy-fork.md#deploy-pitfall)
 
 詳細: [deploy-fork.md](deploy-fork.md)
 
@@ -123,7 +122,7 @@ flowchart TB
   subgraph e2e["E2E（opencli + HTTP smoke）"]
     Local["local: 127.0.0.1:5173 + mpd-stub"]
     Preview["preview: workers.dev"]
-    Prod["prod: 044g.com（読み取り専用）"]
+    Prod["prod: your-domain.com（読み取り専用）"]
   end
 
   subgraph integration["Integration"]
@@ -147,7 +146,7 @@ flowchart TB
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
 | E2E local | `make test-e2e-local` | ダミー mpc-bridge 推奨 |
-| E2E preview | `make test-e2e-preview` | `radio.*` または `radio-preview.*.workers.dev` |
+| E2E preview | `make test-e2e-preview` | `radio.*` または `radio-production.*.workers.dev` |
 
 詳細: [test.md](test.md) · preview フロー: [e2e-preview-flow](#e2e-preview-flow)
 

@@ -4,9 +4,10 @@
 
 ```
 radio/
-├── .env                  # 環境変数（TUNNEL_TOKEN — .gitignore対象）
-├── .env.example          # 環境変数テンプレート
-├── .env.e2e.example      # E2E ティア用環境変数テンプレート
+├── .env                  # Docker: TUNNEL_TOKEN（.gitignore）
+├── .env.example          # Docker テンプレート
+├── .env.production.example # メンテナ deploy 用ホスト名テンプレート
+├── .env.e2e.example      # E2E ティア用テンプレート（deploy 設定ではない）
 ├── .gitignore
 ├── Makefile              # 便利コマンド（make up / test / test-e2e-* 等）
 ├── compose.yaml          # Docker Compose 構成定義
@@ -26,7 +27,7 @@ radio/
 ├── workers/              # Web UI（Vite + Hono Workers）— MPD 制御・SPA 配信
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── wrangler.jsonc    # 既定=フォーク、env.production=044g.com、env.preview=E2E
+│   ├── wrangler.jsonc    # 既定=フォーク、env.production=メンテナ deploy
 │   │                     # deploy: vpr build && wrangler deploy --env production --config wrangler.jsonc
 │   ├── .dev.vars.example # ローカル secrets テンプレート
 │   ├── tools/

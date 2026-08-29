@@ -97,15 +97,15 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 ```bash
 cd workers
 bun install
-bun run deploy   # vpr build && wrangler deploy --env production --config wrangler.jsonc（044g.com）
+bun run deploy   # vpr build && wrangler deploy --env production --config wrangler.jsonc（your-domain.com）
 ```
 
 > `vpr build` は `dist/radio/wrangler.json`（フォーク既定 vars）を生成します。本番 vars を効かせるには `--config wrangler.jsonc` が必須 — `bun run deploy` はこれを含みます。詳細: [docs/deploy-fork.md](docs/deploy-fork.md)
 
 | ホスト | 用途 |
 |--------|------|
-| `044g.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
-| `mpd.044g.com` | MP3 ストリーム URL（Home の `config.streamUrl` が参照） |
+| `your-domain.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
+| `mpd.your-domain.com` | MP3 ストリーム URL（Home の `config.streamUrl` が参照） |
 
 ローカル開発: `cd workers && bun run dev` → `http://localhost:5173`
 
@@ -123,7 +123,7 @@ Cloudflare（Workers UI + Tunnel エッジ）
     │
     ├──► mpc.* ──► mpc-bridge ──► MPD TCP 6600（Access 保護）
     │
-    └──► 044g.com ──► Workers（Web UI + MpdAgent DO）
+    └──► your-domain.com ──► Workers（Web UI + MpdAgent DO）
              │
              ▼
         Docker: MPD + mpc-bridge + cloudflared

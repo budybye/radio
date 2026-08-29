@@ -75,7 +75,7 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 |------------------|---------------|------|
 | MPD Protocol | 6600（コンテナ内部） | TCP テキストプロトコル（mpc, ncmpcpp） |
 | mpc-bridge | `mpc.*` → `/mpd.cgi?cmd=` | Tunnel 経由 HTTP。Access Service Token で保護 |
-| Workers `/posts` | 044g.com | キュー CRUD。Basic（read）/ Basic or Bearer（write） |
+| Workers `/posts` | your-domain.com | キュー CRUD。Basic（read）/ Basic or Bearer（write） |
 | ncmpcpp (TUI) | コンテナ内 | 対話的ターミナルクライアント |
 
 ### Workers 診断エンドポイント
@@ -169,9 +169,9 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 - **ステータス**: 承認済み
 - **状況**: `mpc.*` を Tunnel で HTTP 公開すると、認証なしで MPD 制御 API（stop / clear / playlist 等）が全世界から到達可能になる
-- **決定**: `mpc.044g.com` に Cloudflare Access を適用。Policy は Service Auth（Service Token のみ Allow）+ Block（Everyone）
+- **決定**: `mpc.your-domain.com` に Cloudflare Access を適用。Policy は Service Auth（Service Token のみ Allow）+ Block（Everyone）
 - **理由**:
   - CORS 制限は curl / スクリプトを防げない
   - Workers から mpc-bridge へ fetch する際、`CF-Access-Client-Id/Secret` ヘッダで認証
-  - ストリーム（`mpd.*`）と UI（`044g.com`）は公開のまま維持
+  - ストリーム（`mpd.*`）と UI（`your-domain.com`）は公開のまま維持
 - **結果**: 制御面のみ閉じ、Tunnel の利点（ポート開放不要）は維持。Worker secrets に Service Token を登録

@@ -4,8 +4,8 @@ import { mpcBridgeOrigin, mpcBridgeUrl } from "./bridge-url";
 
 describe("mpcBridgeUrl", () => {
   it("uses https + MPC_HOST in production mode", () => {
-    expect(mpcBridgeUrl("mpc.044g.com", "status")).toBe(
-      "https://mpc.044g.com/mpd.cgi?cmd=status",
+    expect(mpcBridgeUrl("mpc.example.com", "status")).toBe(
+      "https://mpc.example.com/mpd.cgi?cmd=status",
     );
   });
 

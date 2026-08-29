@@ -22,7 +22,7 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 |----------|------|
 | [diagrams.md](diagrams.md) | **図解** — システム・認証・デプロイ・Home UI・MPD フロー・E2E preview（Mermaid） |
 | [requirements.md](requirements.md) | 機能 / 非機能要件、Phase 3 進捗、用語集 |
-| [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare（フォーク向け手順） |
+| [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare（フォーク向け手順）· [環境ファイル一覧](deploy-fork.md#env-files) |
 | [design.md](design.md) | モジュール責務、ADR、API 一覧（図は diagrams.md） |
 | [openspec.md](openspec.md) | OpenSpec ワークフロー、三層モデル、archive 手順 |
 | [patterns/README.md](patterns/README.md) | 再利用可能なコードパターン索引 |

@@ -32,8 +32,7 @@ bun install
 bun run dev          # http://localhost:5173 (Miniflare)
 bun run build
 bun run test         # vitest (parse / serialize / bridge-url)
-bun run deploy       # wrangler deploy --env production（044g.com メンテナ向け）
-bun run deploy:preview  # wrangler deploy --env preview（E2E tier）
+bun run deploy       # メンテナ: .env.production のホスト名で deploy（*.workers.dev も有効）
 bunx tsc --noEmit    # package.json に script 未登録
 ```
 
@@ -77,8 +76,8 @@ workers/
 |--------|------|------|------|
 | GET | `/` | なし | リスナー Home（SSR + DO watch） |
 | ALL | `/agents/MpdAgent/*` | なし | Agents SDK（ライブ watch） |
-| GET | `/openapi.json` | なし (dev/preview) | OpenAPI 3.1 spec |
-| GET | `/scalar` | なし (dev/preview) | Scalar API Reference UI |
+| GET | `/openapi.json` | なし (dev / `*.workers.dev`) | OpenAPI 3.1 spec |
+| GET | `/scalar` | なし (dev / `*.workers.dev`) | Scalar API Reference UI |
 | GET | `/status` | Basic | MPD status JSON（診断） |
 | GET | `/currentsong` | Basic | 現在曲 JSON（ops / 外部） |
 | GET | `/mpd/ping` | Basic | mpc-bridge + MPD 到達性 |
@@ -102,21 +101,21 @@ workers/
 
 | 変数 | 例 | 説明 |
 |------|-----|------|
-| `MPD_HOST` | `mpd.044g.com` | MP3 ストリーム URL ホスト |
-| `MPC_HOST` | `mpc.044g.com` | mpc-bridge ホスト |
+| `MPD_HOST` | `mpd.your-domain.com` | MP3 ストリーム URL ホスト |
+| `MPC_HOST` | `mpc.your-domain.com` | mpc-bridge ホスト |
 | `MPC_BRIDGE_BASE_URL` | _(未設定)_ | **E2E のみ**: `http://127.0.0.1:18080` で mpd-stub に向ける |
 
 Wrangler secrets（`bunx wrangler secret put <NAME>`）:
 
 | Secret | 用途 |
 |--------|------|
-| `CF_ACCESS_CLIENT_ID` | mpc.044g.com Access Service Token |
+| `CF_ACCESS_CLIENT_ID` | mpc.your-domain.com Access Service Token |
 | `CF_ACCESS_CLIENT_SECRET` | 同上 |
 | `USERNAME` | 管理 UI Basic Auth |
 | `PASSWORD` | 管理 UI Basic Auth |
 | `TOKEN` | 管理 API Bearer（`basicOrBearer` の write 用） |
 
-mpc.044g.com は Cloudflare Access（Service Auth + Block）で保護し、Worker の fetch のみ通す。詳細は [docs/design.md](../docs/design.md) ADR-004。
+mpc.your-domain.com は Cloudflare Access（Service Auth + Block）で保護し、Worker の fetch のみ通す。詳細は [docs/design.md](../docs/design.md) ADR-004。
 
 ## 触るファイルの目安
 

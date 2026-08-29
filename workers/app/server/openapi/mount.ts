@@ -33,10 +33,11 @@ const AGENT_PATHS: OpenAPIV3_1.PathsObject = {
   },
 };
 
-/** dev / preview (`MPC_HOST=e2e-dummy`) のみ OpenAPI + Scalar を公開 */
+/** ローカル dev と `*.workers.dev` のみ OpenAPI + Scalar を公開（カスタムドメインは 404） */
 function openApiEnabled(c: Context<Env>): boolean {
   if (import.meta.env.DEV) return true;
-  return c.env.MPC_HOST === "e2e-dummy";
+  const hostname = new URL(c.req.url).hostname;
+  return hostname.endsWith(".workers.dev");
 }
 
 const scalarUi = Scalar<Env>({
@@ -45,7 +46,7 @@ const scalarUi = Scalar<Env>({
   theme: "default",
 });
 
-/** `/openapi.json` — ローカル dev と preview (`MPC_HOST=e2e-dummy`) のみ */
+/** `/openapi.json` — ローカル dev と `*.workers.dev` のみ */
 export function mountOpenApi<T extends Hono<Env>>(
   app: T,
   documented: Hono<Env>,

@@ -10,9 +10,9 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 
 | ホスト | 役割 |
 |--------|------|
-| `044g.com` | Web UI（Workers）— リスナー画面 + 管理 UI |
-| `mpd.044g.com` | MP3 ストリーム（Tunnel → MPD HTTPD） |
-| `mpc.044g.com` | mpc-bridge（MPD 制御 HTTP）— Access Service Token のみ |
+| `your-domain.com` | Web UI（Workers）— リスナー画面 + 管理 UI |
+| `mpd.your-domain.com` | MP3 ストリーム（Tunnel → MPD HTTPD） |
+| `mpc.your-domain.com` | mpc-bridge（MPD 制御 HTTP）— Access Service Token のみ |
 
 ## 機能要件
 

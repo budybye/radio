@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Tier: local | preview | prod
 # - local:   Miniflare / vp dev / vp preview on loopback
-# - preview: *.workers.dev (deploy with wrangler --env preview)
-# - prod:    044g.com custom domain — read-only smoke only
+# - preview: *.workers.dev (after wrangler deploy or bun run deploy)
+# - prod:    custom domain — read-only smoke only (set RADIO_E2E_PROD_URL)
 
 radio_e2e_default_base_url() {
   case "${RADIO_E2E_TIER:-local}" in
@@ -13,10 +13,19 @@ radio_e2e_default_base_url() {
       if [[ -n "${RADIO_E2E_PREVIEW_URL:-}" ]]; then
         echo "${RADIO_E2E_PREVIEW_URL}"
       else
-        echo "https://radio-preview.${CLOUDFLARE_ACCOUNT_SUBDOMAIN:-<account>}.workers.dev"
+        echo "https://radio.${CLOUDFLARE_ACCOUNT_SUBDOMAIN:-<account>}.workers.dev"
       fi
       ;;
-    prod) echo "https://044g.com" ;;
+    prod)
+      if [[ -n "${RADIO_E2E_BASE_URL:-}" ]]; then
+        echo "${RADIO_E2E_BASE_URL}"
+      elif [[ -n "${RADIO_E2E_PROD_URL:-}" ]]; then
+        echo "${RADIO_E2E_PROD_URL}"
+      else
+        echo "Set RADIO_E2E_PROD_URL or RADIO_E2E_BASE_URL for prod tier" >&2
+        return 1
+      fi
+      ;;
     *)
       echo "unknown RADIO_E2E_TIER: ${RADIO_E2E_TIER}" >&2
       return 1
