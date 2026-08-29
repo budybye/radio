@@ -23,7 +23,7 @@
 | ティア | 対象 URL | MPD バックエンド | fixture 値を検証 | 主な用途 | コマンド |
 |--------|----------|------------------|:----------------:|----------|----------|
 | **local** | `http://127.0.0.1:5173` | **mpd-stub** (`:18080`) | **YES** | UI / DO / RPC の精密検証 | `make test-e2e-local` |
-| **preview** | `https://radio.*.workers.dev`（deploy 後） | 本番 Tunnel または未設定 | **NO**（構造のみ） | deploy 後の Workers 動作確認 | `make test-e2e-preview` |
+| **preview** | `https://radio-preview.*.workers.dev` | 未設定 or 本番 Tunnel | **NO**（構造のみ） | E2E 専用 Worker の deploy 確認 | `make test-e2e-preview` |
 | **prod** | `https://your-domain.com` | 本番 MPD | **NO**（GET / 200 のみ） | デプロイ後の最小 smoke | `RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod` |
 
 ### ティア選定フロー
@@ -57,7 +57,7 @@
 | prod は書き込み禁止 | `RADIO_E2E_WRITE=1` は prod で拒否 |
 | preview は workers.dev のみ | `common.sh` が `*.workers.dev` を検証 |
 | local は loopback のみ | `127.0.0.1` / `localhost` 以外は拒否 |
-| `workers_dev` | 既定・`env.production` とも `true`（`*.workers.dev` を維持） |
+| `workers_dev` | 既定・preview: `true` / production: `false` |
 
 環境変数: [`.env.e2e.example`](../.env.e2e.example)
 
@@ -98,9 +98,9 @@ opencli セッション: `RADIO_E2E_OPENCLI_SESSION`（既定 `radio-e2e`）
 
 ## preview: workers.dev（構造 smoke のみ）
 
-**目的**: `wrangler deploy` またはメンテナの `bun run deploy` 後、Workers バンドル・DO binding・HTML 配信が壊れていないことを確認。
+**目的**: `bun run deploy:preview` 後、`radio-preview` Worker のバンドル・DO binding・HTML 配信を確認。
 
-> **workers.dev URL**: `env.production.workers_dev: true` のため、メンテナ deploy 後も `radio-production.*.workers.dev` で preview E2E が可能。カスタムドメインはダッシュボードで別途追加。
+> **本番と分離**: preview は Worker 名 `radio-preview`。本番 `bun run deploy` のあとも `bun run deploy:preview` で E2E 用 URL を維持できる。
 
 **検証しないもの**: fixture のリスナー数 3、Fixture Artist（本番 MPD の実データに依存するため）。
 
@@ -112,18 +112,16 @@ opencli セッション: `RADIO_E2E_OPENCLI_SESSION`（既定 `radio-e2e`）
 | `opencli-home.sh` | ハイドレーション後の `LISTENERS` / `.globe-speaker` |
 
 ```bash
-cd workers && wrangler deploy --config wrangler.jsonc   # フォーク既定 → https://radio.<account>.workers.dev
-# メンテナ:
-cd workers && bun run deploy   # → https://radio-production.<account>.workers.dev も有効
-
-export RADIO_E2E_PREVIEW_URL=https://radio-production.<account>.workers.dev
+cd workers && bun run deploy:preview
+export RADIO_E2E_PREVIEW_URL=https://radio-preview.<account>.workers.dev
 make test-e2e-preview
 ```
 
-| wrangler 設定 | 値 | 意味 |
-|---------------|-----|------|
-| ルート `workers_dev` | `true` | フォーク向け `radio.*.workers.dev` |
-| `env.production.workers_dev` | `true` | メンテナ deploy 後も `radio-production.*.workers.dev` |
+| wrangler env | Worker 名 | `workers_dev` | 用途 |
+|--------------|-----------|---------------|------|
+| （なし） | `radio` | `true` | フォーク |
+| `production` | `radio` | `false` | 本番カスタムドメイン |
+| `preview` | `radio-preview` | `true` | E2E smoke |
 
 preview で DO ポーリングまで検証する場合は Access secrets を設定し、必要なら `workers/.dev.vars` の `MPC_BRIDGE_BASE_URL` で stub に向ける（ローカルのみ）。
 

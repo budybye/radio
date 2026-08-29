@@ -17,11 +17,26 @@
     "MPC_HOST": "mpc.example.com"
   },
   "env": {
+    // Maintainer production — same Worker name "radio" as custom domain binding.
+    // Hostnames come from root .env.production via deploy.sh (--var injection).
     "production": {
-      "workers_dev": true,
+      "name": "radio",
+      "workers_dev": false,
       "vars": {
         "MPD_HOST": "mpd.example.com",
         "MPC_HOST": "mpc.example.com"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
+      }
+    },
+    // Isolated preview Worker for E2E — never touches production routes.
+    "preview": {
+      "name": "radio-preview",
+      "workers_dev": true,
+      "vars": {
+        "MPD_HOST": "mpd.example.com",
+        "MPC_HOST": "e2e-dummy"
       },
       "durable_objects": {
         "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]

@@ -32,7 +32,9 @@ bun install
 bun run dev          # http://localhost:5173 (Miniflare)
 bun run build
 bun run test         # vitest (parse / serialize / bridge-url)
-bun run deploy       # メンテナ: .env.production のホスト名で deploy（*.workers.dev も有効）
+bun run deploy          # 本番: .env.production → Worker "radio"
+bun run deploy:preview  # E2E: Worker "radio-preview"
+bun run deploy:fork     # フォーク既定
 bunx tsc --noEmit    # package.json に script 未登録
 ```
 

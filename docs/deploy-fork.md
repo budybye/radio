@@ -25,6 +25,36 @@
 
 > **フォーク先リポジトリから配布する場合**: ボタン URL の `github.com/budybye/radio` を `github.com/<your-user>/radio` に差し替えてください。
 
+## デプロイ環境（3 つだけ） {#deploy-targets}
+
+| 目的 | コマンド | Wrangler env | Worker 名 | URL |
+|------|----------|--------------|-----------|-----|
+| **フォーク** | `bun run deploy:fork` | （なし） | `radio` | `radio.*.workers.dev` |
+| **本番** | `bun run deploy` | `production` | `radio` | カスタムドメイン（ダッシュボード） |
+| **E2E 用** | `bun run deploy:preview` | `preview` | `radio-preview` | `radio-preview.*.workers.dev` |
+
+> **044g.com が動かない典型原因**: `--env production` なしで deploy すると Worker 名や vars がずれる。**本番は必ず `bun run deploy`**（内部で `--env production --config wrangler.jsonc` + `.env.production` の `--var`）。
+
+### 本番デプロイ手順（メンテナ）
+
+```bash
+cp .env.production.example .env.production   # 初回のみ
+# MPD_HOST / MPC_HOST を実ホスト名に編集
+
+cd workers && bun run deploy
+# → Worker "radio" へ deploy（カスタムドメインのバインド先）
+```
+
+### プレビュー / E2E 手順
+
+```bash
+cd workers && bun run deploy:preview
+export RADIO_E2E_PREVIEW_URL=https://radio-preview.<account>.workers.dev
+make test-e2e-preview
+```
+
+本番 deploy は **preview Worker に影響しません**（別 Worker `radio-preview`）。
+
 ## 環境ファイル一覧 {#env-files}
 
 リポジトリには **用途の違う `.env*` が複数**あります。名前が似ていても読み込まれる層が違うので混同しないでください。
@@ -34,21 +64,22 @@
 | [`.env.example`](../.env.example) | Docker Compose | 全員 | `TUNNEL_TOKEN` のテンプレ | ✅ |
 | `.env` | Docker Compose | ローカル運用 | Tunnel トークン（`make up`） | ❌ |
 | [`.env.production.example`](../.env.production.example) | シェル | **メンテナのみ** | `MPD_HOST` / `MPC_HOST` のテンプレ | ✅ |
-| `.env.production` | シェル | **メンテナのみ** | `deploy-production.sh` が `--var` 注入に使用 | ❌ |
+| `.env.production` | シェル | **メンテナのみ** | `deploy.sh production` が `--var` 注入に使用 | ❌ |
 | [`.env.e2e.example`](../.env.e2e.example) | E2E | 開発者 | `RADIO_E2E_*` ティア説明 | ✅ |
 | `.env.e2e` | E2E | 開発者 | E2E 用オーバーライド（任意） | ❌ |
 | [`workers/.dev.vars.example`](../workers/.dev.vars.example) | Wrangler ローカル | Workers 開発 | Access / Basic Auth など **secrets** | ✅ |
 | `workers/.dev.vars` | Wrangler ローカル | `bun run dev` | 上記の実値（gitignore） | ❌ |
-| [`workers/wrangler.jsonc`](../workers/wrangler.jsonc) | Wrangler デプロイ | 全員 | vars プレースホルダ + `env.production` 定義 | ✅ |
+| [`workers/wrangler.jsonc`](../workers/wrangler.jsonc) | Wrangler デプロイ | 全員 | 3 env 定義（default / production / preview） | ✅ |
 
 ### よくある混同
 
 | 名前 | 実体 | 読み込み元 |
 |------|------|------------|
-| **ルート `.env.production`** | シェル用のキー=value | `workers/scripts/deploy-production.sh` が `source` |
-| **`wrangler.jsonc` の `env.production`** | Wrangler の環境名（Worker 名サフィックス・DO binding 等） | `wrangler deploy --env production` |
+| **ルート `.env.production`** | シェル用のキー=value | `workers/scripts/deploy.sh production` が `source` |
+| **`wrangler.jsonc` の `env.production`** | Wrangler 環境（Worker 名 `radio`、DO binding） | `wrangler deploy --env production` |
+| **`wrangler.jsonc` の `env.preview`** | 別 Worker `radio-preview`（E2E 専用） | `wrangler deploy --env preview` |
 
-メンテナの `bun run deploy` は **両方**を使います: Wrangler 側は `--env production`、ホスト名はルート `.env.production` から `--var` で上書きします。フォーク利用者はルート `.env.production` を作らず、ダッシュボードまたは `wrangler deploy --config wrangler.jsonc`（env なし）で vars を設定してください。
+メンテナ本番: `bun run deploy` = `deploy.sh production`（Wrangler `env.production` + ルート `.env.production` のホスト名）。フォークは `bun run deploy:fork` または Deploy ボタン。
 
 ### 各ファイルの役割（詳細）
 
@@ -60,7 +91,7 @@
 
 **`workers/.dev.vars` / `.dev.vars.example`** — `bun run dev`（Miniflare）と Deploy ボタンの secrets プロンプト用。**vars**（`MPD_HOST` 等）は通常 `wrangler.jsonc` 側。ローカル E2E では `MPC_BRIDGE_BASE_URL=http://127.0.0.1:18080` で mpd-stub に向ける。
 
-**`wrangler.jsonc`** — フォーク既定（ルート env なし）と `env.production`（メンテナ `bun run deploy`）。`env.production.workers_dev: true` により、メンテナ deploy 後も `radio-production.*.workers.dev` が有効（preview E2E 用）。カスタムドメインはダッシュボードで追加（リポジトリに書かない）。
+**`wrangler.jsonc`** — 3 環境: 既定（フォーク）、`env.production`（本番 Worker `radio`）、`env.preview`（E2E Worker `radio-preview`）。本番ホスト名は repo に載せず `.env.production` から注入。カスタムドメインはダッシュボードで Worker `radio` にバインド。
 
 ## デプロイ後に必ずやること
 
@@ -114,9 +145,10 @@ bunx wrangler secret put TOKEN
 
 | コマンド | 説明 |
 |----------|------|
-| `cd workers && wrangler deploy --config wrangler.jsonc` | **推奨** — ルート `wrangler.jsonc` の既定 env（プレースホルダ vars） |
-| Deploy ボタン | 上記と同じ既定 env で初回デプロイ + Workers Builds 設定 |
-| `cd workers && bun run deploy` | ⚠️ **メンテナ専用** — ルート `.env.production` のホスト名で `--env production` deploy |
+| `cd workers && bun run deploy:fork` | フォーク既定 env → `radio.*.workers.dev` |
+| Deploy ボタン | 上記と同じ |
+| `cd workers && bun run deploy` | **本番** — `.env.production` + `--env production` → Worker `radio` |
+| `cd workers && bun run deploy:preview` | **E2E 用** — `--env preview` → Worker `radio-preview` |
 
 ### `vpr build` と `wrangler.jsonc` の落とし穴 {#deploy-pitfall}
 
@@ -136,22 +168,15 @@ cd workers && bun run deploy
 |------|------|------|
 | ストリームが聴けない | vars が `mpd.example.com` のまま | 自分の Tunnel ホスト名に変更 |
 | mpc 操作が失敗 | Access Token 未設定 / ポリシー不一致 | Service Token を secrets に登録 |
-| your-domain.com の曲が流れる | `bun run deploy` をフォークで実行した | `wrangler deploy --config wrangler.jsonc`（env なし）を使う |
-| 本番 deploy 後も `mpd.example.com` | `--config wrangler.jsonc` なしで deploy | `bun run deploy` または `--config wrangler.jsonc` を付与 |
+| 044g.com / 本番がプレースホルダ vars | `--env production` なし、または `.env.production` 未設定 | `bun run deploy`（`deploy.sh production`） |
+| 本番 deploy 後 preview E2E が壊れる | 本番と preview は別 Worker — preview を再 deploy | `bun run deploy:preview` |
 | Workers Builds が upstream を参照 | ボタン URL が budybye のまま | フォーク URL に差し替え |
 
 図解: [diagrams.md#deploy-flow](diagrams.md#deploy-flow)
 
 ## メンテナ向け（カスタムドメイン）
 
-```bash
-cp .env.production.example .env.production   # 初回のみ
-cd workers && bun run deploy
-```
-
-`.env.production` に `MPD_HOST` / `MPC_HOST` を設定。`wrangler.jsonc` の `env.production` は `workers_dev: true` と DO binding のみ（ホスト名は載せない）。deploy 後は `radio-production.*.workers.dev` でも preview E2E が可能。
-
-環境ファイルの整理: [環境ファイル一覧](#env-files)
+[デプロイ環境（3 つだけ）](#deploy-targets) を参照。本番は `bun run deploy`、E2E は `bun run deploy:preview`。
 
 ## 関連ドキュメント
 

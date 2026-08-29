@@ -88,10 +88,13 @@ flowchart TD
   Btn["Deploy to Cloudflare ボタン"]
   WranglerDefault["wrangler deploy<br/>（env なし）"]
   BunDeploy["bun run deploy<br/>--env production"]
+  PreviewDeploy["bun run deploy:preview<br/>--env preview"]
   ForkVars["vars: mpd.example.com<br/>workers_dev: true"]
-  ProdVars["vars: .env.production<br/>workers_dev: true"]
+  ProdVars["vars: .env.production<br/>workers_dev: false<br/>name: radio"]
+  PreviewVars["vars: e2e-dummy mpc<br/>workers_dev: true<br/>name: radio-preview"]
   ForkWorker["radio.*.workers.dev"]
-  ProdWorker["radio-production.*.workers.dev<br/>+ カスタムドメイン（任意）"]
+  ProdWorker["Worker radio<br/>+ カスタムドメイン"]
+  PreviewWorker["radio-preview.*.workers.dev"]
 
   Fork --> Btn
   Btn --> WranglerDefault
@@ -102,6 +105,10 @@ flowchart TD
   BunDeploy --> ProdVars
   ProdVars --> ProdWorker
 
+  Maintainer --> PreviewDeploy
+  PreviewDeploy --> PreviewVars
+  PreviewVars --> PreviewWorker
+
   Fork -.->|⚠️ 避ける| BunDeploy
 ```
 
@@ -109,7 +116,9 @@ flowchart TD
 |----------|--------|--------|
 | Deploy ボタン → 既定 env | `mpd.example.com` プレースホルダ | フォーク |
 | `wrangler deploy --config wrangler.jsonc`（env なし） | 同上 | フォーク |
-| `bun run deploy` | `--env production --config wrangler.jsonc`（`.env.production` のホスト名） | **メンテナのみ** |
+| `bun run deploy` | `--env production` → Worker `radio` | **メンテナ本番** |
+| `bun run deploy:preview` | `--env preview` → Worker `radio-preview` | **E2E** |
+| `bun run deploy:fork` | 既定 env | フォーク |
 
 > **注意**: `vpr build` 後の `dist/radio/wrangler.json` はフォーク既定 vars のまま。メンテナ vars を効かせるには deploy 時に `--config wrangler.jsonc` と `--env production` が必須。詳細: [deploy-fork.md](deploy-fork.md#deploy-pitfall)
 
@@ -146,7 +155,7 @@ flowchart TB
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
 | E2E local | `make test-e2e-local` | ダミー mpc-bridge 推奨 |
-| E2E preview | `make test-e2e-preview` | `radio.*` または `radio-production.*.workers.dev` |
+| E2E preview | `make test-e2e-preview` | `radio-preview.*.workers.dev` |
 
 詳細: [test.md](test.md) · preview フロー: [e2e-preview-flow](#e2e-preview-flow)
 

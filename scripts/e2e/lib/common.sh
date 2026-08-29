@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Tier: local | preview | prod
 # - local:   Miniflare / vp dev / vp preview on loopback
-# - preview: *.workers.dev (after wrangler deploy or bun run deploy)
+# - preview: radio-preview.*.workers.dev (bun run deploy:preview)
 # - prod:    custom domain — read-only smoke only (set RADIO_E2E_PROD_URL)
 
 radio_e2e_default_base_url() {
@@ -13,7 +13,7 @@ radio_e2e_default_base_url() {
       if [[ -n "${RADIO_E2E_PREVIEW_URL:-}" ]]; then
         echo "${RADIO_E2E_PREVIEW_URL}"
       else
-        echo "https://radio.${CLOUDFLARE_ACCOUNT_SUBDOMAIN:-<account>}.workers.dev"
+        echo "https://radio-preview.${CLOUDFLARE_ACCOUNT_SUBDOMAIN:-<account>}.workers.dev"
       fi
       ;;
     prod)

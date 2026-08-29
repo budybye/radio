@@ -39,7 +39,7 @@
 |------|------|----------|
 | `cloudflared:latest` タグの使用 | 再現性が低下（予期しないバージョン変更） | `compose.yaml` で固定バージョン（例: `2026.3.0`）に変更し、更新時に意図的にバージョンアップする |
 | `max_clients` ハードコーディング | スケール時の設定変更漏れリスク | `mpd.conf` の `max_clients` を環境変数またはビルド引数で外部化する |
-| deploy 時の vars 落とし穴 | `vpr build` 後に `--config wrangler.jsonc` なしで deploy すると `mpd.example.com` が本番に載る | `bun run deploy` を使うか `--config wrangler.jsonc` を明示。詳細: [deploy-fork.md](deploy-fork.md) |
+| deploy vars 落とし穴 | `vpr build` 後 `--config` / `--env` なしで本番 Worker がずれる | `bun run deploy`（production）を使う。詳細: [deploy-fork.md](deploy-fork.md) |
 | ヘルスチェック未設定 | ~~Tunnel が MPD 準備完了前に起動~~ | ✅ `compose.yaml` に mpd / mpc-bridge healthcheck + `depends_on: service_healthy` 済み |
 
 ## リスク登録

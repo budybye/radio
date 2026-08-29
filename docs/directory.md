@@ -27,8 +27,8 @@ radio/
 ├── workers/              # Web UI（Vite + Hono Workers）— MPD 制御・SPA 配信
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── wrangler.jsonc    # 既定=フォーク、env.production=メンテナ deploy
-│   │                     # deploy: vpr build && wrangler deploy --env production --config wrangler.jsonc
+│   ├── wrangler.jsonc    # default / env.production / env.preview
+│   │                     # deploy: scripts/deploy.sh {fork|preview|production}
 │   ├── .dev.vars.example # ローカル secrets テンプレート
 │   ├── tools/
 │   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
