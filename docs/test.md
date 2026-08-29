@@ -23,7 +23,7 @@
 | ティア | 対象 URL | MPD バックエンド | fixture 値を検証 | 主な用途 | コマンド |
 |--------|----------|------------------|:----------------:|----------|----------|
 | **local** | `http://127.0.0.1:5173` | **mpd-stub** (`:18080`) | **YES** | UI / DO / RPC の精密検証 | `make test-e2e-local` |
-| **preview** | `https://radio-preview.*.workers.dev` | 本番 Tunnel または未設定 | **NO**（構造のみ） | deploy 後の Workers 動作確認 | `make test-e2e-preview` |
+| **preview** | `https://radio.*.workers.dev`（既定 deploy）または `radio-preview.*`（`deploy:preview`） | 本番 Tunnel または未設定 | **NO**（構造のみ） | deploy 後の Workers 動作確認 | `make test-e2e-preview` |
 | **prod** | `https://044g.com` | 本番 MPD | **NO**（GET / 200 のみ） | デプロイ後の最小 smoke | `RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod` |
 
 ### ティア選定フロー

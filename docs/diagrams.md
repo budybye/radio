@@ -144,8 +144,9 @@ flowchart TB
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
 | E2E local | `make test-e2e-local` | ダミー mpc-bridge 推奨 |
+| E2E preview | `make test-e2e-preview` | `radio.*` または `radio-preview.*.workers.dev` |
 
-詳細: [test.md](test.md)
+詳細: [test.md](test.md) · preview フロー: [e2e-preview-flow](#e2e-preview-flow)
 
 ## ドキュメント三層モデル {#docs-layers}
 

@@ -58,6 +58,7 @@ radio/
 │   ├── setup.sh
 │   ├── test.sh
 │   └── e2e/              # E2E スクリプト（local/preview/prod）
+│       ├── lib/contract.sh
 │       ├── local.sh
 │       ├── mpd-stub-contract.sh
 │       └── start-mpd-stub.sh

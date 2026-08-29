@@ -14,13 +14,13 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 | コードパターン | [patterns/README.md](patterns/README.md) → [patterns/better-result.md](patterns/better-result.md) |
 | 運用・障害 | [problems.md](problems.md) → [test.md](test.md) |
 | マイルストーン | [tasks.md](tasks.md) |
-| **図解（アーキテクチャ・認証・デプロイ）** | [diagrams.md](diagrams.md) |
+| **図解（アーキテクチャ・認証・デプロイ）** | [diagrams.md](diagrams.md) — [Home UI](diagrams.md#home-ui-layout) / [MPD データフロー](diagrams.md#mpd-home-data-flow) / [E2E preview](diagrams.md#e2e-preview-flow) |
 
 ## ドキュメント一覧
 
 | ファイル | 内容 |
 |----------|------|
-| [diagrams.md](diagrams.md) | **図解** — システム・認証・デプロイ・テスト・docs 階層（Mermaid） |
+| [diagrams.md](diagrams.md) | **図解** — システム・認証・デプロイ・Home UI・MPD フロー・E2E preview（Mermaid） |
 | [requirements.md](requirements.md) | 機能 / 非機能要件、Phase 3 進捗、用語集 |
 | [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare（フォーク向け手順） |
 | [design.md](design.md) | モジュール責務、ADR、API 一覧（図は diagrams.md） |
@@ -40,7 +40,7 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 
 **制御の原則**: ブラウザは MPD TCP に直接触れない。ポーリングとライブ push は **MpdAgent DO 1 本**。キュー CRUD は Workers → mpc-bridge → MPD。
 
-**現在曲**: SSR は `fetchCurrentSong`（DO RPC + 短 TTL キャッシュ）→ クライアントは `useMpdAgentWatch` が DO state を `use-radio-player` の React state に反映。
+**現在曲 / リスナー数**: SSR は曲メタを DO RPC（冷起動 1 tick）、リスナー数を bridge 直叩き → クライアントは Play 後 `useMpdAgentWatch` が DO state を `use-radio-player` に反映。詳細: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
 
 ## graphify
 
