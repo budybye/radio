@@ -8,7 +8,10 @@ import type {
 } from "../../lib/radio/types";
 import { SSR_CURRENT_SONG_CACHE_MS } from "../../lib/radio/constants";
 import { mpdCommand } from "./bridge";
-import { currentSongFromMpdBridgeResponses } from "./bridge-current-song";
+import {
+  currentSongFromMpdBridgeResponses,
+  unchangedCurrentSongIfMatching,
+} from "./bridge-current-song";
 import { parseMpdStatus } from "./parse";
 
 let ssrSongCache: {
@@ -23,11 +26,10 @@ export async function getCurrentSongResult(
   if (status.isErr()) return Result.err(status.error);
 
   const statusRaw = status.value;
+  const unchanged = unchangedCurrentSongIfMatching(statusRaw, clientSongid);
+  if (unchanged) return Result.ok(unchanged);
   const songid = parseMpdStatus(statusRaw).status.songid ?? "";
   if (!songid) return Result.ok(null);
-  if (clientSongid !== undefined && clientSongid === songid) {
-    return Result.ok({ unchanged: true as const, songid });
-  }
 
   const current = await mpdCommand("currentsong");
   if (current.isErr()) return Result.err(current.error);

@@ -1,29 +1,12 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import * as v from "valibot";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const FIXTURES = join(import.meta.dirname, "fixtures", "mpd");
+import { loadMpdFixtureContract } from "./fixtures/mpd/contract";
+
 const HOST = "127.0.0.1";
 const PORT = 18_081;
 const BASE = `http://${HOST}:${PORT}`;
-
-const mpdFixtureContractSchema = v.object({
-  status: v.object({
-    listeners: v.number(),
-    state: v.string(),
-    songid: v.string(),
-  }),
-  currentsong: v.record(v.string(), v.string()),
-});
-
-type MpdFixtureContract = v.InferOutput<typeof mpdFixtureContractSchema>;
-
-async function loadContract(): Promise<MpdFixtureContract> {
-  const raw = await readFile(join(FIXTURES, "contract.json"), "utf8");
-  return v.parse(mpdFixtureContractSchema, JSON.parse(raw));
-}
 
 async function waitForStubReady(): Promise<void> {
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -78,7 +61,7 @@ describe("mpd-stub HTTP contract", () => {
   });
 
   it("status serves fixture listener count and playback state", async () => {
-    const contract = await loadContract();
+    const contract = await loadMpdFixtureContract();
     const response = await fetch(`${BASE}/mpd.cgi?cmd=status`);
     const body = await response.text();
 
@@ -87,7 +70,7 @@ describe("mpd-stub HTTP contract", () => {
   });
 
   it("currentsong serves fixture artist metadata", async () => {
-    const contract = await loadContract();
+    const contract = await loadMpdFixtureContract();
     const response = await fetch(`${BASE}/mpd.cgi?cmd=currentsong`);
     const body = await response.text();
 

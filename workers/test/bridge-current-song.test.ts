@@ -1,37 +1,20 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 
-import { currentSongFromMpdBridgeResponses } from "../app/server/mpd/bridge-current-song";
+import {
+  currentSongFromMpdBridgeResponses,
+  unchangedCurrentSongIfMatching,
+} from "../app/server/mpd/bridge-current-song";
 import { parseMpdStatus } from "../app/server/mpd/parse";
-
-const FIXTURES = join(import.meta.dirname, "fixtures", "mpd");
-
-const mpdFixtureContractSchema = v.object({
-  status: v.object({
-    listeners: v.number(),
-    state: v.string(),
-    songid: v.string(),
-  }),
-  currentsong: v.record(v.string(), v.string()),
-});
-
-type MpdFixtureContract = v.InferOutput<typeof mpdFixtureContractSchema>;
-
-async function loadContract(): Promise<MpdFixtureContract> {
-  const raw = await readFile(join(FIXTURES, "contract.json"), "utf8");
-  return v.parse(mpdFixtureContractSchema, JSON.parse(raw));
-}
+import {
+  loadMpdFixtureContract,
+  readMpdFixture,
+} from "./fixtures/mpd/contract";
 
 describe("current song from mpc-bridge MPD responses", () => {
   it("builds CurrentSongPayload from status.txt + currentsong.txt fixtures", async () => {
-    const contract = await loadContract();
-    const statusRaw = await readFile(join(FIXTURES, "status.txt"), "utf8");
-    const currentsongRaw = await readFile(
-      join(FIXTURES, "currentsong.txt"),
-      "utf8",
-    );
+    const contract = await loadMpdFixtureContract();
+    const statusRaw = await readMpdFixture("status.txt");
+    const currentsongRaw = await readMpdFixture("currentsong.txt");
 
     const song = currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw);
 
@@ -47,12 +30,18 @@ describe("current song from mpc-bridge MPD responses", () => {
     });
   });
 
+  it("returns unchanged when client songid matches fixture status", async () => {
+    const contract = await loadMpdFixtureContract();
+    const statusRaw = await readMpdFixture("status.txt");
+
+    expect(
+      unchangedCurrentSongIfMatching(statusRaw, contract.status.songid),
+    ).toEqual({ unchanged: true, songid: contract.status.songid });
+  });
+
   it("returns undefined when status has no songid", async () => {
     const statusRaw = "state: stop\nOK\n";
-    const currentsongRaw = await readFile(
-      join(FIXTURES, "currentsong.txt"),
-      "utf8",
-    );
+    const currentsongRaw = await readMpdFixture("currentsong.txt");
 
     expect(
       currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw),

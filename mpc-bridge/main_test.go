@@ -3,6 +3,9 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +37,21 @@ func TestInjectStreamListenersReplacesExisting(t *testing.T) {
 	want := "state: play\nlisteners: 5\nOK\n"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestInjectStreamListenersReplacesWorkersFixtureListeners(t *testing.T) {
+	rawBytes, err := os.ReadFile(filepath.Join("..", "workers", "test", "fixtures", "mpd", "status.txt"))
+	if err != nil {
+		t.Fatalf("read workers fixture: %v", err)
+	}
+
+	got := injectStreamListeners(string(rawBytes), 99)
+	if !strings.Contains(got, "listeners: 99") {
+		t.Fatalf("expected injected listeners, got %q", got)
+	}
+	if strings.Contains(got, "listeners: 3") {
+		t.Fatalf("fixture listeners should be replaced, got %q", got)
 	}
 }
 

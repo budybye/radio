@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  loadMpdFixtureContract,
+  readMpdFixture,
+} from "../../../test/fixtures/mpd/contract";
+import {
   mpdFields,
   parseListenerCount,
   parseMpdRecord,
@@ -8,30 +12,14 @@ import {
   parseMpdStatus,
 } from "./parse";
 
-const STATUS_FIXTURE = `volume: 80
-state: play
-songid: 42
-song: 3
-time: 120:300
-elapsed: 45.123
-bitrate: 320
-duration: 300.000
-audio: mp3
-listeners: 7
-OK`;
-
-const CURRENTSONG_FIXTURE = `file: music/track.flac
-Time: 245
-Artist: Test Artist
-Title: Fixture Song
-Album: E2E
-OK`;
-
 describe("mpdFields", () => {
-  it("drops OK/ACK lines and parses key: value pairs", () => {
-    const fields = mpdFields(STATUS_FIXTURE);
-    expect(fields.get("state")).toBe("play");
-    expect(fields.get("listeners")).toBe("7");
+  it("drops OK/ACK lines and parses key: value pairs from status.txt fixture", async () => {
+    const raw = await readMpdFixture("status.txt");
+    const fields = mpdFields(raw);
+    const contract = await loadMpdFixtureContract();
+
+    expect(fields.get("state")).toBe(contract.status.state);
+    expect(fields.get("listeners")).toBe(String(contract.status.listeners));
     expect(fields.has("OK")).toBe(false);
   });
 });
@@ -51,11 +39,14 @@ describe("parseListenerCount", () => {
 });
 
 describe("parseMpdStatus", () => {
-  it("extracts known status fields and listener count", () => {
-    const parsed = parseMpdStatus(STATUS_FIXTURE);
-    expect(parsed.status.state).toBe("play");
-    expect(parsed.status.songid).toBe("42");
-    expect(parsed.listenerCount).toBe(7);
+  it("parses status.txt to contract listener count and playback state", async () => {
+    const contract = await loadMpdFixtureContract();
+    const raw = await readMpdFixture("status.txt");
+    const parsed = parseMpdStatus(raw);
+
+    expect(parsed.listenerCount).toBe(contract.status.listeners);
+    expect(parsed.status.state).toBe(contract.status.state);
+    expect(parsed.status.songid).toBe(contract.status.songid);
     expect(parsed.fieldCount).toBeGreaterThan(4);
   });
 
@@ -67,12 +58,11 @@ describe("parseMpdStatus", () => {
 });
 
 describe("parseMpdRecord", () => {
-  it("returns a flat record map", () => {
-    expect(parseMpdRecord(CURRENTSONG_FIXTURE)).toMatchObject({
-      file: "music/track.flac",
-      Artist: "Test Artist",
-      Title: "Fixture Song",
-    });
+  it("parses currentsong.txt to contract metadata fields", async () => {
+    const contract = await loadMpdFixtureContract();
+    const raw = await readMpdFixture("currentsong.txt");
+
+    expect(parseMpdRecord(raw)).toMatchObject(contract.currentsong);
   });
 });
 
