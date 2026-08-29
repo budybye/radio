@@ -1,5 +1,74 @@
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
 @import "tailwindcss";
 @plugin "daisyui" {
-    themes: false;
-    logs: false;
+  themes: false;
+  logs: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "radio";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(13% 0.012 270);
+  --color-base-200: oklch(18% 0.014 270);
+  --color-base-300: oklch(25% 0.016 270);
+  --color-base-content: oklch(93% 0.012 85);
+  --color-primary: oklch(70% 0.12 8);
+  --color-primary-content: oklch(22% 0.03 8);
+  --color-secondary: oklch(76% 0.055 210);
+  --color-secondary-content: oklch(22% 0.02 210);
+  --color-accent: oklch(78% 0.08 72);
+  --color-accent-content: oklch(24% 0.03 72);
+  --color-neutral: oklch(30% 0.015 270);
+  --color-neutral-content: oklch(93% 0.012 85);
+  --color-info: oklch(74% 0.07 230);
+  --color-info-content: oklch(22% 0.03 230);
+  --color-success: oklch(84% 0.13 150);
+  --color-success-content: oklch(20% 0.04 150);
+  --color-warning: oklch(80% 0.1 75);
+  --color-warning-content: oklch(24% 0.04 75);
+  --color-error: oklch(68% 0.14 20);
+  --color-error-content: oklch(97% 0.01 20);
+
+  --radius-selector: 0.75rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes led-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.led-live {
+  animation: led-breathe 1.8s ease-in-out infinite;
+}
+
+.globe-speaker-error {
+  filter: saturate(0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .led-live {
+    animation: none !important;
+  }
 }

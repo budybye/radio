@@ -1,0 +1,25 @@
+# Copy to workers/.dev.vars for local dev (gitignored).
+# Deploy to Cloudflare reads this file to prompt for secrets during one-click deploy.
+#
+# Generate a random admin password: openssl rand -hex 16
+# Generate a Bearer token: openssl rand -hex 32
+
+# --- mpc-bridge (Cloudflare Access Service Token) ---
+# Create in Zero Trust → Access → Service Auth → Service Tokens.
+# Apply to your mpc.* hostname: Service Auth (Allow) + Everyone (Block).
+CF_ACCESS_CLIENT_ID=
+CF_ACCESS_CLIENT_SECRET=
+
+# --- Admin UI (Basic Auth) ---
+USERNAME=admin
+PASSWORD=
+
+# --- Queue API write (optional Bearer for POST/PATCH/DELETE /posts) ---
+TOKEN=
+
+# --- Local / E2E only: point at mpd-stub instead of real mpc-bridge ---
+# MPC_HOST=e2e-dummy
+# MPC_BRIDGE_BASE_URL=http://127.0.0.1:18080
+
+# --- Stream host (usually set in wrangler.jsonc vars, not secrets) ---
+# MPD_HOST=mpd.your-domain.com

@@ -3,7 +3,7 @@ MPC := $(DC) exec mpd mpc
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up up-build down restart logs status setup build clean test \
+.PHONY: help up up-build down restart logs status setup build clean test test-workers test-e2e-local test-e2e-preview test-e2e-prod \
         play stop pause next prev random sequential reload ncmpcpp
 
 # === Help ===
@@ -37,6 +37,10 @@ help:
 	@echo "Tools:"
 	@echo "  ncmpcpp     Open TUI player"
 	@echo "  test        Run integration tests"
+	@echo "  test-workers Run Workers unit tests (vitest)"
+	@echo "  test-e2e-local  Workers unit + local E2E smoke (needs vp dev)"
+	@echo "  test-e2e-preview Preview workers.dev smoke (set RADIO_E2E_PREVIEW_URL)"
+	@echo "  test-e2e-prod Read-only prod smoke (RADIO_E2E_ALLOW_PROD=1)"
 
 # === Lifecycle ===
 up:      ; $(DC) up -d
@@ -73,3 +77,7 @@ reload:
 # === Tools ===
 ncmpcpp: ; $(DC) exec -it mpd ncmpcpp
 test:    ; @bash scripts/test.sh
+test-workers: ; @cd workers && bun run test
+test-e2e-local: ; @bash scripts/e2e/local.sh
+test-e2e-preview: ; @bash scripts/e2e/preview.sh
+test-e2e-prod: ; @bash scripts/e2e/prod-smoke.sh

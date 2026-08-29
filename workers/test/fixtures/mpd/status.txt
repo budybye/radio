@@ -1,0 +1,11 @@
+volume: 80
+state: play
+songid: 1
+song: 0
+time: 45:245
+elapsed: 45.000
+bitrate: 320
+duration: 245.000
+audio: flac
+listeners: 3
+OK

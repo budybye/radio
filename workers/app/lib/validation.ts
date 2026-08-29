@@ -1,36 +1,38 @@
+import * as v from "valibot";
+
 import type { StandardSchemaV1 } from "@standard-schema/spec";
+import {
+  postSongInputSchema,
+  type PostFormErrors,
+  type PostSongInput,
+} from "../schemas/posts";
+import {
+  emptyFormErrors,
+  type StandardPathSegment,
+  toFieldErrorsFromIssues,
+} from "./validation/form-errors";
 
-import type { PostFormErrors, PostSongInput } from "../schemas/posts";
+type RawPostForm = v.InferInput<typeof postSongInputSchema>;
 
-const pathToField = (
-  path: StandardSchemaV1.Issue["path"],
-): string | undefined => {
-  if (!path?.length) return undefined;
-  const last = path[path.length - 1];
-  if (typeof last === "object" && last !== null && "key" in last) {
-    return String(last.key);
-  }
-  if (typeof last === "string" || typeof last === "number") {
-    return String(last);
-  }
-  return undefined;
-};
+const postFileKeySchema = v.object({ key: v.literal("file") });
+
+function fieldKey(
+  last: StandardPathSegment | undefined,
+): keyof PostSongInput | null {
+  if (last === undefined) return null;
+  if (last === "file") return "file";
+  if (v.safeParse(postFileKeySchema, last).success) return "file";
+  return null;
+}
+
+export const emptyPostFormErrors = emptyFormErrors<PostSongInput>();
 
 export const toFieldErrors = (
   issues: readonly StandardSchemaV1.Issue[],
-): PostFormErrors => {
-  const out: PostFormErrors = {};
-  for (const issue of issues) {
-    const key = pathToField(issue.path);
-    if (!key || key in out) continue;
-    out[key as keyof PostSongInput] = issue.message;
-  }
-  return out;
-};
+): PostFormErrors =>
+  toFieldErrorsFromIssues<PostSongInput>(issues, fieldKey);
 
-export const recoverInput = (data: unknown): PostSongInput => {
-  const obj = (data ?? {}) as Partial<PostSongInput>;
-  return {
-    file: typeof obj.file === "string" ? obj.file : "",
-  };
+export const recoverInput = (data: RawPostForm): PostSongInput => {
+  const file = v.safeParse(v.string(), data.file);
+  return { file: file.success ? file.output : "" };
 };

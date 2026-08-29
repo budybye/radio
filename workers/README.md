@@ -1,6 +1,16 @@
 # Radio Web UI (Cloudflare Workers)
 
-044g.com 上の Web UI。Inertia + React でリスナー画面と管理画面を配信し、MpdAgent DO 経由で MPD 状態を配信する。
+Inertia + React のリスナー画面と管理 UI。MpdAgent DO 経由で MPD 状態をライブ配信する。
+
+## Deploy to Cloudflare（フォーク向け）
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/budybye/radio&directory=workers)
+
+- デプロイ対象は **`workers/` のみ**（モノレポの `directory=workers`）
+- 既定は `*.workers.dev` + プレースホルダホスト（`mpd.example.com` / `mpc.example.com`）
+- **あなたの MPD スタック**（Docker + Tunnel + Access）を別途用意し、vars / secrets を差し替える
+
+手順の全文: [docs/deploy-fork.md](../docs/deploy-fork.md)
 
 ## スタック
 
@@ -10,9 +20,9 @@
 | フロント | React 19 + Inertia.js |
 | ランタイム | Cloudflare Workers + Durable Objects (MpdAgent) |
 | ビルド | Vite + Bun |
-| バリデーション | Valibot |
+| バリデーション | Valibot + hono-openapi |
 | エラー | better-result (`Result` / `TaggedError`) |
-| ライブ更新 | Agents SDK (`useAgent` → DO `watchCurrentSong`) |
+| ライブ更新 | Agents SDK (`useAgent` → DO state push) |
 
 ## 開発
 
@@ -21,7 +31,9 @@ cd workers
 bun install
 bun run dev          # http://localhost:5173 (Miniflare)
 bun run build
-bun run deploy       # wrangler deploy
+bun run test         # vitest (parse / serialize / bridge-url)
+bun run deploy       # wrangler deploy --env production（044g.com メンテナ向け）
+bun run deploy:preview  # wrangler deploy --env preview（E2E tier）
 bunx tsc --noEmit    # package.json に script 未登録
 ```
 
@@ -31,7 +43,7 @@ bunx tsc --noEmit    # package.json に script 未登録
 workers/
 ├── worker/
 │   ├── index.ts           # Wrangler entry
-│   └── mpd-agent.ts       # MpdAgent DO (poll, state, watch)
+│   └── mpd-agent.ts       # MpdAgent DO (poll, state push)
 ├── app/
 │   ├── client.tsx         # Inertia クライアント入口
 │   ├── pages/             # Inertia ページ (Home, Posts/*)
@@ -41,25 +53,19 @@ workers/
 │   ├── lib/
 │   │   ├── validation.ts
 │   │   └── radio/         # 型, serialize, hooks, errors
-│   │       ├── use-current-song.ts  # SWR キャッシュ（push 専用）
-│   │       ├── use-mpd-agent.ts     # DO watch → mutate
+│   │       ├── use-mpd-agent.ts     # DO watch → React state
 │   │       └── use-radio-player.ts  # Home 再生 UI
 │   └── server/
 │       ├── index.tsx      # ルート組み立て
 │       ├── middleware.ts  # basic / bearer / basicOrBearer, hono-agents
 │       ├── posts-routes.ts
-│       ├── radio-config.ts
-│       ├── og.tsx
 │       └── mpd/
-│           ├── bridge.ts      # mpc-bridge fetch + Access ヘッダ
-│           ├── transport.ts   # env 付き mpdCommand
+│           ├── bridge.ts      # mpc-bridge fetch + mpdCommand
 │           ├── ping.ts        # 診断 ping
 │           ├── parse.ts       # MPD 生レスポンス parse
 │           ├── song.ts        # record → Song
 │           ├── playlist.ts    # キュー CRUD (Result)
-│           ├── status.ts      # status 取得
 │           ├── current-song.ts
-│           ├── watch-tick.ts  # DO push 判定 (純関数)
 │           └── routes.ts      # /status, /currentsong, /mpd/ping
 ├── wrangler.jsonc
 └── vite.config.ts
@@ -71,9 +77,12 @@ workers/
 |--------|------|------|------|
 | GET | `/` | なし | リスナー Home（SSR + DO watch） |
 | ALL | `/agents/MpdAgent/*` | なし | Agents SDK（ライブ watch） |
-| GET | `/status` | なし | MPD status JSON（診断） |
-| GET | `/currentsong` | なし | 現在曲 JSON（ops / 外部） |
-| GET | `/mpd/ping` | なし | mpc-bridge + MPD 到達性 |
+| GET | `/openapi.json` | なし (dev/preview) | OpenAPI 3.1 spec |
+| GET | `/scalar` | なし (dev/preview) | Scalar API Reference UI |
+| GET | `/status` | Basic | MPD status JSON（診断） |
+| GET | `/currentsong` | Basic | 現在曲 JSON（ops / 外部） |
+| GET | `/mpd/ping` | Basic | mpc-bridge + MPD 到達性 |
+| GET/POST/PATCH/DELETE | `/api/posts*` | Basic or Bearer | キュー CRUD（JSON、OpenAPI 対象） |
 | GET | `/posts*` | Basic | 管理 UI 閲覧 |
 | POST/PATCH/DELETE | `/posts*` | Basic or Bearer | キュー CRUD |
 
@@ -81,12 +90,11 @@ workers/
 
 | 経路 | 用途 |
 |------|------|
-| DO `watchCurrentSong` | ブラウザライブ（`use-mpd-agent.ts` → `useCurrentSongMutate`） |
-| `useCurrentSong()` | SWR から現在曲を読む（fetcher なし） |
-| DO `getCurrentSongView` | SSR（`fetchCurrentSong`）/ API |
+| DO state push | ブラウザライブ（`use-mpd-agent.ts` → `use-radio-player` state） |
+| DO `getCurrentSongView` | SSR（`fetchCurrentSong`）/ visibility 復帰時 refresh |
 | `GET /currentsong` | ops / curl |
 
-ライブ更新は MpdAgent DO `watchCurrentSong` 一本。React Context は使わず **SWR を手動 mutate するストア**として使う。
+ライブ更新は MpdAgent DO の state ブロードキャスト一本。`use-radio-player` が React state で現在曲を保持する。
 
 ## デプロイとシークレット
 
@@ -96,6 +104,7 @@ workers/
 |------|-----|------|
 | `MPD_HOST` | `mpd.044g.com` | MP3 ストリーム URL ホスト |
 | `MPC_HOST` | `mpc.044g.com` | mpc-bridge ホスト |
+| `MPC_BRIDGE_BASE_URL` | _(未設定)_ | **E2E のみ**: `http://127.0.0.1:18080` で mpd-stub に向ける |
 
 Wrangler secrets（`bunx wrangler secret put <NAME>`）:
 
@@ -116,6 +125,6 @@ mpc.044g.com は Cloudflare Access（Service Auth + Block）で保護し、Worke
 | リスナー UI | `app/pages/Home.tsx`, `app/lib/radio/use-*.ts` |
 | 管理 UI | `app/pages/Posts/*`, `app/server/posts-routes.ts` |
 | キュー操作 | `app/server/mpd/playlist.ts` |
-| MPD 通信 | `app/server/mpd/bridge.ts`, `transport.ts` |
+| MPD 通信 | `app/server/mpd/bridge.ts` |
 | DO ポーリング | `worker/mpd-agent.ts` |
 | 認証 | `app/server/middleware.ts`, secrets |

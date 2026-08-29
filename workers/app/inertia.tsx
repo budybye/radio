@@ -2,13 +2,16 @@ import { renderToString } from "react-dom/server";
 import { Link, Script, ViteClient } from "vite-ssr-components/react";
 import { serializePage, type PageObject, type RootView } from "@hono/inertia";
 
-const ogImage = `${origin}/og.png`;
+const ogImage = "/pwa-512x512.png";
 
 const Document = ({ page }: { page: PageObject }) => (
-  <html lang="en">
+  <html lang="en" data-theme="radio">
     <head>
       <meta charSet="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+      />
       <title>mpd radio</title>
       <meta name="description" content="mpd radio" />
       <meta property="og:type" content="website" />
@@ -20,16 +23,6 @@ const Document = ({ page }: { page: PageObject }) => (
         href="/manifest.webmanifest"
         rel="manifest"
         crossOrigin="use-credentials"
-      />
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossOrigin="anonymous"
-      />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
-        rel="stylesheet"
       />
       <link rel="icon" href="/favicon.ico" sizes="48x48" />
       <link rel="icon" href="/logo.svg" sizes="any" type="image/svg+xml" />

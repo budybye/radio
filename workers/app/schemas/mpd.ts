@@ -43,7 +43,7 @@ export const mpdSongSchema = pipe(
       title: songDisplayTitle(record.file, record.Title),
       artist: record.Artist ?? "",
       album: record.Album ?? "",
-      ...(time !== undefined && Number.isFinite(time) ? { time } : {}),
+      time: time !== undefined && Number.isFinite(time) ? time : undefined,
     };
   }),
 );

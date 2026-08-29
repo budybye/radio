@@ -1,7 +1,7 @@
 import { Link } from "@inertiajs/react";
-import type { PageProps } from "../../pages.gen";
+import type { PostsIndexPageProps } from "../../types/inertia-pages";
 
-export default function Index({ posts }: PageProps<'Posts/Index'>) {
+export default function Index({ posts }: PostsIndexPageProps) {
   return (
     <main>
       <nav>

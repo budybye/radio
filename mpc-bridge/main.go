@@ -160,7 +160,7 @@ func (p *mpdPool) command(cmd string) (string, error) {
 func mpdHandler(pool *mpdPool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cmd := r.URL.Query().Get("cmd")
-		if cmd == "" || strings.ContainsAny(cmd, "\r\n") {
+		if cmd == "" || strings.ContainsAny(cmd, "\r\n\x00") {
 			w.Header().Set("Content-Type", "text/plain")
 			_, _ = w.Write([]byte(ackInvalid))
 			return

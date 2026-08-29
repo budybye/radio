@@ -1,10 +1,10 @@
 import { Result } from "better-result";
 
 import type { PostSongInput } from "../../schemas/posts";
-import type { Song } from "../../lib/radio/types";
+import type { Song } from "../../schemas/mpd";
 import { MpdTransportError, type MpdError } from "../../lib/radio/errors";
-import { mpdCommand, quoteMpdArg } from "./transport";
-import { parseMpdRecords, parseMpdResponse } from "./parse";
+import { mpdCommand, quoteMpdArg } from "./bridge";
+import { parseMpdRecords, parseMpdRecord } from "./parse";
 import { recordToSong } from "./song";
 
 export async function listSongs(): Promise<Result<Song[], MpdError>> {
@@ -20,7 +20,7 @@ export async function findSong(
   id: number,
 ): Promise<Result<Song | undefined, MpdError>> {
   return (await mpdCommand(`playlistid ${id}`)).map((raw) =>
-    recordToSong(parseMpdResponse(raw)),
+    recordToSong(parseMpdRecord(raw)),
   );
 }
 
@@ -29,7 +29,7 @@ export async function createSong(
 ): Promise<Result<Song, MpdError>> {
   return (await mpdCommand(`addid ${quoteMpdArg(input.file)}`)).andThenAsync(
     async (raw) => {
-      const added = parseMpdResponse(raw);
+      const added = parseMpdRecord(raw);
       const id = Number(added.Id);
       if (!Number.isFinite(id)) {
         return Result.err(

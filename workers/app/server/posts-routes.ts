@@ -2,11 +2,12 @@ import { sValidator } from "@hono/standard-validator";
 import { Hono } from "hono";
 import type { Context } from "hono";
 
-import { recoverInput, toFieldErrors } from "../lib/validation";
 import {
-  emptyPostFormErrors,
-  postSongInputSchema,
-} from "../schemas/posts";
+  matchMpdResourceOrHttp,
+  respondMpdTextError,
+} from "../lib/radio/mpd-http";
+import { recoverInput, toFieldErrors, emptyPostFormErrors } from "../lib/validation";
+import { postSongInputSchema } from "../schemas/posts";
 import { basic, basicOrBearer } from "./middleware";
 import {
   createSong,
@@ -29,7 +30,7 @@ export const posts = new Hono<Env>()
   .get("/new", basic, (c) =>
     c.render("Posts/New", {
       values: { file: "" },
-      errors: emptyPostFormErrors(),
+      errors: emptyPostFormErrors,
     }),
   )
   .post(
@@ -45,29 +46,24 @@ export const posts = new Hono<Env>()
     }),
     async (c) => {
       const result = await createSong(c.req.valid("json"));
-      if (result.isErr()) return c.text(result.error.message, 502);
+      if (result.isErr()) return respondMpdTextError(c, result.error);
       return c.redirect(`/posts/${result.value.id}`, 303);
     },
   )
   .get("/:id{[0-9]+}", basic, async (c) => {
     const result = await findSong(postId(c));
-    return result.match({
-      ok: (post) => (post ? c.render("Posts/Show", { post }) : c.notFound()),
-      err: () => c.notFound(),
-    });
+    return matchMpdResourceOrHttp(c, result, (post) =>
+      c.render("Posts/Show", { post }),
+    );
   })
   .get("/:id{[0-9]+}/edit", basic, async (c) => {
     const result = await findSong(postId(c));
-    return result.match({
-      ok: (post) =>
-        post
-          ? c.render("Posts/Edit", {
-              post,
-              errors: emptyPostFormErrors(),
-            })
-          : c.notFound(),
-      err: () => c.notFound(),
-    });
+    return matchMpdResourceOrHttp(c, result, (post) =>
+      c.render("Posts/Edit", {
+        post,
+        errors: emptyPostFormErrors,
+      }),
+    );
   })
   .patch(
     "/:id{[0-9]+}",
@@ -75,29 +71,23 @@ export const posts = new Hono<Env>()
     sValidator("json", postSongInputSchema, async (result, c) => {
       if (!result.success) {
         const found = await findSong(postId(c));
-        return found.match({
-          ok: (post) =>
-            post
-              ? c.render("Posts/Edit", {
-                  post: { ...post, ...recoverInput(result.data) },
-                  errors: toFieldErrors(result.error),
-                })
-              : c.notFound(),
-          err: () => c.notFound(),
-        });
+        return matchMpdResourceOrHttp(c, found, (post) =>
+          c.render("Posts/Edit", {
+            post: { ...post, ...recoverInput(result.data) },
+            errors: toFieldErrors(result.error),
+          }),
+        );
       }
     }),
     async (c) => {
       const result = await updateSong(postId(c), c.req.valid("json"));
-      return result.match({
-        ok: (post) =>
-          post ? c.redirect(`/posts/${post.id}`, 303) : c.notFound(),
-        err: () => c.notFound(),
-      });
+      return matchMpdResourceOrHttp(c, result, (post) =>
+        c.redirect(`/posts/${post.id}`, 303),
+      );
     },
   )
   .delete("/:id{[0-9]+}", basicOrBearer, async (c) => {
     const result = await deleteSong(postId(c));
-    if (result.isErr()) return c.notFound();
+    if (result.isErr()) return respondMpdTextError(c, result.error);
     return c.redirect("/posts", 303);
   });

@@ -4,7 +4,7 @@ export class MpcHttpError extends TaggedError("MpcHttpError")<{
   status: number;
   url: string;
   message: string;
-}>() {
+}> {
   constructor(args: { status: number; url: string }) {
     super({
       ...args,
@@ -19,7 +19,7 @@ export class MpdInvalidResponseError extends TaggedError(
   url: string;
   preview: string;
   message: string;
-}>() {
+}> {
   constructor(args: { url: string; preview: string }) {
     super({
       ...args,
@@ -32,7 +32,7 @@ export class MpdAckError extends TaggedError("MpdAckError")<{
   cmd: string;
   preview: string;
   message: string;
-}>() {
+}> {
   constructor(args: { cmd: string; preview: string }) {
     super({
       ...args,
@@ -44,7 +44,7 @@ export class MpdAckError extends TaggedError("MpdAckError")<{
 export class MpdTransportError extends TaggedError("MpdTransportError")<{
   message: string;
   cause?: unknown;
-}>() {}
+}> {}
 
 export type MpdError =
   | MpcHttpError

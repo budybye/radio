@@ -1,7 +1,7 @@
 import { Link, useForm } from '@inertiajs/react'
-import type { PageProps } from '../../pages.gen'
+import type { PostsNewPageProps } from '../../types/inertia-pages'
 
-export default function New({ values, errors }: PageProps<'Posts/New'>) {
+export default function New({ values, errors }: PostsNewPageProps) {
   const form = useForm(values)
 
   return (

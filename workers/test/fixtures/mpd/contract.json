@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "mpd-stub E2E contract — status.txt / currentsong.txt と E2E アサーションの正本",
+  "status": {
+    "listeners": 3,
+    "state": "play",
+    "songid": "1"
+  },
+  "currentsong": {
+    "file": "music/fixture-track.flac",
+    "Artist": "Fixture Artist",
+    "Title": "E2E Dummy Song",
+    "Album": "Test Fixtures"
+  },
+  "ui": {
+    "listenersLabel": "LISTENERS",
+    "speakerClass": "globe-speaker",
+    "titleFallback": "mpd radio"
+  }
+}

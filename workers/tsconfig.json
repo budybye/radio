@@ -11,6 +11,7 @@
       "vite-plugin-pwa/vanillajs",
       "vite-plugin-pwa/pwa-assets",
       "./worker-configuration.d.ts",
+      "./env.d.ts",
     ],
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -25,4 +26,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
   },
+  "exclude": ["tools/oxlint"],
 }

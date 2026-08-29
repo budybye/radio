@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react'
-import type { PageProps } from '../../pages.gen'
+import type { PostsShowPageProps } from '../../types/inertia-pages'
 
 function formatTime(seconds?: number) {
   if (seconds == null || !Number.isFinite(seconds)) return null
@@ -8,7 +8,7 @@ function formatTime(seconds?: number) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-export default function Show({ post }: PageProps<'Posts/Show'>) {
+export default function Show({ post }: PostsShowPageProps) {
   const duration = formatTime(post.time)
 
   return (

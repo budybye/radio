@@ -1,21 +1,43 @@
-import { inertia } from "@hono/inertia";
-import { rootView } from "../inertia";
-import middleware from "./middleware";
-import { fetchCurrentSong, mpd } from "./mpd";
+import { env } from "cloudflare:workers";
+import { Hono } from "hono";
+import { TITLE_FALLBACK } from "../lib/radio/constants";
+import { createAppShell } from "./middleware";
+import { fetchCurrentSong } from "./mpd/current-song";
+import { fetchListenerCount } from "./mpd/listener-count";
+import { apiPosts, createApiPostsRoutes } from "./api/posts";
+import { createMpdRoutes, mpd } from "./mpd/routes";
+import { mountOpenApi } from "./openapi/mount";
 import { posts } from "./posts-routes";
-import { radioConfig } from "./radio-config";
-import { og } from "./og";
 
-middleware.use(inertia({ version: "1", rootView }));
+function createApp() {
+  const documentedApi = new Hono<Env>()
+    .route("/", createMpdRoutes())
+    .route("/api/posts", createApiPostsRoutes());
 
-const routes = middleware
-  .get("/", async (c) => {
-    const song = await fetchCurrentSong();
-    return c.render("Home", { song, config: radioConfig() });
-  })
-  .route("/", mpd)
-  .route("/", og)
-  .route("/posts", posts);
+  return mountOpenApi(
+    createAppShell()
+      .get("/", async (c) => {
+        const [song, listenerCount] = await Promise.all([
+          fetchCurrentSong(),
+          fetchListenerCount(),
+        ]);
+        return c.render("Home", {
+          song,
+          listenerCount,
+          config: {
+            streamUrl: `https://${env.MPD_HOST}/`,
+            titleFallback: TITLE_FALLBACK,
+          },
+        });
+      })
+      .route("/", mpd)
+      .route("/api/posts", apiPosts)
+      .route("/posts", posts),
+    documentedApi,
+  );
+}
+
+const routes = createApp();
 
 export default routes;
-export type AppType = typeof routes;
+export type AppType = ReturnType<typeof createApp>;

@@ -1,17 +1,19 @@
 import { Result } from "better-result";
 import { env } from "cloudflare:workers";
+import { boolean, object, optional, safeParse } from "valibot";
 
 import type { MpdPingErr } from "../../schemas/mpd";
 import {
   mpcAccessFromEnv,
   mpcBridgeFetchInit,
 } from "./bridge";
+import { mpcBridgeOrigin } from "./bridge-url";
 
 export const TUNNEL_HTTP_HINT =
   "Tunnel Public Hostname を Type=HTTP + http://mpc-bridge:8080。tcp://6600 は Worker 非対応";
 
 export function mpcBaseUrl(): string {
-  return `https://${env.MPC_HOST}`;
+  return mpcBridgeOrigin(env.MPC_HOST, env.MPC_BRIDGE_BASE_URL);
 }
 
 export function mpdPingErr(
@@ -31,8 +33,11 @@ export async function mpcBridgePing(): Promise<Result<void, MpdPingErr>> {
         `${target}/mpd.cgi?cmd=ping`,
         mpcBridgeFetchInit(mpcAccessFromEnv(env)),
       );
-      const ping = (await pingRes.json()) as { ok?: boolean };
-      if (!ping.ok) {
+      const ping = safeParse(
+        object({ ok: optional(boolean()) }),
+        await pingRes.json(),
+      );
+      if (!ping.success || !ping.output.ok) {
         throw new Error("mpd.cgi ping failed");
       }
     },

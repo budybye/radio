@@ -1,5 +1,7 @@
+import { env } from "cloudflare:workers";
 import { Result } from "better-result";
 
+import { MPD_TIMEOUT_MS } from "../../lib/radio/constants";
 import {
   MpcHttpError,
   MpdAckError,
@@ -7,8 +9,10 @@ import {
   mpdErrorFromUnknown,
   type MpdError,
 } from "../../lib/radio/errors";
+import { hasAsciiControlChar } from "../../lib/text/control-chars";
+import { mpcBridgeUrl } from "./bridge-url";
 
-export const MPD_TIMEOUT_MS = 8_000;
+export { mpcBridgeOrigin, mpcBridgeUrl } from "./bridge-url";
 
 export type MpcAccessCredentials = {
   clientId: string;
@@ -42,10 +46,6 @@ export function mpcBridgeFetchInit(
   };
 }
 
-function mpcUrl(mpcHost: string, cmd: string): string {
-  return `https://${mpcHost}/mpd.cgi?cmd=${encodeURIComponent(cmd)}`;
-}
-
 function isValidMpdBody(raw: string): boolean {
   if (raw.length === 0) return true;
   return (
@@ -60,8 +60,9 @@ export async function mpdBridgeCommand(
   mpcHost: string,
   cmd: string,
   access?: MpcAccessCredentials,
+  baseUrl?: string,
 ): Promise<Result<string, MpdError>> {
-  const url = mpcUrl(mpcHost, cmd);
+  const url = mpcBridgeUrl(mpcHost, cmd, baseUrl);
   return Result.tryPromise({
     try: async () => {
       const res = await fetch(url, mpcBridgeFetchInit(access));
@@ -86,4 +87,23 @@ export async function mpdBridgeCommand(
     },
     catch: mpdErrorFromUnknown,
   });
+}
+
+export function quoteMpdArg(value: string): string {
+  if (hasAsciiControlChar(value)) {
+    throw new Error("invalid MPD argument: control characters");
+  }
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/** Tunnel HTTP 経由で MPD コマンド実行（Worker env 付き） */
+export async function mpdCommand(
+  cmd: string,
+): Promise<Result<string, MpdError>> {
+  return mpdBridgeCommand(
+    env.MPC_HOST,
+    cmd,
+    mpcAccessFromEnv(env),
+    env.MPC_BRIDGE_BASE_URL,
+  );
 }

@@ -1,9 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
 import type { CurrentSongClient } from "./serialize";
-import { useCurrentSong } from "./use-current-song";
-import { useMpdAgentWatch } from "./use-mpd-agent";
+import {
+  MpdAgentSync,
+  type MpdAgentConnectionStatus,
+  type MpdAgentApi,
+  type MpdAgentWatchUpdate,
+} from "./use-mpd-agent";
 
 function streamOrigin(streamUrl: string): string {
   return new URL(streamUrl).origin;
@@ -29,8 +40,14 @@ function disconnectAudio(audio: HTMLAudioElement): void {
   audio.load();
 }
 
+function initialPageVisible(): boolean {
+  if (!("document" in globalThis)) return true;
+  return globalThis.document.visibilityState === "visible";
+}
+
 type UseRadioPlayerOptions = {
   initialSong: CurrentSongClient | null;
+  initialListenerCount: number;
   streamUrl: string;
 };
 
@@ -40,15 +57,71 @@ type UseRadioPlayerOptions = {
  */
 export function useRadioPlayer({
   initialSong,
+  initialListenerCount,
   streamUrl,
 }: UseRadioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const agentApiRef = useRef<MpdAgentApi | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const currentSong = useCurrentSong(initialSong);
+  const [isMuted, setIsMuted] = useState(false);
+  const [agentEngaged, setAgentEngaged] = useState(false);
+  const [pageVisible, setPageVisible] = useState(initialPageVisible);
+  const [currentSong, setCurrentSong] = useState(initialSong);
+  const [listenerCount, setListenerCount] = useState(initialListenerCount);
+  const [mpdState, setMpdState] = useState<string | null>(null);
+  const [agentError, setAgentError] = useState<string | null>(null);
+  const [agentConnection, setAgentConnection] =
+    useState<MpdAgentConnectionStatus>({
+      engaged: false,
+      connected: false,
+      connecting: false,
+    });
+  const songRef = useRef(currentSong);
+  songRef.current = currentSong;
   const intentRef = useRef(false);
   const genRef = useRef(0);
   const lastMetaRefreshRef = useRef(0);
-  const { isActive, refresh } = useMpdAgentWatch();
+
+  const engageAgent = useCallback(() => {
+    setAgentEngaged(true);
+  }, []);
+
+  const handleAgentUpdate = useCallback((update: MpdAgentWatchUpdate) => {
+    setCurrentSong(update.song);
+    setListenerCount(update.listenerCount);
+    setMpdState(update.mpdState);
+    setAgentError(update.lastError);
+  }, []);
+
+  const handleAgentConnectionStatus = useCallback(
+    (status: MpdAgentConnectionStatus) => {
+      setAgentConnection(status);
+    },
+    [],
+  );
+
+  const watchActive = agentEngaged && pageVisible;
+
+  const agentSync = useMemo(
+    () => (
+      <MpdAgentSync
+        engaged={agentEngaged}
+        watchActive={watchActive}
+        playbackActive={isPlaying}
+        onUpdate={handleAgentUpdate}
+        songRef={songRef}
+        apiRef={agentApiRef}
+        onConnectionStatus={handleAgentConnectionStatus}
+      />
+    ),
+    [
+      agentEngaged,
+      watchActive,
+      isPlaying,
+      handleAgentUpdate,
+      handleAgentConnectionStatus,
+    ],
+  );
 
   const stop = useCallback(() => {
     genRef.current++;
@@ -58,14 +131,15 @@ export function useRadioPlayer({
     setIsPlaying(false);
   }, []);
 
-  /** ホバー時のみバッファ温める（マウント時は呼ばない＝ライブ遅れを抑える） */
+  /** ホバー時に WS 接続 + バッファ温め（マウント時は呼ばない） */
   const prepareStream = useCallback(() => {
+    engageAgent();
     if (intentRef.current) return;
     const audio = audioRef.current;
     if (!audio || hasWarmStreamSrc(audio, streamUrl)) return;
     audio.src = streamUrl;
     audio.load();
-  }, [streamUrl]);
+  }, [engageAgent, streamUrl]);
 
   const connect = useCallback(
     async (options?: { forceReload?: boolean }) => {
@@ -85,6 +159,8 @@ export function useRadioPlayer({
         audio.load();
       }
 
+      audio.muted = isMuted;
+
       try {
         await audio.play();
         if (gen !== genRef.current) return;
@@ -97,10 +173,11 @@ export function useRadioPlayer({
         if (gen === genRef.current) stop();
       }
     },
-    [stop, streamUrl],
+    [isMuted, stop, streamUrl],
   );
 
   const toggle = useCallback(() => {
+    engageAgent();
     if (intentRef.current) {
       stop();
       return;
@@ -108,7 +185,16 @@ export function useRadioPlayer({
     intentRef.current = true;
     setIsPlaying(true);
     void connect();
-  }, [connect, stop]);
+  }, [connect, engageAgent, stop]);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((muted) => {
+      const next = !muted;
+      const audio = audioRef.current;
+      if (audio) audio.muted = next;
+      return next;
+    });
+  }, []);
 
   const reconnectAudioIfWanted = useCallback(() => {
     if (!intentRef.current) return;
@@ -116,7 +202,8 @@ export function useRadioPlayer({
   }, [connect]);
 
   const refreshMetadata = useCallback(async () => {
-    if (isActive()) return;
+    const api = agentApiRef.current;
+    if (!api || api.isActive()) return;
 
     const now = Date.now();
     if (now - lastMetaRefreshRef.current < METADATA_REFRESH_DEBOUNCE_MS) {
@@ -125,11 +212,16 @@ export function useRadioPlayer({
     lastMetaRefreshRef.current = now;
 
     try {
-      await refresh();
+      await api.refresh();
     } catch {
       /* 前の曲名を維持 */
     }
-  }, [isActive, refresh]);
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) audio.muted = isMuted;
+  }, [isMuted]);
 
   useEffect(() => {
     let link: HTMLLinkElement | null = null;
@@ -149,7 +241,9 @@ export function useRadioPlayer({
 
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState !== "visible") return;
+      const visible = document.visibilityState === "visible";
+      setPageVisible(visible);
+      if (!visible) return;
       reconnectAudioIfWanted();
       void refreshMetadata();
     };
@@ -159,12 +253,31 @@ export function useRadioPlayer({
 
   useEffect(() => () => stop(), [stop]);
 
+  const streamConnected = isPlaying;
+  const streamAudible = isPlaying && !isMuted;
+  const agentConnected = agentConnection.connected;
+
   return {
     audioRef,
+    agentSync,
     isPlaying,
+    isMuted,
+    streamConnected,
+    streamAudible,
     toggle,
+    toggleMute,
     prepareStream,
     onAudioError: reconnectAudioIfWanted,
     currentSong,
+    listenerCount,
+    mpdState,
+    agentError,
+    agentEngaged,
+    agentConnected,
+    agentConnecting: agentConnection.connecting,
   };
 }
+
+export type RadioPlayerHandle = ReturnType<typeof useRadioPlayer> & {
+  agentSync: ReactElement | null;
+};

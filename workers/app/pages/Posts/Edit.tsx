@@ -1,7 +1,7 @@
 import { Link, useForm } from '@inertiajs/react'
-import type { PageProps } from '../../pages.gen'
+import type { PostsEditPageProps } from '../../types/inertia-pages'
 
-export default function Edit({ post, errors }: PageProps<'Posts/Edit'>) {
+export default function Edit({ post, errors }: PostsEditPageProps) {
   const form = useForm({
     file: post.file,
   })

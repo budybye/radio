@@ -1,0 +1,6 @@
+file: music/fixture-track.flac
+Time: 245
+Artist: Fixture Artist
+Title: E2E Dummy Song
+Album: Test Fixtures
+OK

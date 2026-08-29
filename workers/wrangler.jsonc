@@ -1,18 +1,43 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Default env: fork-friendly (Deploy to Cloudflare). Replace vars with your Tunnel hostnames.
   "name": "radio",
   "main": "./worker/index.ts",
-  "workers_dev": false,
-  "compatibility_date": "2026-04-04",
-  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "compatibility_date": "2026-08-21",
+  // "compatibility_flags": ["nodejs_compat"],
   "placement": { "region": "gcp:asia-northeast1" },
   "observability": { "enabled": true },
-  "route": {
-    "pattern": "044g.com",
-    "custom_domain": true,
-  },
   "durable_objects": {
     "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MpdAgent"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MpdAgent"] }],
+  "vars": {
+    "MPD_HOST": "mpd.example.com",
+    "MPC_HOST": "mpc.example.com"
+  },
+  "env": {
+    "production": {
+      "name": "radio",
+      "workers_dev": false,
+      "vars": {
+        "MPD_HOST": "mpd.044g.com",
+        "MPC_HOST": "mpc.044g.com"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
+      }
+    },
+    "preview": {
+      "name": "radio-preview",
+      "workers_dev": true,
+      "vars": {
+        "MPD_HOST": "mpd.044g.com",
+        "MPC_HOST": "e2e-dummy"
+      },
+      "durable_objects": {
+        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
+      }
+    }
+  }
 }

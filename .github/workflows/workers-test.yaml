@@ -1,0 +1,25 @@
+# Workers CI on PR / push when workers or e2e fixtures change.
+name: Workers CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "workers/**"
+      - "scripts/e2e/**"
+      - ".github/workflows/workers-ci.yaml"
+      - ".github/workflows/workers-test.yaml"
+  pull_request:
+    paths:
+      - "workers/**"
+      - "scripts/e2e/**"
+      - ".github/workflows/workers-ci.yaml"
+      - ".github/workflows/workers-test.yaml"
+
+concurrency:
+  group: workers-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/workers-ci.yaml

@@ -4,43 +4,83 @@
   "private": true,
   "scripts": {
     "dev": "vp dev",
+    "lint": "vp lint",
     "build": "vp build",
     "preview": "vp preview --port 5173",
-    "deploy": "vp build && wrangler deploy",
+    "deploy": "vpr build && wrangler deploy --env production",
+    "deploy:preview": "vpr build && wrangler deploy --env preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
     "cf-secret": "wrangler secret bulk .env",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.svg"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.40.1",
-    "@cloudflare/vitest-pool-workers": "^0.16.14",
-    "@cf-wasm/og": "^0.3.8",
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@cloudflare/vite-plugin": "^1.54.2",
+    "@oxlint/plugins": "1.80.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "@vite-pwa/assets-generator": "^1.0.2",
-    "daisyui": "^5.5.23",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8",
-    "vite-ssr-components": "^0.6.1",
-    "vite-plus": "^0.1.24",
+    "daisyui": "^5.7.22",
+    "oxlint": "1.80.0",
+    "vite": "^8.2.2",
     "vite-plugin-pwa": "^1.3.0",
-    "wrangler": "^4.99.0"
+    "vite-plus": "^0.3.0",
+    "vite-ssr-components": "^0.6.1",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.127.1"
   },
   "dependencies": {
-    "@hono/capnweb": "^0.1.0",
-    "@hono/inertia": "^0.5.0",
-    "@hono/standard-validator": "^0.2.2",
-    "@inertiajs/react": "^3.3.1",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@hono/inertia": "^0.7.0",
+    "@hono/standard-validator": "^0.4.0",
+    "@inertiajs/react": "^3.7.0",
+    "@scalar/hono-api-reference": "0.12.0",
     "@valibot/to-json-schema": "^1.7.1",
-    "agents": "^0.15.0",
-    "better-result": "^2.9.2",
-    "capnweb": "^0.8.0",
-    "hono": "^4.12.25",
-    "hono-agents": "^3.0.11",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "swr": "^2.4.1",
-    "valibot": "^1.4.1"
+    "agents": "^0.22.0",
+    "better-result": "^3.0.1",
+    "cobe": "^2.0.1",
+    "hono": "^4.13.5",
+    "hono-agents": "^3.0.12",
+    "hono-openapi": "^1.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "valibot": "^1.4.2"
+  },
+  "cloudflare": {
+    "bindings": {
+      "MPD_HOST": {
+        "description": "Public hostname for the MP3 stream (Tunnel → MPD HTTPD), e.g. `mpd.your-domain.com`."
+      },
+      "MPC_HOST": {
+        "description": "Public hostname for mpc-bridge (`/mpd.cgi`). Must be protected with **Cloudflare Access** (Service Token only)."
+      },
+      "CF_ACCESS_CLIENT_ID": {
+        "description": "Service Token Client ID from Zero Trust → Access → Service Auth. Required for Worker → mpc fetch."
+      },
+      "CF_ACCESS_CLIENT_SECRET": {
+        "description": "Service Token Client Secret. Pair with `CF_ACCESS_CLIENT_ID`."
+      },
+      "USERNAME": {
+        "description": "Basic Auth username for `/posts` and diagnostic routes (`/status`, `/currentsong`, `/mpd/ping`)."
+      },
+      "PASSWORD": {
+        "description": "Basic Auth password. Generate with `openssl rand -hex 16`."
+      },
+      "TOKEN": {
+        "description": "Optional Bearer token for queue write API (`POST/PATCH/DELETE /posts`)."
+      }
+    }
+  },
+  "overrides": {
+    "sharp": "^0.35.3"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.0",
+      "onFail": "download"
+    }
   }
 }

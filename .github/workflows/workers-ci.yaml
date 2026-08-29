@@ -1,0 +1,39 @@
+# Reusable Workers verification: unit → lint → build → mpd-stub contract.
+# Called from workers-test.yaml, tag.yaml, and build.yaml.
+name: Workers CI (reusable)
+
+on:
+  workflow_call:
+
+jobs:
+  verify:
+    name: Unit, lint, build, mpd-stub
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: workers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Unit tests (vitest)
+        run: bun run test
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+      - name: mpd-stub HTTP contract
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/e2e/mpd-stub-contract.sh
