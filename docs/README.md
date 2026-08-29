@@ -40,7 +40,9 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 
 **制御の原則**: ブラウザは MPD TCP に直接触れない。ポーリングとライブ push は **MpdAgent DO 1 本**。キュー CRUD は Workers → mpc-bridge → MPD。
 
-**現在曲 / リスナー数**: SSR は曲メタを DO RPC（冷起動 1 tick）、リスナー数を bridge 直叩き → クライアントは Play 後 `useMpdAgentWatch` が DO state を `use-radio-player` に反映。詳細: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
+**本番 Docker**: メンテナ環境では **Raspberry Pi 上で `mpd` / `mpc-bridge` / `tunnel` が常時稼働**（Workers は Cloudflare のみデプロイ）。→ [deploy-fork.md#メンテナ本番](deploy-fork.md#メンテナ本番)
+
+**現在曲 / リスナー数**: SSR は bridge 直叩き → クライアントは Play 後 `useAgent` が DO state を反映。詳細: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
 
 ## graphify
 

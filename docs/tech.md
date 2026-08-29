@@ -75,8 +75,11 @@ make up                # 2回目以降: 起動のみ（高速）
 
 ### デプロイターゲット
 
-- **開発・本番両方**: ローカル Docker ホスト（Linux / macOS / Windows WSL2）
-- **公開経路**: Cloudflare Tunnel（cloudflared コンテナ）
+- **開発**: ローカル Docker ホスト（Linux / macOS / Windows WSL2）— `make up` / `make up-tunnel`
+- **本番（メンテナ）**: **Raspberry Pi 上の Docker Compose** — `mpd`・`mpc-bridge`・`tunnel`（`--profile tunnel`）が常時稼働。Workers は Cloudflare 上の `radio` のみデプロイし、Pi スタックは通常触らない
+- **公開経路**: Cloudflare Tunnel（cloudflared コンテナ）→ `mpd.*`（ストリーム）・`mpc.*`（bridge、Access 保護）
+
+詳細: [deploy-fork.md#メンテナ本番](deploy-fork.md#メンテナ本番)
 
 ### 監視・ログ
 

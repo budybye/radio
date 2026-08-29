@@ -19,9 +19,23 @@
 
 ### メンテナ本番
 
+#### Docker スタック（Raspberry Pi）
+
+本番の **MPD / mpc-bridge / Tunnel** は、メンテナ環境の **Raspberry Pi 上で Docker Compose により常時稼働**しています（`compose.yaml` の `mpd`・`mpc-bridge`・`tunnel` プロファイル）。
+
+| 役割 | compose サービス | 備考 |
+|------|------------------|------|
+| 音楽サーバー + HTTP ストリーム | `mpd` | コンテナ内に `mpc` CLI あり |
+| Workers 向け HTTP→MPD ブリッジ | `mpc-bridge` | `MPD_STREAM_STATS_URL` でリスナー数を注入 |
+| 公開（Cloudflare Tunnel） | `tunnel` | ルート `.env` の `TUNNEL_TOKEN` |
+
+Workers 開発・デプロイだけ行う場合は **Pi 上のスタックを再起動する必要は通常ありません**。`workers/.env` の `MPD_HOST` / `MPC_HOST` が Tunnel 経由のホスト名を指していれば、`cd workers && bun run deploy` のみで UI を更新できます。
+
+Pi 側の操作（ログ・再生制御・イメージ更新）はリポジトリを Pi に clone したうえで `make logs` / `make status` 等を **Pi 上で**実行するか、SSH 経由で同等の `docker compose` コマンドを使います。ローカル PC で `make up` するのは開発用の別スタックです。
+
 ```bash
 cp workers/.env.example workers/.env
-# MPD_HOST / MPC_HOST を実ホスト名に編集
+# MPD_HOST / MPC_HOST を Tunnel の公開ホスト名に編集（Pi 上の compose が既に稼働している前提）
 
 cd workers && bun run deploy
 # → Worker "radio" + radio.*.workers.dev

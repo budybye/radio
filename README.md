@@ -92,6 +92,8 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 
 ボタンで **Workers のみ** がデプロイされます。MPD / Tunnel は別途 [クイックスタート](#クイックスタート) の Docker スタックが必要です。
 
+> **メンテナ本番**: MPD・mpc-bridge・Tunnel の Docker は **Raspberry Pi 上で既に常時稼働**しています。Workers の変更は `cd workers && bun run deploy` のみでよく、Pi 側の compose を毎回起動する必要はありません（詳細: [docs/deploy-fork.md](docs/deploy-fork.md#メンテナ本番)）。
+
 デプロイ後のチェックリスト（vars・secrets・Access・Tunnel）は **[docs/deploy-fork.md](docs/deploy-fork.md)** を参照。
 
 #### このリポジトリのメンテナが手動デプロイする場合
