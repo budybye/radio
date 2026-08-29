@@ -1,6 +1,6 @@
 FROM alpine:3.20
 
-RUN apk add --no-cache mpd mpc ncmpcpp ffmpeg && \
+RUN apk add --no-cache mpd mpc ncmpcpp && \
     mkdir -p /var/lib/mpd/playlists /music && \
     touch /var/lib/mpd/mpd.pid \
         /var/lib/mpd/state \
