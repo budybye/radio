@@ -17,5 +17,8 @@ chown -R mpd:audio /var/lib/mpd
     fi
 ) >/tmp/entrypoint-bg.log 2>&1 &
 
+# HTTP stream client count for mpc-bridge (MPD status omits httpd listeners).
+/stream-stats-server.sh >/tmp/stream-stats.log 2>&1 &
+
 # Start MPD as PID 1
 exec mpd --stdout --no-daemon /etc/mpd.conf

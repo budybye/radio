@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -157,7 +158,65 @@ func (p *mpdPool) command(cmd string) (string, error) {
 	return raw, err
 }
 
-func mpdHandler(pool *mpdPool) http.HandlerFunc {
+func injectStreamListeners(raw string, listeners int) string {
+	if listeners < 0 {
+		return raw
+	}
+
+	lines := strings.Split(raw, "\n")
+	out := make([]string, 0, len(lines)+1)
+	hasListeners := false
+	hasOK := false
+	for _, line := range lines {
+		if line == "OK" {
+			hasOK = true
+			continue
+		}
+		if strings.HasPrefix(line, "listeners:") {
+			hasListeners = true
+			out = append(out, fmt.Sprintf("listeners: %d", listeners))
+			continue
+		}
+		if line != "" {
+			out = append(out, line)
+		}
+	}
+	if !hasListeners {
+		out = append(out, fmt.Sprintf("listeners: %d", listeners))
+	}
+	if hasOK {
+		out = append(out, "OK")
+	}
+	return strings.Join(out, "\n") + "\n"
+}
+
+func fetchStreamListenerCount(statsURL string, client *http.Client) int {
+	if statsURL == "" {
+		return -1
+	}
+	if client == nil {
+		client = &http.Client{Timeout: 2 * time.Second}
+	}
+	resp, err := client.Get(statsURL)
+	if err != nil {
+		return -1
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return -1
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 16))
+	if err != nil {
+		return -1
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(body)))
+	if err != nil || n < 0 {
+		return -1
+	}
+	return n
+}
+
+func mpdHandler(pool *mpdPool, streamStatsURL string, statsClient *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cmd := r.URL.Query().Get("cmd")
 		if cmd == "" || strings.ContainsAny(cmd, "\r\n\x00") {
@@ -178,6 +237,11 @@ func mpdHandler(pool *mpdPool) http.HandlerFunc {
 			_, _ = w.Write([]byte(ackUnreachable))
 			return
 		}
+		if cmd == "status" {
+			if listeners := fetchStreamListenerCount(streamStatsURL, statsClient); listeners >= 0 {
+				raw = injectStreamListeners(raw, listeners)
+			}
+		}
 		_, _ = w.Write([]byte(raw))
 	}
 }
@@ -190,9 +254,10 @@ func main() {
 	listen := ":" + getenv("PORT", "8080")
 
 	pool := newMpdPool(mpdHost, mpdPort, poolSize, readTimeout)
+	streamStatsURL := getenv("MPD_STREAM_STATS_URL", "")
 	log.Printf(
-		"mpc-bridge listening on %s (mpd=%s:%s pool=%d read_timeout=%s)",
-		listen, mpdHost, mpdPort, poolSize, readTimeout,
+		"mpc-bridge listening on %s (mpd=%s:%s pool=%d read_timeout=%s stream_stats=%s)",
+		listen, mpdHost, mpdPort, poolSize, readTimeout, streamStatsURL,
 	)
-	log.Fatal(http.ListenAndServe(listen, mpdHandler(pool)))
+	log.Fatal(http.ListenAndServe(listen, mpdHandler(pool, streamStatsURL, nil)))
 }

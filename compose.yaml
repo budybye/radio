@@ -17,6 +17,7 @@ services:
     expose:
       - "6600"
       - "8000"
+      - "8001"
     # ports:
     #   - "127.0.0.1:6600:6600"  # MPD control (mpc / ncmpcpp from host)
     #   - "127.0.0.1:8000:8000"  # HTTP stream (local testing)
@@ -35,6 +36,7 @@ services:
     environment:
       MPD_HOST: mpd
       MPD_PORT: "6600"
+      MPD_STREAM_STATS_URL: http://mpd:8001/
       POOL_SIZE: "4"
     expose:
       - "8080"

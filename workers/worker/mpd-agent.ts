@@ -90,6 +90,12 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     );
   }
 
+  private countActivePlaybackClients(): number {
+    return this.getClientConnections().filter(
+      (connection) => connection.state?.playbackActive === true,
+    ).length;
+  }
+
   private hasActiveWatch() {
     return this.getClientConnections().some(
       (connection) => connection.state?.watchActive === true,
@@ -116,14 +122,17 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
   }
 
   @callable()
-  setPlaybackActive(active: boolean) {
+  async setPlaybackActive(active: boolean) {
     const { connection } = getCurrentAgent<MpdAgent>();
     if (!connection) return;
     connection.setState((prev: ClientConnectionState = { playbackActive: false, watchActive: false }) => ({
       ...prev,
       playbackActive: active,
     }));
-    if (active) this.ensurePollChain();
+    if (!active) return;
+    this.ensurePollChain();
+    const outcome = await this.tick(this.state);
+    if (outcome.changed) this.setState(outcome.state);
   }
 
   /** Home 等マウント中は低速ポーリングで listener / mpdState を配信 */
@@ -201,7 +210,10 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     const parsed = parseMpdStatus(status.value);
     const songid = parsed.status.songid ?? "";
     const mpdState = parsed.status.state ?? null;
-    const listenerCount = parsed.listenerCount;
+    const listenerCount = Math.max(
+      parsed.listenerCount,
+      this.countActivePlaybackClients(),
+    );
     let song = prev.song;
 
     if (songid !== prev.songid) {

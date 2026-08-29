@@ -256,6 +256,11 @@ export function useRadioPlayer({
   const streamConnected = isPlaying;
   const streamAudible = isPlaying && !isMuted;
   const agentConnected = agentConnection.connected;
+  /** MPD httpd の listeners が取れない環境でも、再生中は自分を 1 とみなす */
+  const displayListeners = Math.max(
+    listenerCount,
+    streamAudible ? 1 : 0,
+  );
 
   return {
     audioRef,
@@ -269,7 +274,7 @@ export function useRadioPlayer({
     prepareStream,
     onAudioError: reconnectAudioIfWanted,
     currentSong,
-    listenerCount,
+    listenerCount: displayListeners,
     mpdState,
     agentError,
     agentEngaged,

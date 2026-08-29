@@ -17,6 +17,9 @@ import {
   type RpcSerializedEnvelopeWire,
 } from "../../lib/radio/serialize";
 import { mpdAgentStub } from "../../../worker/mpd-agent";
+import { mpdCommand } from "./bridge";
+import { currentSongFromMpdBridgeResponses } from "./bridge-current-song";
+import { parseMpdStatus } from "./parse";
 
 let ssrSongCache: {
   expires: number;
@@ -47,7 +50,7 @@ export async function getCurrentSongResult(
   });
 }
 
-/** Inertia SSR 用（失敗時は undefined）。短 TTL キャッシュで MPD 連打を抑える。 */
+/** Inertia SSR 用（mpc-bridge 直叩き。DO を起こさない）。失敗時は undefined。 */
 export async function fetchCurrentSong(): Promise<
   CurrentSongPayload | undefined
 > {
@@ -56,10 +59,19 @@ export async function fetchCurrentSong(): Promise<
     return ssrSongCache.song;
   }
 
-  const song = (await getCurrentSongResult()).match({
-    ok: (data) =>
-      data === null || "unchanged" in data ? undefined : data,
-    err: () => undefined,
+  const status = await mpdCommand("status");
+  const song = await status.match({
+    ok: async (statusRaw) => {
+      const songid = parseMpdStatus(statusRaw).status.songid;
+      if (!songid) return undefined;
+      const current = await mpdCommand("currentsong");
+      return current.match({
+        ok: (currentsongRaw) =>
+          currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw),
+        err: () => undefined,
+      });
+    },
+    err: async () => undefined,
   });
 
   ssrSongCache = {
