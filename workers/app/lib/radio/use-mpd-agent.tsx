@@ -103,52 +103,6 @@ function useMpdAgentWatch({
     });
   }, [connected, connecting]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void agent.ready
-      .then(() => {
-        if (cancelled) return;
-        if (agent.state) onUpdateRef.current(updateFromAgentState(agent.state));
-        return agent.call("setWatchActive", [watchActive]);
-      })
-      .catch(() => {
-        /* 接続失敗時は次の状態変更で再試行 */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [agent, watchActive]);
-
-  useEffect(() => {
-    return () => {
-      void agent.ready
-        .then(() => agent.call("setWatchActive", [false]))
-        .catch(() => {
-          /* 切断済み */
-        });
-    };
-  }, [agent]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void agent.ready
-      .then(() => {
-        if (cancelled) return;
-        return agent.call("setPlaybackActive", [playbackActive]);
-      })
-      .catch(() => {
-        /* 接続失敗時は次の状態変更で再試行 */
-      });
-    return () => {
-      cancelled = true;
-      void agent.ready
-        .then(() => agent.call("setPlaybackActive", [false]))
-        .catch(() => {
-          /* 切断済み */
-        });
-    };
-  }, [agent, playbackActive]);
-
   const isActive = useCallback(
     () => agent.readyState === WebSocket.OPEN,
     [agent],
@@ -186,6 +140,54 @@ function useMpdAgentWatch({
       return songRef.current;
     }
   }, [agent, songRef]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void agent.ready
+      .then(async () => {
+        if (cancelled) return;
+        await agent.call("setWatchActive", [watchActive]);
+        if (cancelled || !watchActive) return;
+        // SSR の曲名を古い DO 永続 state で上書きしない（Play 直後の曲名ジャンプ防止）
+        await refresh();
+      })
+      .catch(() => {
+        /* 接続失敗時は次の状態変更で再試行 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [agent, refresh, watchActive]);
+
+  useEffect(() => {
+    return () => {
+      void agent.ready
+        .then(() => agent.call("setWatchActive", [false]))
+        .catch(() => {
+          /* 切断済み */
+        });
+    };
+  }, [agent]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void agent.ready
+      .then(() => {
+        if (cancelled) return;
+        return agent.call("setPlaybackActive", [playbackActive]);
+      })
+      .catch(() => {
+        /* 接続失敗時は次の状態変更で再試行 */
+      });
+    return () => {
+      cancelled = true;
+      void agent.ready
+        .then(() => agent.call("setPlaybackActive", [false]))
+        .catch(() => {
+          /* 切断済み */
+        });
+    };
+  }, [agent, playbackActive]);
 
   useEffect(() => {
     apiRef.current = { isActive, refresh };

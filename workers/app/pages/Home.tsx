@@ -1,5 +1,6 @@
 import type { HomePageProps } from "../types/inertia-pages";
 import { GlobeSpeaker } from "../components/GlobeSpeaker";
+import { formatNowPlayingDisplay } from "../lib/radio/now-playing";
 import { useRadioPlayer } from "../lib/radio/use-radio-player";
 
 function ListenerCountBadge({ count }: { count: number }) {
@@ -73,9 +74,8 @@ export default function Home({
     streamUrl: config.streamUrl,
   });
 
-  const title = currentSong?.title ?? config.titleFallback;
-  const artist = currentSong?.artist ?? "";
-  const album = currentSong?.album ?? "";
+  const nowPlaying = formatNowPlayingDisplay(currentSong, config.titleFallback);
+  const { headline: title, artist, album, variant } = nowPlaying;
   const statusFlags = {
     agentError,
     agentEngaged,
@@ -138,14 +138,21 @@ export default function Home({
             <p className="mb-2 text-xs tracking-[0.2em] text-base-content/50 uppercase">
               Now playing
             </p>
+            {artist ? (
+              <p className="text-sm font-medium tracking-wide text-success/90 sm:text-base">
+                {artist}
+              </p>
+            ) : null}
             <h1
               id="now-playing-title"
-              className="text-2xl leading-tight font-semibold wrap-break-word sm:text-3xl md:text-4xl"
+              className="mt-1 text-2xl leading-tight font-semibold wrap-break-word sm:text-3xl md:text-4xl"
             >
               {title}
             </h1>
-            {artist ? (
-              <p className="mt-2 text-sm text-success/80 sm:text-base">{artist}</p>
+            {variant === "instrumental" ? (
+              <p className="mt-2 text-xs tracking-[0.18em] text-base-content/45 uppercase">
+                Instrumental
+              </p>
             ) : null}
             {album ? (
               <p className="mt-1 text-xs text-base-content/50 sm:text-sm">{album}</p>
@@ -167,15 +174,16 @@ export default function Home({
       >
         <div className="min-w-0 max-w-64">
           <span className="block w-full truncate px-2 text-left text-xs font-medium tracking-wide sm:text-sm">
-            {title}
+            {artist || title}
           </span>
           <span className="dock-label block truncate opacity-60">
-            {artist ||
-              (streamAudible
+            {artist
+              ? title
+              : streamAudible
                 ? "Live"
                 : streamConnected
                   ? "Muted"
-                  : "Press play")}
+                  : "Press play"}
           </span>
         </div>
 
