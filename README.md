@@ -97,10 +97,10 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 ```bash
 cd workers
 bun install
-bun run deploy   # Worker "radio" — .env.production があれば実ホスト名を注入
+bun run deploy   # Worker "radio" — workers/.env があれば実ホスト名を注入
 ```
 
-> 単一 Worker `radio`。`radio-production` / `radio-preview` は使いません。詳細: [docs/deploy-fork.md](docs/deploy-fork.md#deploy-targets)
+> 単一 Worker `radio`。詳細: [docs/deploy-fork.md](docs/deploy-fork.md#deploy-targets)
 
 | ホスト | 用途 |
 |--------|------|

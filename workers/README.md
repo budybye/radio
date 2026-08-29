@@ -28,6 +28,7 @@ Inertia + React のリスナー画面と管理 UI。MpdAgent DO 経由で MPD �
 
 ```bash
 cd workers
+cp .env.example .env   # MPD_HOST / MPC_HOST + secrets
 bun install
 bun run dev          # 任意: 手動 UI 確認のみ（E2E では使わない）
 bun run build

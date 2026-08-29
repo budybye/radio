@@ -14,7 +14,7 @@
 
 ```bash
 cd workers && bun run deploy
-export RADIO_E2E_WORKERS_URL=https://radio.<account>.workers.dev
+# ルート .env に RADIO_E2E_WORKERS_URL=https://radio.<account>.workers.dev
 make test-e2e-workers
 ```
 
@@ -31,7 +31,7 @@ fixture 値（リスナー数 3 等）は **vitest + mpd-stub contract** で検�
 RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod
 ```
 
-`.env.production` の `RADIO_E2E_PROD_URL` を自動読み込み。
+ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込み。
 
 ## Workers ユニットテスト
 
@@ -50,4 +50,4 @@ CI に opencli / workers.dev smoke は入れません（手動）。
 
 ## 環境変数
 
-[`.env.e2e.example`](../.env.e2e.example) — `RADIO_E2E_WORKERS_URL`, `RADIO_E2E_PROD_URL`
+ルート [`.env.example`](../.env.example) — `RADIO_E2E_WORKERS_URL`, `RADIO_E2E_PROD_URL`

@@ -3,6 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "predev": "bash -c 'test -f .env && ln -sf .env .dev.vars || true'",
     "dev": "vp dev",
     "lint": "vp lint",
     "build": "vp build",

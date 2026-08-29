@@ -87,7 +87,7 @@ flowchart TD
   Maintainer["メンテナ"]
   Btn["Deploy to Cloudflare"]
   Deploy["bun run deploy<br/>--config wrangler.jsonc"]
-  EnvProd[".env.production<br/>MPD_HOST / MPC_HOST"]
+  EnvProd["workers/.env<br/>MPD_HOST / MPC_HOST"]
   Worker["Worker radio"]
   WorkersDev["radio.*.workers.dev"]
   Custom["カスタムドメイン（任意）"]
@@ -266,8 +266,8 @@ flowchart LR
 ```
 
 ```bash
-export RADIO_E2E_PREVIEW_URL=https://radio.<account>.workers.dev
-make test-e2e-preview
+export RADIO_E2E_WORKERS_URL=https://radio.<account>.workers.dev
+make test-e2e-workers
 ```
 
 詳細: [test.md](test.md)

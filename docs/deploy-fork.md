@@ -12,15 +12,15 @@
 
 | URL | 誰 | コマンド |
 |-----|-----|----------|
-| `https://radio.<account>.workers.dev` | 全員 | `bun run deploy`（フォークは `.env.production` なし） |
+| `https://radio.<account>.workers.dev` | 全員 | `bun run deploy`（フォークは `workers/.env` なし） |
 | カスタムドメイン（任意） | メンテナ | ダッシュボードで Worker `radio` にバインド |
 
-**Worker 名は常に `radio` 一つ。** `radio-production` や `radio-preview` は使いません。
+**Worker 名は常に `radio` 一つ。**
 
 ### メンテナ本番
 
 ```bash
-cp .env.production.example .env.production
+cp workers/.env.example workers/.env
 # MPD_HOST / MPC_HOST を実ホスト名に編集
 
 cd workers && bun run deploy
@@ -30,46 +30,48 @@ cd workers && bun run deploy
 ### フォーク
 
 ```bash
-cd workers && bun run deploy   # .env.production なし → プレースホルダ vars
+cd workers && bun run deploy   # workers/.env なし → プレースホルダ vars
 ```
 
-## 環境ファイル一覧 {#env-files}
+## 環境ファイル（2 つだけ） {#env-files}
 
-| ファイル | 層 | 誰 | 内容 | Git |
-|----------|-----|-----|------|:---:|
-| [`.env.example`](../.env.example) | Docker | 全員 | `TUNNEL_TOKEN` | ✅ |
-| `.env` | Docker | ローカル | Tunnel トークン | ❌ |
-| [`.env.production.example`](../.env.production.example) | シェル | メンテナ | `MPD_HOST` / `MPC_HOST` | ✅ |
-| `.env.production` | シェル | メンテナ | `deploy.sh` が `--var` 注入 | ❌ |
-| [`.env.e2e.example`](../.env.e2e.example) | E2E | 開発者 | smoke URL | ✅ |
-| [`workers/.dev.vars.example`](../workers/.dev.vars.example) | Wrangler | 任意 | secrets（`bun run dev` 用） | ✅ |
-| `workers/.dev.vars` | Wrangler | 任意 | 上記の実値 | ❌ |
-| [`workers/wrangler.jsonc`](../workers/wrangler.jsonc) | Wrangler | 全員 | Worker `radio`, `workers_dev: true` | ✅ |
+| ファイル | 誰 | 内容 |
+|----------|-----|------|
+| **ルート [`.env`](./.env)** | ローカル運用 | `TUNNEL_TOKEN`（Docker）、`RADIO_E2E_*`（smoke URL） |
+| **[`workers/.env`](./workers/.env)** | メンテナ / 開発者 | `MPD_HOST` / `MPC_HOST`（deploy）、Access / Basic Auth など secrets |
+
+テンプレート: [`.env.example`](./.env.example)、[`workers/.env.example`](./workers/.env.example)
+
+```bash
+make setup   # 両方の .env を example から作成
+```
 
 ### 役割の整理
 
-| 名前 | 何か |
-|------|------|
-| **`.env`** | Docker Compose の Tunnel トークンだけ |
-| **`.env.production`** | メンテナの MPD/MPC ホスト名（gitignore） |
-| **`workers/.dev.vars`** | ローカル `bun run dev` 用 secrets（**任意** — deploy には不要） |
-| **`wrangler.jsonc`** | Worker 定義。`env.production` / `env.preview` は**なし** |
+| 変数 | 置き場所 | 読み込み元 |
+|------|----------|------------|
+| `TUNNEL_TOKEN` | ルート `.env` | Docker Compose |
+| `RADIO_E2E_WORKERS_URL` / `RADIO_E2E_PROD_URL` | ルート `.env` | `make test-e2e-*` |
+| `MPD_HOST` / `MPC_HOST` | `workers/.env` | `deploy.sh` → `wrangler --var` |
+| `CF_ACCESS_*`, `USERNAME`, `PASSWORD`, `TOKEN` | `workers/.env` | `bun run dev`（`.dev.vars` へ symlink）、`wrangler secret bulk` |
+
+`wrangler.jsonc` にはプレースホルダ vars のみ。本番ホスト名は **repo に載せず** `workers/.env` に書く。
 
 ## デプロイコマンド
 
 | コマンド | 向き先 |
 |----------|--------|
 | Deploy ボタン | `radio.*.workers.dev`（プレースホルダ vars） |
-| `bun run deploy`（`.env.production` あり） | 同じ Worker `radio` + 実ホスト名 vars |
-| `bun run deploy`（`.env.production` なし） | フォーク既定 |
+| `bun run deploy`（`workers/.env` あり） | 同じ Worker `radio` + 実ホスト名 vars |
+| `bun run deploy`（`workers/.env` なし） | フォーク既定 |
 
 ### `vpr build` 落とし穴 {#deploy-pitfall}
 
 `bun run deploy` は `vpr build` のあと **必ず `--config wrangler.jsonc`** を付けます。`dist/radio/wrangler.json` だけではプレースホルダ vars のままです。
 
-## デプロイ後に必ずやること
+## デプロイ後
 
-### 1. vars（ダッシュボード or deploy 時注入）
+### 1. vars
 
 | 変数 | 説明 |
 |------|------|
@@ -78,19 +80,20 @@ cd workers && bun run deploy   # .env.production なし → プレースホル�
 
 ### 2. Secrets
 
-[`workers/.dev.vars.example`](../workers/.dev.vars.example) 参照。`wrangler secret put` で登録。
+`workers/.env` の secrets を `cd workers && bun run cf-secret` で登録。
 
 ### 3. カスタムドメイン（任意）
 
-ダッシュボード **Workers → radio → Domains & Routes** で追加。リポジトリには書かない。
+ダッシュボード **Workers → radio → Domains & Routes** で追加。
 
 ### 4. E2E smoke
 
+ルート `.env` に URL を書くか export:
+
 ```bash
-export RADIO_E2E_WORKERS_URL=https://radio.<account>.workers.dev
+# ルート .env に RADIO_E2E_WORKERS_URL=... を書いてから
 make test-e2e-workers
 
-# カスタムドメイン
 RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod
 ```
 
@@ -98,9 +101,9 @@ RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod
 
 | 問題 | 対処 |
 |------|------|
-| `radio-production.*` が出る | 古い `--env production` deploy の残骸。`bun run deploy`（env なし）で `radio` に統一 |
-| 044g.com がプレースホルダ vars | `.env.production` を作って `bun run deploy` |
-| OpenAPI が本番ドメインで見える | カスタムドメインでは 404（`*.workers.dev` とローカル dev のみ） |
+| `radio-production.*` が出る | 古い deploy の残骸。`bun run deploy` で `radio` に統一 |
+| 本番がプレースホルダ vars | `workers/.env` を作って `bun run deploy` |
+| OpenAPI がカスタムドメインで見える | 意図的に 404（`*.workers.dev` とローカル dev のみ） |
 
 図解: [diagrams.md#deploy-flow](diagrams.md#deploy-flow)
 

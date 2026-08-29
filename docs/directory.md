@@ -4,10 +4,8 @@
 
 ```
 radio/
-├── .env                  # Docker: TUNNEL_TOKEN（.gitignore）
-├── .env.example          # Docker テンプレート
-├── .env.production.example # メンテナ deploy 用ホスト名テンプレート
-├── .env.e2e.example      # E2E ティア用テンプレート（deploy 設定ではない）
+├── .env                  # Docker + E2E（.gitignore）
+├── .env.example          # ルート .env テンプレート
 ├── .gitignore
 ├── Makefile              # 便利コマンド（make up / test / test-e2e-* 等）
 ├── compose.yaml          # Docker Compose 構成定義
@@ -28,8 +26,8 @@ radio/
 │   ├── package.json
 │   ├── vite.config.ts
 │   ├── wrangler.jsonc    # Worker "radio", workers_dev: true
-│   │                     # deploy: scripts/deploy.sh (+ .env.production)
-│   ├── .dev.vars.example # ローカル secrets テンプレート
+│   │                     # deploy: scripts/deploy.sh (+ workers/.env)
+│   ├── .env.example      # workers/.env テンプレート
 │   ├── tools/
 │   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
 │   ├── test/             # E2E フィクスチャ（mpd-stub contract + vitest）

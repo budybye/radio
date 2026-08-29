@@ -14,4 +14,4 @@ node "$ROOT/workers/test/mpd-stub.mjs" &
 echo $! > "$PID_FILE"
 sleep 0.3
 echo "mpd-stub started (pid $(cat "$PID_FILE")) — contract: workers/test/fixtures/mpd/contract.json"
-echo "Set MPC_BRIDGE_BASE_URL=http://${HOST}:${PORT} in workers/.dev.vars"
+echo "Set MPC_BRIDGE_BASE_URL=http://${HOST}:${PORT} in workers/.env"

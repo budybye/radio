@@ -87,6 +87,7 @@ clean:
 
 setup:
 	@test -f .env || (cp .env.example .env && echo "Created .env — set TUNNEL_TOKEN.")
+	@test -f workers/.env || (cp workers/.env.example workers/.env && echo "Created workers/.env — set MPD_HOST / MPC_HOST.")
 	@mkdir -p music
 	@echo "Drop files in ./music/ → make up"
 

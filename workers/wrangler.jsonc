@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // Single Worker "radio" → radio.*.workers.dev (+ optional custom domain in dashboard).
-  // Maintainer hostnames: root .env.production → deploy.sh --var injection.
+  // Maintainer hostnames: workers/.env → deploy.sh --var injection.
   "name": "radio",
   "main": "./worker/index.ts",
   "workers_dev": true,
