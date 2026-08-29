@@ -165,8 +165,15 @@ export default function Home({
         className="hidden"
         ref={audioRef}
         preload="none"
+        aria-label="Live radio stream"
         onError={onAudioError}
-      />
+      >
+        <track
+          kind="captions"
+          src="/live-captions.vtt"
+          label="Live audio (no speech captions)"
+        />
+      </audio>
 
       <footer
         className="dock dock-md z-20 border-t border-base-300 bg-base-200/95 px-3 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:px-6"

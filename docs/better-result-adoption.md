@@ -59,12 +59,12 @@ make test-e2e-workers
 
 | Production area | Entry points | Failure mechanisms | Boundaries |
 |-----------------|-------------|--------------------|------------|
-| Workers HTTP | `server/index.tsx`, routes | Result + respondMpd*; **posts index err→[]** | HTTP JSON/HTML |
+| Workers HTTP | `server/index.tsx`, routes | Result + respondMpd* | HTTP JSON/HTML |
 | MPD bridge | `bridge.ts`, `playlist.ts` | Result.tryPromise, TaggedError | mpc-bridge HTTP |
-| MpdAgent DO | `mpd-agent.ts` | Result; **lastError: string** | WS/RPC |
+| MpdAgent DO | `mpd-agent.ts` | Result; structured `lastError` wire | WS/RPC |
 | RPC wire | `serialize.ts` | 手動 envelope（Result.codec 未使用） | DO callable |
-| Inertia SSR | `fetchCurrentSong`, `fetchListenerCount` | **err→undefined/0** | page props |
-| React client | `use-radio-player`, `use-mpd-agent` | try/catch, string errors | audio, WS |
+| Inertia SSR | `fetchCurrentSongResult`, `fetchListenerCountResult` | Result → explicit `undefined/0` degradation at Home | page props |
+| React client | `use-radio-player`, `use-mpd-agent` | audio / RPC failures preserve current UI state | audio, WS |
 | mpc-bridge Go | `main.go` | Go error, ACK | MPD TCP |
 
 ---
@@ -73,11 +73,11 @@ make test-e2e-workers
 
 | ID | 内容 | 現状 | 提案 |
 |----|------|------|------|
-| F10 | Posts 一覧 MPD 障害 | `err→[]` サイレント | **respondMpdTextError** |
-| F11 | DO tick 障害 | `lastError` が message のみ | **MpdErrorWire 保持** |
-| F08/F09 | SSR 取得失敗 | undefined / 0 | Result 化 + 境界で劣化（要 U01） |
-| F05 | 制御文字引数 | throw → TransportError | `MpdInvalidArgumentError` |
-| F13 | Agents refresh 失敗 | 空 catch | ログ or 明示 state |
+| F10 | Posts 一覧 MPD 障害 | `respondMpdTextError` | **完了** |
+| F11 | DO tick 障害 | `MpdErrorWire` を保持し UI で表示 | **完了** |
+| F08/F09 | SSR 取得失敗 | Result を Home 境界で undefined / 0 に劣化 | **完了（方針固定）** |
+| F05 | 制御文字引数 | `MpdInvalidArgumentError` → HTTP 400 | **完了** |
+| F13 | Agents refresh 失敗 | 現在曲を維持し、UI に message を通知 | **完了（軽量処理）** |
 
 ---
 

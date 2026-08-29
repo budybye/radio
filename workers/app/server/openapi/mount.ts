@@ -1,7 +1,10 @@
+import { toJsonSchema } from "@valibot/to-json-schema";
 import { Scalar } from "@scalar/hono-api-reference";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Context, Hono } from "hono";
 import type { OpenAPIV3_1 } from "openapi-types";
+
+import { mpdAgentStateSchema } from "../../schemas/openapi/agents";
 
 const OPENAPI_INFO = {
   title: "radio",
@@ -68,6 +71,14 @@ export function mountOpenApi<T extends Hono<Env>>(
             scheme: "bearer",
             bearerFormat: "TOKEN",
           },
+        },
+        schemas: {
+          MpdAgentState: (() => {
+            // SAFETY: valibot JSON Schema output matches OpenAPIV3_1.SchemaObject for documentation.
+            return toJsonSchema(
+              mpdAgentStateSchema,
+            ) as OpenAPIV3_1.SchemaObject;
+          })(),
         },
       },
       paths: AGENT_PATHS,

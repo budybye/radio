@@ -90,16 +90,16 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 
 図: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
 
-| データ | SSR (`GET /`) | CSR（Play 後） |
+| データ | SSR (`GET /`) | CSR（Play クリック後） |
 |--------|---------------|----------------------|
-| **現在曲** | `fetchCurrentSong()` → mpc-bridge 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
-| **リスナー数** | `fetchListenerCount()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
+| **現在曲** | `fetchCurrentSongResult()` → mpc-bridge 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
+| **リスナー数** | `fetchListenerCountResult()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
 | **MPD state** | — | `useAgent` `onStateUpdate` |
 
 **設計意図**
 
-- **曲メタ SSR / ops**: `fetchCurrentSong` と `GET /currentsong` は mpc-bridge 直叩き（DO を起こさない）。
-- **曲メタ ライブ**: Play 後に `useAgent` が接続し、DO の `tick()` が正本。変化時のみ `setState` → WebSocket push。
+- **曲メタ SSR / ops**: `fetchCurrentSongResult` と `GET /currentsong` は mpc-bridge 直叩き（DO を起こさない）。
+- **曲メタ ライブ**: Play クリック後に `useAgent` が接続し、DO の `tick()` が正本。変化時のみ `setState` → WebSocket push。
 
 ### Workers: Home UI（GlobeSpeaker）
 

@@ -215,19 +215,18 @@ sequenceDiagram
   participant Bridge as mpc-bridge
   participant MPD
 
-  Note over Browser,MPD: SSR（初回ページロード）
+  Note over Browser,MPD: SSR（初回ページロード — DO を起こさない）
   Browser->>Worker: GET /
   par 並列
-    Worker->>DO: getCurrentSongView()
-    DO->>Bridge: status + currentsong（冷起動時 1 tick）
+    Worker->>Bridge: status + currentsong（fetchCurrentSongResult）
     Bridge->>MPD: TCP 6600
   and
-    Worker->>Bridge: status（fetchListenerCount）
+    Worker->>Bridge: status（fetchListenerCountResult）
     Bridge->>MPD: TCP 6600
   end
   Worker-->>Browser: Inertia shell（song, listenerCount）
 
-  Note over Browser,MPD: CSR（Play ホバー後 lazy connect）
+  Note over Browser,MPD: CSR（Play クリック後のみ WS 接続）
   Browser->>DO: WebSocket /agents/mpd-agent/radio
   Browser->>DO: setWatchActive(true)
   loop pollTick（接続中のみ）

@@ -32,6 +32,7 @@ cp .env.example .env   # MPD_HOST / MPC_HOST + secrets
 bun install
 bun run dev          # 任意: 手動 UI 確認のみ（E2E では使わない）
 bun run build
+bun run lint         # vp lint + vendored anti-slop rules
 bun run test         # vitest (parse / serialize / bridge-url)
 bun run deploy       # Worker "radio" → radio.*.workers.dev
 bunx tsc --noEmit    # package.json に script 未登録
@@ -90,9 +91,9 @@ workers/
 
 | 経路 | 用途 |
 |------|------|
-| DO state push | ブラウザライブ（`use-mpd-agent.ts` → `use-radio-player` state） |
-| DO `getCurrentSongView` | SSR（`fetchCurrentSong`）/ visibility 復帰時 refresh |
-| `GET /currentsong` | ops / curl |
+| DO state push | ブラウザライブ（Play 後、`use-mpd-agent.ts` → `use-radio-player` state） |
+| bridge `status` + `currentsong` | SSR（`fetchCurrentSongResult`）/ `GET /currentsong` |
+| DO `getCurrentSongView` | Play 後の RPC refresh のみ |
 
 ライブ更新は MpdAgent DO の state ブロードキャスト一本。`use-radio-player` が React state で現在曲を保持する。
 
