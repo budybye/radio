@@ -62,7 +62,7 @@ if radio_e2e_asserts_fixture_values; then
 
   radio_e2e_log "OK: mpd-stub → DO → Home fixture metadata visible"
 else
-  radio_e2e_log "preview/prod tier: structural UI only (no fixture artist/count assertions)"
+  radio_e2e_log "preview/workers/prod tier: structural UI only (no fixture artist/count assertions)"
 fi
 
 opencli browser "$SESSION" close || true

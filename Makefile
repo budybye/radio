@@ -12,7 +12,7 @@ E2E     := $(SCRIPTS)/e2e
 .PHONY: help setup \
         up up-build down restart logs build clean \
         play stop pause next prev random sequential status reload ncmpcpp .check-mpd \
-        test test-workers test-all test-e2e-local test-e2e-preview test-e2e-prod
+        test test-workers test-all test-e2e-stub test-e2e-workers test-e2e-prod
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 
@@ -50,8 +50,8 @@ help:
 	@echo "  test          Docker integration tests"
 	@echo "  test-workers  Workers unit tests (vitest)"
 	@echo "  test-all      test-workers + test"
-	@echo "  test-e2e-local    Local E2E (mpd-stub + vp dev)"
-	@echo "  test-e2e-preview  Preview workers.dev (RADIO_E2E_PREVIEW_URL)"
+	@echo "  test-e2e-stub     Unit + mpd-stub contract (no dev server)"
+	@echo "  test-e2e-workers  Deployed smoke (RADIO_E2E_WORKERS_URL)"
 	@echo "  test-e2e-prod     Prod smoke (RADIO_E2E_ALLOW_PROD=1)"
 
 # ─── Guards ──────────────────────────────────────────────────────────────────
@@ -137,10 +137,10 @@ test-workers:
 
 test-all: test-workers test
 
-test-e2e-local:
+test-e2e-stub:
 	@bash $(E2E)/local.sh
 
-test-e2e-preview:
+test-e2e-workers:
 	@bash $(E2E)/preview.sh
 
 test-e2e-prod:

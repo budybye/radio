@@ -29,12 +29,10 @@ Inertia + React のリスナー画面と管理 UI。MpdAgent DO 経由で MPD �
 ```bash
 cd workers
 bun install
-bun run dev          # http://localhost:5173 (Miniflare)
+bun run dev          # 任意: 手動 UI 確認のみ（E2E では使わない）
 bun run build
 bun run test         # vitest (parse / serialize / bridge-url)
-bun run deploy          # 本番: .env.production → Worker "radio"
-bun run deploy:preview  # E2E: Worker "radio-preview"
-bun run deploy:fork     # フォーク既定
+bun run deploy       # Worker "radio" → radio.*.workers.dev
 bunx tsc --noEmit    # package.json に script 未登録
 ```
 

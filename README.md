@@ -97,19 +97,19 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 ```bash
 cd workers
 bun install
-bun run deploy   # 本番 — .env.production 必須 → Worker "radio"
+bun run deploy   # Worker "radio" — .env.production があれば実ホスト名を注入
 ```
 
-> 本番は `deploy.sh production`（`--env production --config wrangler.jsonc`）。E2E は `bun run deploy:preview`。詳細: [docs/deploy-fork.md](docs/deploy-fork.md#deploy-targets)
+> 単一 Worker `radio`。`radio-production` / `radio-preview` は使いません。詳細: [docs/deploy-fork.md](docs/deploy-fork.md#deploy-targets)
 
 | ホスト | 用途 |
 |--------|------|
 | `your-domain.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
 | `mpd.your-domain.com` | MP3 ストリーム URL（Home の `config.streamUrl` が参照） |
 
-ローカル開発: `cd workers && bun run dev` → `http://localhost:5173`
+ローカル UI 確認（任意）: `cd workers && bun run dev`
 
-詳細は [workers/README.md](workers/README.md) と [docs/tech.md](docs/tech.md) の Workers 節。
+E2E は `radio.*.workers.dev` とカスタムドメインのみ。詳細は [docs/test.md](docs/test.md)。
 
 ## アーキテクチャ
 

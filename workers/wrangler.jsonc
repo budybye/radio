@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Default env: fork-friendly (Deploy to Cloudflare). Replace vars with your Tunnel hostnames.
+  // Single Worker "radio" → radio.*.workers.dev (+ optional custom domain in dashboard).
+  // Maintainer hostnames: root .env.production → deploy.sh --var injection.
   "name": "radio",
   "main": "./worker/index.ts",
   "workers_dev": true,
@@ -15,32 +16,5 @@
   "vars": {
     "MPD_HOST": "mpd.example.com",
     "MPC_HOST": "mpc.example.com"
-  },
-  "env": {
-    // Maintainer production — same Worker name "radio" as custom domain binding.
-    // Hostnames come from root .env.production via deploy.sh (--var injection).
-    "production": {
-      "name": "radio",
-      "workers_dev": false,
-      "vars": {
-        "MPD_HOST": "mpd.example.com",
-        "MPC_HOST": "mpc.example.com"
-      },
-      "durable_objects": {
-        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
-      }
-    },
-    // Isolated preview Worker for E2E — never touches production routes.
-    "preview": {
-      "name": "radio-preview",
-      "workers_dev": true,
-      "vars": {
-        "MPD_HOST": "mpd.example.com",
-        "MPC_HOST": "e2e-dummy"
-      },
-      "durable_objects": {
-        "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
-      }
-    }
   }
 }

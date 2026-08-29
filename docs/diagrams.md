@@ -79,48 +79,33 @@ flowchart LR
 | `POST/PATCH/DELETE /posts*` | Basic or Bearer | キュー CRUD |
 | `mpc.*` → mpc-bridge | Access Service Token | Workers のみ Allow |
 
-## デプロイフロー（フォーク vs メンテナ） {#deploy-flow}
+## デプロイフロー {#deploy-flow}
 
 ```mermaid
 flowchart TD
   Fork["フォーク利用者"]
-  Maintainer["メンテナ（your-domain.com）"]
-  Btn["Deploy to Cloudflare ボタン"]
-  WranglerDefault["wrangler deploy<br/>（env なし）"]
-  BunDeploy["bun run deploy<br/>--env production"]
-  PreviewDeploy["bun run deploy:preview<br/>--env preview"]
-  ForkVars["vars: mpd.example.com<br/>workers_dev: true"]
-  ProdVars["vars: .env.production<br/>workers_dev: false<br/>name: radio"]
-  PreviewVars["vars: e2e-dummy mpc<br/>workers_dev: true<br/>name: radio-preview"]
-  ForkWorker["radio.*.workers.dev"]
-  ProdWorker["Worker radio<br/>+ カスタムドメイン"]
-  PreviewWorker["radio-preview.*.workers.dev"]
+  Maintainer["メンテナ"]
+  Btn["Deploy to Cloudflare"]
+  Deploy["bun run deploy<br/>--config wrangler.jsonc"]
+  EnvProd[".env.production<br/>MPD_HOST / MPC_HOST"]
+  Worker["Worker radio"]
+  WorkersDev["radio.*.workers.dev"]
+  Custom["カスタムドメイン（任意）"]
 
   Fork --> Btn
-  Btn --> WranglerDefault
-  WranglerDefault --> ForkVars
-  ForkVars --> ForkWorker
-
-  Maintainer --> BunDeploy
-  BunDeploy --> ProdVars
-  ProdVars --> ProdWorker
-
-  Maintainer --> PreviewDeploy
-  PreviewDeploy --> PreviewVars
-  PreviewVars --> PreviewWorker
-
-  Fork -.->|⚠️ 避ける| BunDeploy
+  Btn --> Deploy
+  Maintainer --> EnvProd
+  EnvProd --> Deploy
+  Deploy --> Worker
+  Worker --> WorkersDev
+  Worker --> Custom
 ```
 
-| コマンド | 向き先 | 利用者 |
-|----------|--------|--------|
-| Deploy ボタン → 既定 env | `mpd.example.com` プレースホルダ | フォーク |
-| `wrangler deploy --config wrangler.jsonc`（env なし） | 同上 | フォーク |
-| `bun run deploy` | `--env production` → Worker `radio` | **メンテナ本番** |
-| `bun run deploy:preview` | `--env preview` → Worker `radio-preview` | **E2E** |
-| `bun run deploy:fork` | 既定 env | フォーク |
+| コマンド | Worker | URL |
+|----------|--------|-----|
+| `bun run deploy` | `radio` | `radio.*.workers.dev` + カスタムドメイン（任意） |
 
-> **注意**: `vpr build` 後の `dist/radio/wrangler.json` はフォーク既定 vars のまま。メンテナ vars を効かせるには deploy 時に `--config wrangler.jsonc` と `--env production` が必須。詳細: [deploy-fork.md](deploy-fork.md#deploy-pitfall)
+> `--env production` は使わない（`radio-production` になるため）。詳細: [deploy-fork.md](deploy-fork.md#deploy-targets)
 
 詳細: [deploy-fork.md](deploy-fork.md)
 
@@ -129,9 +114,9 @@ flowchart TD
 ```mermaid
 flowchart TB
   subgraph e2e["E2E（opencli + HTTP smoke）"]
-    Local["local: 127.0.0.1:5173 + mpd-stub"]
-    Preview["preview: workers.dev"]
-    Prod["prod: your-domain.com（読み取り専用）"]
+    Stub["stub: vitest + mpd-stub contract"]
+    Workers["workers: radio.*.workers.dev"]
+    Prod["prod: カスタムドメイン（読み取り専用）"]
   end
 
   subgraph integration["Integration"]
@@ -154,8 +139,8 @@ flowchart TB
 | Unit | `cd workers && bun run test` | serialize, parse, bridge 等 |
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
-| E2E local | `make test-e2e-local` | ダミー mpc-bridge 推奨 |
-| E2E preview | `make test-e2e-preview` | `radio-preview.*.workers.dev` |
+| E2E stub | `make test-e2e-stub` | vitest + mpd-stub（deploy 不要） |
+| E2E workers | `make test-e2e-workers` | `radio.*.workers.dev` |
 
 詳細: [test.md](test.md) · preview フロー: [e2e-preview-flow](#e2e-preview-flow)
 
