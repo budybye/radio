@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   MpcHttpError,
   MpdAckError,
+  MpdInvalidArgumentError,
   MpdTransportError,
 } from "./errors";
 import type { CurrentSongPayload } from "./types";
@@ -12,6 +13,9 @@ import {
   currentSongFromSerialized,
   deserializeCurrentSongView,
   hydrateMpdError,
+  mpdErrorToWire,
+  mpdWireEqual,
+  mpdWireMessage,
   parseSerializedCurrentSongView,
   serializeMpdResult,
   type RpcSerializedEnvelopeWire,
@@ -73,6 +77,26 @@ describe("hydrateMpdError", () => {
   it("falls back to transport error for unknown tags", () => {
     const err = hydrateMpdError({ _tag: "UnknownError", message: "boom" });
     expect(MpdTransportError.is(err)).toBe(true);
+  });
+
+  it("round-trips MpdInvalidArgumentError", () => {
+    const wire = mpdErrorToWire(new MpdInvalidArgumentError({ field: "file" }));
+    const err = hydrateMpdError(wire);
+    expect(MpdInvalidArgumentError.is(err)).toBe(true);
+    if (MpdInvalidArgumentError.is(err)) {
+      expect(err.field).toBe("file");
+    }
+  });
+});
+
+describe("mpdWire helpers", () => {
+  it("compares wire errors by tag and message", () => {
+    const a = mpdErrorToWire(new MpdTransportError({ message: "timeout" }));
+    const b = mpdErrorToWire(new MpdTransportError({ message: "timeout" }));
+    const c = mpdErrorToWire(new MpdTransportError({ message: "closed" }));
+    expect(mpdWireEqual(a, b)).toBe(true);
+    expect(mpdWireEqual(a, c)).toBe(false);
+    expect(mpdWireMessage(a)).toBe("timeout");
   });
 });
 

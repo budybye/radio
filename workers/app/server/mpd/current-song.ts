@@ -38,33 +38,39 @@ export async function getCurrentSongResult(
   return Result.ok(song ?? null);
 }
 
-/** Inertia SSR 用（mpc-bridge 直叩き。DO を起こさない）。失敗時は undefined。 */
-export async function fetchCurrentSong(): Promise<
-  CurrentSongPayload | undefined
+function currentSongPayloadFromView(
+  view: CurrentSongView,
+): CurrentSongPayload | undefined {
+  if (!view || "unchanged" in view) return undefined;
+  return view;
+}
+
+/** Inertia SSR 用（mpc-bridge 直叩き。DO を起こさない） */
+export async function fetchCurrentSongResult(): Promise<
+  Result<CurrentSongPayload | undefined, MpdError>
 > {
   const now = Date.now();
   if (ssrSongCache && ssrSongCache.expires > now) {
-    return ssrSongCache.song;
+    return Result.ok(ssrSongCache.song);
   }
 
-  const status = await mpdCommand("status");
-  const song = await status.match({
-    ok: async (statusRaw) => {
-      const songid = parseMpdStatus(statusRaw).status.songid;
-      if (!songid) return undefined;
-      const current = await mpdCommand("currentsong");
-      return current.match({
-        ok: (currentsongRaw) =>
-          currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw),
-        err: () => undefined,
-      });
-    },
-    err: async () => undefined,
-  });
+  const result = await getCurrentSongResult();
+  if (result.isErr()) return result;
 
+  const song = currentSongPayloadFromView(result.value);
   ssrSongCache = {
     expires: now + SSR_CURRENT_SONG_CACHE_MS,
     song,
   };
-  return song;
+  return Result.ok(song);
+}
+
+/** SSR 境界での劣化ラッパー（失敗時は undefined） */
+export async function fetchCurrentSong(): Promise<
+  CurrentSongPayload | undefined
+> {
+  return (await fetchCurrentSongResult()).match({
+    ok: (song) => song,
+    err: () => undefined,
+  });
 }

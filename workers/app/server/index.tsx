@@ -2,8 +2,8 @@ import { env } from "cloudflare:workers";
 import { Hono } from "hono";
 import { TITLE_FALLBACK } from "../lib/radio/constants";
 import { createAppShell } from "./middleware";
-import { fetchCurrentSong } from "./mpd/current-song";
-import { fetchListenerCount } from "./mpd/listener-count";
+import { fetchCurrentSongResult } from "./mpd/current-song";
+import { fetchListenerCountResult } from "./mpd/listener-count";
 import { apiPosts, createApiPostsRoutes } from "./api/posts";
 import { createMpdRoutes, mpd } from "./mpd/routes";
 import { mountOpenApi } from "./openapi/mount";
@@ -17,10 +17,18 @@ function createApp() {
   return mountOpenApi(
     createAppShell()
       .get("/", async (c) => {
-        const [song, listenerCount] = await Promise.all([
-          fetchCurrentSong(),
-          fetchListenerCount(),
+        const [songResult, listenerResult] = await Promise.all([
+          fetchCurrentSongResult(),
+          fetchListenerCountResult(),
         ]);
+        const song = songResult.match({
+          ok: (value) => value,
+          err: () => undefined,
+        });
+        const listenerCount = listenerResult.match({
+          ok: (value) => value,
+          err: () => 0,
+        });
         return c.render("Home", {
           song,
           listenerCount,

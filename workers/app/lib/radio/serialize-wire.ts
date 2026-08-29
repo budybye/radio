@@ -7,6 +7,7 @@ export type MpdErrorWire = {
   url?: string;
   preview?: string;
   cmd?: string;
+  field?: string;
   message?: string;
   cause?: string | null;
 };
@@ -34,6 +35,7 @@ const mpdErrorWireSchema = v.object({
   url: v.optional(v.string()),
   preview: v.optional(v.string()),
   cmd: v.optional(v.string()),
+  field: v.optional(v.string()),
   message: v.optional(v.string()),
   cause: v.optional(v.nullable(v.string())),
 });
@@ -62,7 +64,7 @@ export type RpcSerializedEnvelopeWire = v.InferInput<
   typeof serializedEnvelopeSchema
 >;
 
-export { serializedEnvelopeSchema };
+export { mpdErrorWireSchema, serializedEnvelopeSchema };
 
 /** DO/RPC 越しの payload を SerializedResult に絞る。壊れていれば null */
 export function parseSerializedCurrentSongView(

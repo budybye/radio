@@ -15,6 +15,8 @@ export function mpdErrorHttpStatus(error: MpdError): ContentfulStatusCode {
   switch (error._tag) {
     case "MpcHttpError":
       return error.status === 404 ? 404 : 502;
+    case "MpdInvalidArgumentError":
+      return 400;
     case "MpdAckError":
     case "MpdInvalidResponseError":
     case "MpdTransportError":

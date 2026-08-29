@@ -15,7 +15,6 @@ import {
 } from "../app/lib/radio/constants";
 import {
   MpdAckError,
-  MpdTransportError,
   mpdErrorFromUnknown,
   type MpdError,
 } from "../app/lib/radio/errors";
@@ -23,7 +22,13 @@ import {
   MPD_AGENT_INSTANCE,
   type MpdAgentState,
 } from "../app/lib/radio/mpd-agent-types";
-import { serializeMpdResult, type SerializedMpdResult } from "../app/lib/radio/serialize";
+import {
+  hydrateMpdError,
+  mpdErrorToWire,
+  mpdWireEqual,
+  serializeMpdResult,
+  type SerializedMpdResult,
+} from "../app/lib/radio/serialize";
 import type {
   CurrentSongPayload,
   CurrentSongView,
@@ -193,15 +198,15 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
 
   /**
    * MPD status を1回読み、次 state 候補を返す。書き込みは呼び出し側に任せる。
-   * エラーは lastError のテキストが変わったときだけ changed 扱い（障害中もスローケイデンスに乗る）。
+   * エラーは lastError wire が変わったときだけ changed 扱い（障害中もスローケイデンスに乗る）。
    */
   private async tick(prev: MpdAgentState): Promise<TickOutcome> {
     const status = await this.bridge("status");
     if (status.isErr()) {
-      const error = status.error.message;
+      const wire = mpdErrorToWire(status.error);
       return {
-        state: { ...prev, lastError: error },
-        changed: error !== prev.lastError,
+        state: { ...prev, lastError: wire },
+        changed: !mpdWireEqual(wire, prev.lastError),
       };
     }
 
@@ -220,10 +225,10 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
       } else {
         const current = await this.bridge("currentsong");
         if (current.isErr()) {
-          const error = current.error.message;
+          const wire = mpdErrorToWire(current.error);
           return {
-            state: { ...prev, lastError: error },
-            changed: error !== prev.lastError,
+            state: { ...prev, lastError: wire },
+            changed: !mpdWireEqual(wire, prev.lastError),
           };
         }
         song = recordToCurrentSong(parseMpdRecord(current.value)) ?? null;
@@ -246,11 +251,7 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     clientSongid?: string,
   ): Result<CurrentSongView, MpdError> {
     if (this.state.lastError) {
-      return Result.err(
-        new MpdTransportError({
-          message: this.state.lastError,
-        }),
-      );
+      return Result.err(hydrateMpdError(this.state.lastError));
     }
 
     const songid = this.state.songid;

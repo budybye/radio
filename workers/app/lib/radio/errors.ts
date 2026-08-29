@@ -41,6 +41,20 @@ export class MpdAckError extends TaggedError("MpdAckError")<{
   }
 }
 
+export class MpdInvalidArgumentError extends TaggedError(
+  "MpdInvalidArgumentError",
+)<{
+  field: string;
+  message: string;
+}> {
+  constructor(args: { field: string; value?: string }) {
+    super({
+      field: args.field,
+      message: `invalid MPD argument for ${args.field}: control characters`,
+    });
+  }
+}
+
 export class MpdTransportError extends TaggedError("MpdTransportError")<{
   message: string;
   cause?: unknown;
@@ -50,12 +64,14 @@ export type MpdError =
   | MpcHttpError
   | MpdInvalidResponseError
   | MpdAckError
+  | MpdInvalidArgumentError
   | MpdTransportError;
 
 const isMpdError = (cause: unknown): cause is MpdError =>
   MpcHttpError.is(cause) ||
   MpdInvalidResponseError.is(cause) ||
   MpdAckError.is(cause) ||
+  MpdInvalidArgumentError.is(cause) ||
   MpdTransportError.is(cause);
 
 export function mpdErrorFromUnknown(cause: unknown): MpdError {

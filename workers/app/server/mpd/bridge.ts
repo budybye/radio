@@ -9,8 +9,9 @@ import {
   mpdErrorFromUnknown,
   type MpdError,
 } from "../../lib/radio/errors";
-import { hasAsciiControlChar } from "../../lib/text/control-chars";
 import { mpcBridgeUrl } from "./bridge-url";
+
+export { quoteMpdArg } from "./quote-mpd-arg";
 
 export { mpcBridgeOrigin, mpcBridgeUrl } from "./bridge-url";
 
@@ -87,13 +88,6 @@ export async function mpdBridgeCommand(
     },
     catch: mpdErrorFromUnknown,
   });
-}
-
-export function quoteMpdArg(value: string): string {
-  if (hasAsciiControlChar(value)) {
-    throw new Error("invalid MPD argument: control characters");
-  }
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 /** Tunnel HTTP 経由で MPD コマンド実行（Worker env 付き） */

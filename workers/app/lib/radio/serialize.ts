@@ -7,15 +7,14 @@ import {
 import {
   MpcHttpError,
   MpdAckError,
+  MpdInvalidArgumentError,
   MpdInvalidResponseError,
   MpdTransportError,
   mpdErrorFromUnknown,
   type MpdError,
 } from "./errors";
 import type { CurrentSongView } from "./types";
-import {
-  type MpdErrorWire,
-} from "./serialize-wire";
+import { type MpdErrorWire } from "./serialize-wire";
 
 export type { MpdErrorWire, RpcSerializedEnvelopeWire } from "./serialize-wire";
 export { parseSerializedCurrentSongView, parseSerializedCurrentSongFromAgentCall } from "./serialize-wire";
@@ -25,13 +24,36 @@ export type CurrentSongClient = Exclude<
   null | { unchanged: true }
 >;
 
+/** TaggedError → DO/RPC wire 形（structuredClone 前に平オブジェクト化） */
+export function mpdErrorToWire(error: MpdError): MpdErrorWire {
+  // SAFETY: TaggedError.toJSON() returns the wire fields consumed by hydrateMpdError.
+  return error.toJSON() as MpdErrorWire;
+}
+
+/** UI / ログ向けに wire から表示メッセージを取り出す */
+export function mpdWireMessage(
+  wire: MpdErrorWire | null | undefined,
+): string | null {
+  if (!wire) return null;
+  return wire.message ?? wire._tag;
+}
+
+/** tick 更新判定用（message + tag で比較） */
+export function mpdWireEqual(
+  a: MpdErrorWire | null | undefined,
+  b: MpdErrorWire | null | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a._tag === b._tag && (a.message ?? "") === (b.message ?? "");
+}
+
 /** TaggedError は toJSON を持つ。RPC は structuredClone が toJSON を踏まないので先に平オブジェクト化する */
 export function serializeResult<T, E extends AnyTaggedError>(
   result: Result<T, E>,
 ): SerializedResult<T, E> {
   if (result.isOk()) return { status: "ok", value: result.value };
-  // SAFETY: SerializedErr<E> の error スロットは wire 上では toJSON() の平オブジェクト。
-  // 「E」という型は deserialize 側 hydrateMpdError が _tag でコンストラクタ再構築した後に成立する契約を表す
+  // SAFETY: TaggedError.toJSON() matches SerializedResult error slot for AnyTaggedError.
   return { status: "error", error: result.error.toJSON() as E };
 }
 
@@ -42,10 +64,9 @@ export function serializeMpdResult<T>(
   result: Result<T, MpdError>,
 ): SerializedMpdResult<T> {
   if (result.isOk()) return { status: "ok", value: result.value };
-  // SAFETY: TaggedError.toJSON() は MpdErrorWire の平オブジェクトを返す。_tag はランタイムで検証済み。
   return {
     status: "error",
-    error: result.error.toJSON() as MpdErrorWire,
+    error: mpdErrorToWire(result.error),
   };
 }
 
@@ -66,6 +87,10 @@ export function hydrateMpdError(wire: MpdErrorWire): MpdError {
       return new MpdAckError({
         cmd: String(wire.cmd ?? ""),
         preview: String(wire.preview ?? ""),
+      });
+    case "MpdInvalidArgumentError":
+      return new MpdInvalidArgumentError({
+        field: String(wire.field ?? "argument"),
       });
     case "MpdTransportError":
       return new MpdTransportError({

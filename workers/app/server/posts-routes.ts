@@ -21,11 +21,9 @@ const postId = (c: Context) => Number(c.req.param("id"));
 
 export const posts = new Hono<Env>()
   .get("/", basic, async (c) => {
-    const items = (await listSongs()).match({
-      ok: (songs) => songs,
-      err: () => [],
-    });
-    return c.render("Posts/Index", { posts: items });
+    const result = await listSongs();
+    if (result.isErr()) return respondMpdTextError(c, result.error);
+    return c.render("Posts/Index", { posts: result.value });
   })
   .get("/new", basic, (c) =>
     c.render("Posts/New", {

@@ -27,7 +27,10 @@ export async function findSong(
 export async function createSong(
   input: PostSongInput,
 ): Promise<Result<Song, MpdError>> {
-  return (await mpdCommand(`addid ${quoteMpdArg(input.file)}`)).andThenAsync(
+  const quoted = quoteMpdArg(input.file);
+  if (quoted.isErr()) return quoted;
+
+  return (await mpdCommand(`addid ${quoted.value}`)).andThenAsync(
     async (raw) => {
       const added = parseMpdRecord(raw);
       const id = Number(added.Id);

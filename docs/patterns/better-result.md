@@ -71,3 +71,7 @@ c.render("Posts/New", { values, errors: emptyPostFormErrors });
 |----------|------|
 | MPD Result RPC/JSON | `serialize.ts`, `mpd-agent.ts`, `current-song.ts` |
 | Posts HTTP 境界 | `mpd-http.ts`, `posts-routes.ts`, `mpd/routes.ts` |
+| Posts 一覧 F10 | `posts-routes.ts` → `respondMpdTextError` |
+| MpdAgent `lastError` wire | `mpd-agent-types.ts`, `mpd-agent.ts`, `use-mpd-agent.tsx`, OpenAPI |
+| SSR Result 化 | `fetchCurrentSongResult`, `fetchListenerCountResult`, `index.tsx` |
+| `MpdInvalidArgumentError` | `errors.ts`, `quoteMpdArg`, HTTP 400 |

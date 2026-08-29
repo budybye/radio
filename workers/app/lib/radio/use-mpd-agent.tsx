@@ -16,6 +16,7 @@ import {
 } from "./mpd-agent-types";
 import {
   currentSongFromSerialized,
+  mpdWireMessage,
   parseSerializedCurrentSongFromAgentCall,
   type CurrentSongClient,
   type RpcSerializedEnvelopeWire,
@@ -31,7 +32,7 @@ function updateFromAgentState(state: MpdAgentState): MpdAgentWatchUpdate {
     song: songFromAgentState(state),
     listenerCount: state.listenerCount ?? 0,
     mpdState: state.mpdState ?? null,
-    lastError: state.lastError ?? null,
+    lastError: mpdWireMessage(state.lastError),
   };
 }
 
@@ -136,7 +137,21 @@ function useMpdAgentWatch({
         song: next,
       });
       return next;
-    } catch {
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : "MpdAgent RPC failed";
+      onUpdateRef.current({
+        ...updateFromAgentState(
+          agent.state ?? {
+            songid: "",
+            song: null,
+            mpdState: null,
+            listenerCount: 0,
+            lastError: null,
+          },
+        ),
+        lastError: message,
+      });
       return songRef.current;
     }
   }, [agent, songRef]);
@@ -201,7 +216,7 @@ function useMpdAgentWatch({
       isActive,
       refresh,
       mpdState: agent.state?.mpdState ?? null,
-      lastError: agent.state?.lastError ?? null,
+      lastError: mpdWireMessage(agent.state?.lastError ?? null),
       agentConnected: connected,
     }),
     [isActive, refresh, agent.state, connected],

@@ -137,12 +137,15 @@ make test-e2e-workers
 | スライス | 状態 |
 |----------|------|
 | MPD RPC/JSON, Posts CRUD, bridge | 完了 |
-| Posts 一覧, lastError 構造化, SSR, codec | 未着手 |
+| Posts 一覧 F10 | **完了** — `respondMpdTextError` |
+| MpdAgent `lastError` 構造化 (F11) | **完了** — `MpdErrorWire` + `mpdWireMessage` |
+| SSR Result 化 (F08/F09) | **完了** — 境界で明示的劣化 |
+| `MpdInvalidArgumentError` (F05) | **完了** — `quoteMpdArg` → HTTP 400 |
+| Client refresh 明示化 (F13) | **部分** — RPC catch で `lastError` 文字列 |
+| `Result.codec` 評価 (U03) | 未着手 |
 
 ---
 
 ## Approval gate
 
-本監査の変更は **本ファイルのみ**。実装は明示承認後。
-
-**推奨ファーストスライス**: **#1 Posts 一覧（F10）** — `posts-routes.ts` の `err→[]` を既存 `respondMpdTextError` パターンへ。
+監査は 2026-08-29 に承認済み。スライス #1–#4 を本番実装済み（`workers/`）。

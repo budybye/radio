@@ -1,5 +1,7 @@
 import * as v from "valibot";
 
+import { mpdErrorWireSchema } from "../../lib/radio/serialize-wire";
+
 const currentSongFieldsSchema = v.object({
   title: v.string(),
   artist: v.string(),
@@ -14,7 +16,7 @@ export const mpdAgentStateSchema = v.pipe(
     song: v.nullable(currentSongFieldsSchema),
     mpdState: v.nullable(v.string()),
     listenerCount: v.number(),
-    lastError: v.nullable(v.string()),
+    lastError: v.nullable(mpdErrorWireSchema),
   }),
   v.description("MpdAgent durable object broadcast state"),
   v.metadata({ ref: "MpdAgentState" }),

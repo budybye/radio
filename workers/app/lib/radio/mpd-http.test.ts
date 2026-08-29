@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MpcHttpError,
   MpdAckError,
+  MpdInvalidArgumentError,
   MpdTransportError,
 } from "./errors";
 import { mpdErrorHttpBody, mpdErrorHttpStatus } from "./mpd-http";
@@ -32,6 +33,14 @@ describe("mpdErrorHttpStatus", () => {
         new MpdTransportError({ message: "socket closed" }),
       ),
     ).toBe(502);
+  });
+
+  it("maps invalid MPD arguments to HTTP 400", () => {
+    expect(
+      mpdErrorHttpStatus(
+        new MpdInvalidArgumentError({ field: "file" }),
+      ),
+    ).toBe(400);
   });
 });
 
