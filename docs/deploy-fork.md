@@ -67,7 +67,10 @@ make setup   # 両方の .env を example から作成
 
 ### `vpr build` 落とし穴 {#deploy-pitfall}
 
-`bun run deploy` は `vpr build` のあと **必ず `--config wrangler.jsonc`** を付けます。`dist/radio/wrangler.json` だけではプレースホルダ vars のままです。
+`bun run deploy` は `vpr build` のあと **`dist/radio/wrangler.json`** をデプロイします（ビルド済み Worker + `dist/client` アセット）。
+
+- `wrangler.jsonc` は **ソース設定**（`vpr build` の入力）— これを直接 deploy すると dev 用パス（`/@vite/client`）が出て UI が壊れます
+- `workers/.env` の `MPD_HOST` / `MPC_HOST` は deploy 時に `--var` で注入（`dist/radio/wrangler.json` のプレースホルダを上書き）
 
 ## デプロイ後
 

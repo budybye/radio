@@ -13,6 +13,7 @@ WINDOW="${RADIO_E2E_OPENCLI_WINDOW:-background}"
 
 radio_e2e_log "tier=${RADIO_E2E_TIER} base=$BASE session=$SESSION"
 
+opencli browser "$SESSION" close || true
 opencli browser "$SESSION" open "$BASE/" --window "$WINDOW"
 opencli browser "$SESSION" wait text "LISTENERS" --timeout 30000
 

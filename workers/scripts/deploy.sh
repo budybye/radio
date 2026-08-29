@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Deploy Worker "radio" → radio.*.workers.dev (+ optional custom domain in dashboard).
-# Always: vpr build + --config wrangler.jsonc (never trust dist/radio/wrangler.json alone).
+# Always: vpr build, then deploy dist/radio/wrangler.json (built bundle + client assets).
+# wrangler.jsonc is the source config only — deploying it ships dev asset paths.
 #
 # Maintainer: workers/.env with MPD_HOST / MPC_HOST.
 # Fork: omit workers/.env — placeholder vars from wrangler.jsonc are used.
@@ -13,7 +14,7 @@ cd "$WORKERS"
 echo "==> vpr build"
 vpr build
 
-WRANGLER_ARGS=(deploy --config wrangler.jsonc)
+WRANGLER_ARGS=(deploy --config dist/radio/wrangler.json)
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
