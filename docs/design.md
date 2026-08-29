@@ -86,24 +86,33 @@ MPD 内部で管理される主要データ構造（外部から直接編集し�
 | GET | `/currentsong` | 現在曲（`Result` シリアライズ） | Basic |
 | GET | `/mpd/ping` | mpc-bridge + MPD 到達性 | Basic |
 
-### Workers: 現在曲データフロー
+### Workers: Home データフロー（MPD 経路）
 
-```
-[SSR GET /]
-  fetchCurrentSong() ──RPC──► MpdAgent.getCurrentSongView()
-       │                         │
-       │                         └── pollTick ──► mpc-bridge ──► MPD
-       └── Inertia props.song
+図: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
 
-[Browser Home]
-  useRadioPlayer()
-    ├── useState (currentSong)
-    └── useMpdAgentWatch()
-          ├── onStateUpdate ──► DO state push（変化 tick のみ）
-          └── refresh() ──► getCurrentSongView RPC（visibility 復帰時）
-```
+| データ | SSR (`GET /`) | CSR（Play ホバー後） |
+|--------|---------------|----------------------|
+| **現在曲** | `fetchCurrentSong()` → DO `getCurrentSongView()`（冷起動時 1 tick） | `useAgent` `onStateUpdate` |
+| **リスナー数** | `fetchListenerCount()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
+| **MPD state** | — | `useAgent` `onStateUpdate` |
 
-- **削除済み**: Cap'n Web RPC、SWR、`use-current-song.ts`、`client.ts`
+**設計意図**
+
+- **曲メタ**: DO が `tick()` で `status` + `currentsong` をパースし、RPC / state push の正本にする。SSR は接続クライアントがいなければ `getCurrentSongView` 内で 1 tick してから返す。
+- **リスナー数 SSR**: 毎ページロードで DO を起こさないため bridge 直叩き。preview HTTP smoke の `listenerCount` はこの SSR 値。
+- **ライブ更新**: `setWatchActive` / `setPlaybackActive` で poll 連鎖を開始し、変化時のみ `setState` → WebSocket push。
+
+### Workers: Home UI（GlobeSpeaker）
+
+| モジュール | パス | 役割 |
+|------------|------|------|
+| Home ページ | `workers/app/pages/Home.tsx` | 単一カラム。中央に大きな GlobeSpeaker、下に now-playing、dock に play/mute |
+| GlobeSpeaker | `workers/app/components/GlobeSpeaker.tsx` | cobe 3D 地球儀（canvas `.globe-speaker`）。東京 HUB マーカー、再生/リスナー数でモーション |
+| プレイヤー | `workers/app/lib/radio/use-radio-player.tsx` | audio、mute、lazy `engageAgent()`、tab visibility で watch 制御 |
+| Agent 同期 | `workers/app/lib/radio/use-mpd-agent.tsx` | `MpdAgentSync` — Play 後のみ WebSocket。`setWatchActive` / `setPlaybackActive` |
+| MpdAgent DO | `workers/worker/mpd-agent.ts` | `shouldConnectionBeReadonly`、二段ポーリング、`listenerCount` state push |
+
+- **削除済み**: Cap'n Web RPC、SWR、`use-current-song.ts`、`client.ts`、BassReflexSpeaker / boombox シェル
 - **ops**: `GET /currentsong` は `getCurrentSongResult()` を JSON で返す（Basic 認証）
 
 ## 状態管理

@@ -44,8 +44,8 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 
 | 機能 | 実装 | 備考 |
 |------|------|------|
-| リスナー画面 | `GET /`（Home） | SSR + Agents SDK state push、バスレフ UI |
-| リスナー数表示 | Home ヘッダー / LCD 付近 | MPD `listeners`、ライブ更新 |
+| リスナー画面 | `GET /`（Home） | SSR + Agents SDK state push、中央 GlobeSpeaker（cobe） |
+| リスナー数表示 | Home ヘッダー | MPD `listeners`、ライブ更新 |
 | 現在曲ライブ更新 | Agents SDK `useAgent` | Cap'n Web watch は廃止 |
 | キュー一覧・詳細 | `GET /posts*` | Basic 認証 |
 | キュー追加・更新・削除 | `POST/PATCH/DELETE /posts*` | Basic or Bearer |

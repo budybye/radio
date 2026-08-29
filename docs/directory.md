@@ -30,13 +30,14 @@ radio/
 │   ├── .dev.vars.example # ローカル secrets テンプレート
 │   ├── tools/
 │   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
-│   ├── test/             # E2E フィクスチャ（opencli）
+│   ├── test/             # E2E フィクスチャ（mpd-stub contract + vitest）
+│   │   └── fixtures/mpd/contract.json   # E2E 期待値の正本
 │   ├── worker/           # Wrangler entry + MpdAgent DO
 │   └── app/
 │       ├── client.tsx
 │       ├── style.css
 │       ├── inertia.tsx
-│       ├── components/   # GlobeSpeaker 等 UI コンポーネント
+│       ├── components/   # GlobeSpeaker.tsx 等 UI コンポーネント
 │       ├── lib/
 │       │   ├── validation.ts
 │       │   ├── text/     # control-chars 等
@@ -86,6 +87,9 @@ radio/
 |------|------|
 | `mpc-bridge/` | MPD TCP 6600 を HTTP `/mpd.cgi` に変換。Workers から Tunnel 経由で利用 |
 | `workers/` | Web UI（Vite + Hono Workers）。MpdAgent DO + Inertia SPA |
+| `workers/app/components/GlobeSpeaker.tsx` | リスナー Home 中央の cobe 地球儀 |
+| `workers/test/fixtures/mpd/contract.json` | mpd-stub / opencli E2E の期待値正本 |
+| `scripts/e2e/lib/contract.sh` | contract.json 読み取り・HTML アサーション |
 | `workers/tools/oxlint/` | anti-slop Oxlint プラグイン（vendored） |
 | `scripts/e2e/` | opencli E2E スクリプト・mpd-stub |
 | `openspec/` | 振る舞い仕様（specs）と変更計画（changes） |
@@ -112,3 +116,6 @@ radio/
 - **新しいテスト** → `scripts/test.sh` または `workers/` vitest + `docs/test.md`
 - **ドキュメント追加** → `docs/` に配置し `docs/README.md` の一覧にリンク
 - **環境変数追加** → `.env.example` + `docs/tech.md` + `AGENTS.md`
+
+
+[You have received this identical output 3 times. Re-reading '/Users/hotmilk/Developer/radio/docs/directory.md:raw' will not change it — use a narrower selector (path:A-B), or proceed with the edit.]

@@ -2,6 +2,7 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import { describe, expect, it } from "vitest";
 
 import {
+  currentSongQuerySchema,
   mpdStatusResponseSchema,
   serializedMpdResultSchema,
 } from "./mpd";
@@ -17,8 +18,8 @@ describe("openapi wire schemas", () => {
     expect(schema).toBeDefined();
   });
 
-  it("includes OpenAPI examples on status schema", () => {
-    const raw = toJsonSchema(mpdStatusResponseSchema);
+  it("includes OpenAPI examples on currentsong query schema", () => {
+    const raw = toJsonSchema(currentSongQuerySchema);
     // SAFETY: valibot JSON Schema output is object-shaped; we only read optional examples.
     const schema = raw as { examples?: unknown[] };
     expect(schema.examples?.length).toBeGreaterThan(0);

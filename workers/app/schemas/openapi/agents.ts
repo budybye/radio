@@ -18,25 +18,4 @@ export const mpdAgentStateSchema = v.pipe(
   }),
   v.description("MpdAgent durable object broadcast state"),
   v.metadata({ ref: "MpdAgentState" }),
-  v.examples([
-    {
-      songid: "42",
-      song: {
-        title: "Come Down Riddim (Instrumental)",
-        artist: "Example Artist",
-        album: "Example Album",
-        file: "music/example/come-down-riddim.mp3",
-      },
-      mpdState: "play",
-      listenerCount: 3,
-      lastError: null,
-    },
-    {
-      songid: "0",
-      song: null,
-      mpdState: "stop",
-      listenerCount: 0,
-      lastError: "mpc-bridge unreachable",
-    },
-  ]),
 );

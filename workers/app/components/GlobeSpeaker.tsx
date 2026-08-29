@@ -133,8 +133,8 @@ export function GlobeSpeaker({
       className={`globe-speaker aspect-square w-full touch-none ${
         hasError ? "globe-speaker-error" : ""
       }`}
+      role="img"
       aria-label="Rotating globe"
-      aria-hidden
     />
   );
 }

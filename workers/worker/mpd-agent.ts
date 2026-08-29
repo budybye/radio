@@ -1,4 +1,11 @@
-import { Agent, callable, getAgentByName, getCurrentAgent } from "agents";
+import {
+  Agent,
+  callable,
+  getAgentByName,
+  getCurrentAgent,
+  type Connection,
+  type ConnectionContext,
+} from "agents";
 import { Result } from "better-result";
 
 import {
@@ -59,6 +66,14 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     listenerCount: 0,
     lastError: null,
   };
+
+  /** リスナーは DO 状態を変更できない（pollTick のみが setState する） */
+  override shouldConnectionBeReadonly(
+    _connection: Connection,
+    _ctx: ConnectionContext,
+  ): boolean {
+    return true;
+  }
 
   /** pollTick 自己再スケジュール連鎖が生きているか（メモリ内フラグ） */
   private pollChainActive = false;
@@ -237,10 +252,18 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     } satisfies CurrentSongPayload);
   }
 
+  /**
+   * SSR / 手動 refresh 用。接続中クライアントがいなければ 1 tick してから返す
+   * （冷起動 DO が initialState のまま返すのを防ぐ）。
+   */
   @callable()
-  getCurrentSongView(
+  async getCurrentSongView(
     clientSongid?: string,
-  ): SerializedMpdResult<CurrentSongView> {
+  ): Promise<SerializedMpdResult<CurrentSongView>> {
+    if (!this.hasPollingInterest()) {
+      const outcome = await this.tick(this.state);
+      if (outcome.changed) this.setState(outcome.state);
+    }
     return serializeMpdResult(this.viewForSubscriber(clientSongid));
   }
 }

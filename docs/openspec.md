@@ -59,7 +59,7 @@ openspec validate --change "<kebab-name>"
 
 | capability | パス | 内容 |
 |------------|------|------|
-| listener-home-ui | [`openspec/specs/listener-home-ui/spec.md`](../openspec/specs/listener-home-ui/spec.md) | Home UI（バスレフ・listeners・ライブ更新） |
+| listener-home-ui | [`openspec/specs/listener-home-ui/spec.md`](../openspec/specs/listener-home-ui/spec.md) | Home UI（中央 GlobeSpeaker・listeners・ライブ更新） |
 
 完了した change は `openspec/changes/archive/` に移動される（例: `2026-08-29-upgrade-home-ui-bass-reflex/`）。
 

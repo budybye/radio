@@ -24,13 +24,11 @@ export const songWireSchema = v.pipe(
     time: v.optional(v.number()),
   }),
   v.metadata({ ref: "Song" }),
-  v.examples([exampleSong]),
 );
 
 export const songListSchema = v.pipe(
   v.array(songWireSchema),
   v.metadata({ ref: "SongList" }),
-  v.examples([[exampleSong]]),
 );
 
 export const postSongInputSchema = v.pipe(

@@ -2,14 +2,6 @@ import * as v from "valibot";
 
 import { mpdStatusSchema } from "../../server/mpd/parse";
 
-const exampleCurrentSong = {
-  title: "Come Down Riddim (Instrumental)",
-  artist: "Example Artist",
-  album: "Example Album",
-  file: "music/example/come-down-riddim.mp3",
-  songid: "42",
-} as const;
-
 /** GET /status 応答（parseMpdStatus の wire 形） */
 export const mpdStatusResponseSchema = v.pipe(
   v.object({
@@ -19,13 +11,6 @@ export const mpdStatusResponseSchema = v.pipe(
   }),
   v.description("Parsed MPD status command"),
   v.metadata({ ref: "MpdStatusResponse" }),
-  v.examples([
-    {
-      status: { songid: "42", state: "play", listeners: "3" },
-      listenerCount: 3,
-      fieldCount: 3,
-    },
-  ]),
 );
 
 export const currentSongPayloadSchema = v.pipe(
@@ -37,7 +22,6 @@ export const currentSongPayloadSchema = v.pipe(
     songid: v.string(),
   }),
   v.metadata({ ref: "CurrentSongPayload" }),
-  v.examples([exampleCurrentSong]),
 );
 
 const currentSongUnchangedSchema = v.object({
@@ -69,14 +53,6 @@ export const serializedMpdResultSchema = v.pipe(
   ]),
   v.description("better-result wire envelope for MPD RPC/JSON"),
   v.metadata({ ref: "SerializedMpdResult" }),
-  v.examples([
-    { status: "ok", value: exampleCurrentSong },
-    { status: "ok", value: { unchanged: true, songid: "42" } },
-    {
-      status: "error",
-      error: { _tag: "MpdBridgeError", message: "mpc-bridge unreachable" },
-    },
-  ]),
 );
 
 export const currentSongQuerySchema = v.pipe(
@@ -95,15 +71,6 @@ export const mpdPingOkSchema = v.pipe(
     fields: v.number(),
   }),
   v.metadata({ ref: "MpdPingOk" }),
-  v.examples([
-    {
-      ok: true,
-      target: "https://mpc.example.com/mpd.cgi",
-      via: "cloudflare-access",
-      state: "play",
-      fields: 3,
-    },
-  ]),
 );
 
 export const mpdPingErrSchema = v.pipe(
@@ -114,14 +81,6 @@ export const mpdPingErrSchema = v.pipe(
     hint: v.string(),
   }),
   v.metadata({ ref: "MpdPingErr" }),
-  v.examples([
-    {
-      ok: false,
-      target: "https://mpc.example.com/mpd.cgi",
-      error: "fetch failed",
-      hint: "Check MPC_HOST, Cloudflare Access service token, and mpc-bridge health.",
-    },
-  ]),
 );
 
 export const mpdPingResponseSchema = v.variant("ok", [

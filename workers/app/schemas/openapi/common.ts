@@ -8,14 +8,4 @@ export const mpdErrorHttpBodySchema = v.pipe(
   }),
   v.description("MPD / mpc-bridge error"),
   v.metadata({ ref: "MpdErrorHttpBody" }),
-  v.examples([
-    {
-      error: "mpd_bridge_unreachable",
-      message: "mpc-bridge fetch failed",
-    },
-    {
-      error: "not_found",
-      message: "Song not found in queue",
-    },
-  ]),
 );

@@ -120,12 +120,12 @@ export default function Home({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-8 px-4 py-8 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:py-12 sm:pb-32">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-8 px-2 py-8 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-12 sm:pb-32">
         <section
           aria-labelledby="now-playing-title"
-          className="flex flex-col items-center gap-8"
+          className="flex w-full flex-col items-center gap-6 sm:gap-8"
         >
-          <div className="w-full max-w-xl md:max-w-2xl lg:max-w-3xl">
+          <div className="w-full max-w-[min(100vw-1rem,64rem)] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl">
             <GlobeSpeaker
               active={streamConnected}
               listenerCount={listenerCount}
