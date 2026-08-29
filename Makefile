@@ -12,7 +12,7 @@ E2E     := $(SCRIPTS)/e2e
 .PHONY: help setup \
         up up-build up-tunnel down restart logs build clean \
         play stop pause next prev random sequential status reload ncmpcpp .check-mpd \
-        test test-workers test-all test-e2e-stub test-e2e-workers test-e2e-prod
+        lint test test-workers test-all test-e2e-stub test-e2e-workers test-e2e-prod
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,9 @@ help:
 	@echo ""
 	@echo "Tools:"
 	@echo "  ncmpcpp       Open TUI player"
+	@echo ""
+	@echo "Workers:"
+	@echo "  lint          Workers lint (vp lint + anti-slop)"
 	@echo ""
 	@echo "Test:"
 	@echo "  test          Docker integration tests"
@@ -131,6 +134,11 @@ reload:
 
 ncmpcpp:
 	$(DC) exec -it mpd ncmpcpp
+
+# ─── Workers ─────────────────────────────────────────────────────────────────
+
+lint:
+	@cd workers && bun run lint
 
 # ─── Test ────────────────────────────────────────────────────────────────────
 
