@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactElement,
 } from "react";
 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
@@ -72,7 +71,6 @@ export function useRadioPlayer({
   const [agentError, setAgentError] = useState<string | null>(null);
   const [agentConnection, setAgentConnection] =
     useState<MpdAgentConnectionStatus>({
-      engaged: false,
       connected: false,
       connecting: false,
     });
@@ -222,11 +220,6 @@ export function useRadioPlayer({
   }, []);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) audio.muted = isMuted;
-  }, [isMuted]);
-
-  useEffect(() => {
     let link: HTMLLinkElement | null = null;
     try {
       const origin = streamOrigin(streamUrl);
@@ -285,7 +278,3 @@ export function useRadioPlayer({
     agentConnecting: agentConnection.connecting,
   };
 }
-
-export type RadioPlayerHandle = ReturnType<typeof useRadioPlayer> & {
-  agentSync: ReactElement | null;
-};

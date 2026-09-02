@@ -1,7 +1,6 @@
 import {
   Agent,
   callable,
-  getAgentByName,
   getCurrentAgent,
   type Connection,
   type ConnectionContext,
@@ -18,10 +17,7 @@ import {
   mpdErrorFromUnknown,
   type MpdError,
 } from "../app/lib/radio/errors";
-import {
-  MPD_AGENT_INSTANCE,
-  type MpdAgentState,
-} from "../app/lib/radio/mpd-agent-types";
+import type { MpdAgentState } from "../app/lib/radio/mpd-agent-types";
 import {
   hydrateMpdError,
   mpdErrorToWire,
@@ -280,18 +276,4 @@ export class MpdAgent extends Agent<CloudflareEnv, MpdAgentState> {
     }
     return serializeMpdResult(this.viewForSubscriber(clientSongid));
   }
-}
-
-function requireMpdAgentNamespace(
-  env: CloudflareEnv,
-): DurableObjectNamespace<MpdAgent> {
-  const ns = env.MpdAgent;
-  if (!ns) {
-    throw new Error("MpdAgent binding is not configured in this environment");
-  }
-  return ns;
-}
-
-export async function mpdAgentStub(env: CloudflareEnv) {
-  return getAgentByName(requireMpdAgentNamespace(env), MPD_AGENT_INSTANCE);
 }

@@ -104,19 +104,3 @@ radio_e2e_log() {
 
 # shellcheck source=scripts/e2e/lib/contract.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/contract.sh"
-
-radio_e2e_assert_home_html() {
-  local html="$1"
-  case "${RADIO_E2E_TIER:-workers}" in
-    workers|preview) radio_e2e_assert_inertia_shell_html "$html" ;;
-    prod) radio_e2e_assert_inertia_shell_html "$html" ;;
-    *)
-      echo "unknown RADIO_E2E_TIER=${RADIO_E2E_TIER}" >&2
-      exit 2
-      ;;
-  esac
-}
-
-radio_e2e_asserts_fixture_values() {
-  false
-}

@@ -5,7 +5,11 @@ export function mpcBridgeOrigin(
 ): string {
   if (baseUrl) {
     const normalized = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-    return new URL(normalized).origin;
+    try {
+      return new URL(normalized).origin;
+    } catch {
+      // Optional E2E override must not turn production requests into 500s.
+    }
   }
   return `https://${mpcHost}`;
 }

@@ -13,7 +13,7 @@
     "test:smoke": "bun run test/smoke.ts",
     "test:watch": "vitest",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv",
-    "cf-secret": "wrangler secret bulk .env",
+    "cf-secret": "bash scripts/cf-secret.sh",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.svg"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.3.0",
-    "@hono/inertia": "^0.7.0",
+    "@hono/inertia": "^0.7.1",
     "@hono/standard-validator": "^0.4.0",
     "@inertiajs/react": "^3.7.0",
     "@scalar/hono-api-reference": "0.12.0",

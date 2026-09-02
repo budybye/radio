@@ -42,7 +42,7 @@ Drop files in `music/` and run `make up` — you're live. Set `TUNNEL_TOKEN` in 
 | Active changes | `openspec list` → `openspec/changes/<name>/tasks.md` |
 | Behavior specs | `openspec/specs/` (after archive) |
 
-**Rule**: アクティブな実装タスクは `docs/tasks.md` に書かず、OpenSpec change の `tasks.md` を正本とする。恒久リファレンスのみ `docs/` を更新する。
+**Rule**: アクティブな実装タスクは `docs/` に置かず、OpenSpec change の `tasks.md` を正本とする。恒久リファレンスのみ `docs/` を更新する。
 
 ---
 

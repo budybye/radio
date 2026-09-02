@@ -13,7 +13,6 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 | Workers 開発 | [workers/README.md](../workers/README.md) → [tech.md#workers-mpdagent-do--hono](tech.md) |
 | コードパターン | [patterns/README.md](patterns/README.md) → [patterns/better-result.md](patterns/better-result.md) |
 | 運用・障害 | [problems.md](problems.md) → [test.md](test.md) |
-| マイルストーン | [tasks.md](tasks.md) |
 | **図解（アーキテクチャ・認証・デプロイ）** | [diagrams.md](diagrams.md) — [Home UI](diagrams.md#home-ui-layout) / [MPD データフロー](diagrams.md#mpd-home-data-flow) / [E2E preview](diagrams.md#e2e-preview-flow) |
 
 ## ドキュメント一覧
@@ -28,7 +27,6 @@ radio は **Docker（MPD + mpc-bridge + Tunnel）** と **Cloudflare Workers（W
 | [patterns/README.md](patterns/README.md) | 再利用可能なコードパターン索引 |
 | [tech.md](tech.md) | スタック、Makefile、compose、Workers ルート・secrets |
 | [directory.md](directory.md) | リポジトリツリーと命名規約 |
-| [tasks.md](tasks.md) | マイルストーン・バックログ |
 | [test.md](test.md) | テスト方針（Docker + Workers + E2E ティア） |
 | [problems.md](problems.md) | 既知の問題・リスク |
 | [references.md](references.md) | 外部リンク・内部索引 |

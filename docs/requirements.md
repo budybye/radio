@@ -117,6 +117,5 @@ Docker + MPD（Music Player Daemon）+ Cloudflare Tunnel + Cloudflare Workers �
 | [diagrams.md](diagrams.md) | 図解（アーキテクチャ・認証・デプロイ） |
 | [design.md](design.md) | モジュール責務・ADR・エンドポイント一覧 |
 | [tech.md](tech.md) | スタック・secrets・Workers 詳細 |
-| [tasks.md](tasks.md) | マイルストーン・バックログ |
 | [README.md](README.md) | ドキュメント索引・読む順 |
 | [workers/README.md](../workers/README.md) | Workers 開発者向け手順 |

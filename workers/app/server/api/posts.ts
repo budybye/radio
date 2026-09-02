@@ -23,6 +23,11 @@ import {
   updateSong,
 } from "../mpd/playlist";
 
+const API_SECURITY = [
+  { basicAuth: [] },
+  { bearerAuth: [] },
+] satisfies OpenAPIV3.SecurityRequirementObject[];
+
 const postId = (c: Context) => Number(c.req.param("id"));
 
 /** OpenAPI 対象の JSON キュー API（Inertia `/posts` とは別） */
@@ -34,7 +39,7 @@ export function createApiPostsRoutes() {
     describeRoute({
       tags: ["api"],
       summary: "List queue songs",
-      security: [{ basicAuth: [] }, { bearerAuth: [] }] satisfies OpenAPIV3.SecurityRequirementObject[],
+      security: API_SECURITY,
       responses: {
         200: {
           description: "MPD playlist",
@@ -56,7 +61,7 @@ export function createApiPostsRoutes() {
     describeRoute({
       tags: ["api"],
       summary: "Add song to queue",
-      security: [{ basicAuth: [] }, { bearerAuth: [] }] satisfies OpenAPIV3.SecurityRequirementObject[],
+      security: API_SECURITY,
       responses: {
         201: {
           description: "Created song",
@@ -79,7 +84,7 @@ export function createApiPostsRoutes() {
     describeRoute({
       tags: ["api"],
       summary: "Get queue song by id",
-      security: [{ basicAuth: [] }, { bearerAuth: [] }] satisfies OpenAPIV3.SecurityRequirementObject[],
+      security: API_SECURITY,
       responses: {
         200: {
           description: "Song",
@@ -101,7 +106,7 @@ export function createApiPostsRoutes() {
     describeRoute({
       tags: ["api"],
       summary: "Update queue song file path",
-      security: [{ basicAuth: [] }, { bearerAuth: [] }] satisfies OpenAPIV3.SecurityRequirementObject[],
+      security: API_SECURITY,
       responses: {
         200: {
           description: "Updated song",
@@ -124,7 +129,7 @@ export function createApiPostsRoutes() {
     describeRoute({
       tags: ["api"],
       summary: "Remove song from queue",
-      security: [{ basicAuth: [] }, { bearerAuth: [] }] satisfies OpenAPIV3.SecurityRequirementObject[],
+      security: API_SECURITY,
       responses: {
         204: { description: "Deleted" },
         ...mpdJsonErrorResponses,

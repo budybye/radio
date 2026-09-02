@@ -10,7 +10,7 @@ radio では **振る舞い仕様・変更計画・恒久ドキュメント** �
 |----------|--------------|------------------|---------|
 | 新機能要件 | `openspec/changes/<name>/specs/` | `openspec/specs/<capability>/` | `requirements.md` は Phase サマリ + リンク |
 | 変更スコープ設計 | `changes/<name>/design.md` | ADR へ追記（必要時） | `design.md` はシステム全体 |
-| 実装タスク | `changes/<name>/tasks.md` | archive で閉じる | `tasks.md` はマイルストーンのみ |
+| 実装タスク | `changes/<name>/tasks.md` | archive で閉じる | `requirements.md` は Phase サマリ |
 | コードパターン | change design / `docs/patterns/` | `docs/patterns/` | テンプレートとして維持 |
 
 ## コマンド
@@ -52,7 +52,7 @@ openspec validate --change "<kebab-name>"
 
 - [x] `docs/requirements.md` の Phase 進捗を更新
 - [x] 解決した問題があれば `docs/problems.md` を更新
-- [x] マイルストーンが変われば `docs/tasks.md` を更新
+- [x] マイルストーンが変われば `docs/requirements.md` を更新
 - [x] Workers 構造を大きく変えたら `graphify update .`（推奨 — 実行は任意）
 
 ## 振る舞い仕様（ベースライン）
@@ -76,4 +76,4 @@ openspec validate --change "<kebab-name>"
 
 - 振る舞い要件 → change specs または `openspec/specs/`
 - 運用・手順 → `docs/`
-- アクティブタスク → change `tasks.md`（`docs/tasks.md` に重複書きしない）
+- アクティブタスク → change `tasks.md`

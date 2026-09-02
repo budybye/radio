@@ -2,7 +2,6 @@ import { useAgent } from "agents/react";
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   type MutableRefObject,
   type ReactElement,
@@ -51,7 +50,6 @@ export type MpdAgentApi = {
 };
 
 export type MpdAgentConnectionStatus = {
-  engaged: boolean;
   connected: boolean;
   connecting: boolean;
 };
@@ -104,7 +102,6 @@ function useMpdAgentWatch({
 
   useEffect(() => {
     onConnectionStatusRef.current?.({
-      engaged: true,
       connected,
       connecting,
     });
@@ -217,16 +214,6 @@ function useMpdAgentWatch({
     };
   }, [apiRef, isActive, refresh]);
 
-  return useMemo(
-    () => ({
-      isActive,
-      refresh,
-      mpdState: agent.state?.mpdState ?? null,
-      lastError: mpdWireMessage(agent.state?.lastError ?? null),
-      agentConnected: connected,
-    }),
-    [isActive, refresh, agent.state, connected],
-  );
 }
 
 function MpdAgentSyncInner(props: MpdAgentSyncInnerProps): null {

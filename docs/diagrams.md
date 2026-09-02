@@ -139,7 +139,6 @@ flowchart TB
 | Unit | `cd workers && bun run test` | serialize, parse, bridge 等 |
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | CI | `.github/workflows/workers-ci.yaml` | unit → lint → build → mpd-stub |
-| E2E stub | `make test-e2e-stub` | vitest + mpd-stub（deploy 不要） |
 | E2E workers | `make test-e2e-workers` | `radio.*.workers.dev` |
 
 詳細: [test.md](test.md) · preview フロー: [e2e-preview-flow](#e2e-preview-flow)

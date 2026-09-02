@@ -40,6 +40,5 @@
 | コードパターン | [patterns/README.md](patterns/README.md) | better-result 等テンプレート |
 | 技術仕様 | [tech.md](tech.md) | スタック詳細・設定ファイル解説 |
 | テスト方針 | [test.md](test.md) | テスト戦略と検証手順 |
-| タスク管理 | [tasks.md](tasks.md) | マイルストーン・バックログ |
 | ディレクトリ構造 | [directory.md](directory.md) | ファイル配置規則 |
 | 既知の問題 | [problems.md](problems.md) | 未解決課題・リスク |

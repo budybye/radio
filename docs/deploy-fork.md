@@ -99,7 +99,7 @@ make setup   # 両方の .env を example から作成
 
 ### 2. Secrets
 
-`workers/.env` の secrets を `cd workers && bun run cf-secret` で登録。
+`workers/.env` の secrets は `cd workers && bun run cf-secret` で登録。`wrangler secret bulk .env` は使わない（`MPD_HOST` / `MPC_HOST` は deploy の `--var` binding と重複するため）。
 
 ### 3. カスタムドメイン（任意）
 

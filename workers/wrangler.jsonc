@@ -13,8 +13,8 @@
     "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MpdAgent"] }],
-  "vars": {
-    "MPD_HOST": "mpd.example.com",
-    "MPC_HOST": "mpc.example.com"
-  }
+  // "vars": {
+  //   "MPD_HOST": "mpd.example.com",
+  //   "MPC_HOST": "mpc.example.com"
+  // }
 }

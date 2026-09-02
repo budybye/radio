@@ -26,4 +26,10 @@ describe("mpcBridgeUrl", () => {
       "http://127.0.0.1:18080",
     );
   });
+
+  it("falls back to MPC_HOST when override is not an absolute URL", () => {
+    expect(mpcBridgeOrigin("mpc.example.com", "localhost")).toBe(
+      "https://mpc.example.com",
+    );
+  });
 });

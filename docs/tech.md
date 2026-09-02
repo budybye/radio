@@ -43,24 +43,7 @@ make up-build          # 初回: ビルド + 起動
 make up                # 2回目以降: 起動のみ（高速）
 ```
 
-### Makefile コマンド一覧
-
-| コマンド | 内容 |
-|----------|------|
-| `make up` | コンテナを起動（既存イメージを使用） |
-| `make up-build` | コンテナをビルドして起動 |
-| `make down` | コンテナを停止・削除 |
-| `make play` | 手動でライブラリ更新 → キュー追加 → 再生（自動再生失敗時のフォールバック） |
-| `make random` | ランダム再生モード ON |
-| `make sequential` | ランダム再生モード OFF（順番再生） |
-| `make stop` / `make pause` | 停止 / 一時停止 |
-| `make next` / `make prev` | 次の曲 / 前の曲 |
-| `make status` | 現在の再生状態を表示 |
-| `make ncmpcpp` | ncmpcpp TUI を起動 |
-| `make test` | ヘルスチェックを実行 |
-| `make logs` | リアルタイムログ表示 |
-| `make restart` | コンテナ再起動 |
-| `make clean` | ボリューム含め完全削除 |
+Make target の一覧と説明は、重複を避けるため `make help` を参照。
 
 ### 環境変数
 
@@ -99,82 +82,14 @@ docker compose logs -f tunnel
 
 ## 重要設定ファイル
 
-### `compose.yaml`
+実際の設定を正本として参照:
 
-```yaml
-services:
-  mpd:
-    build: .
-    container_name: radio-mpd
-    volumes:
-      - ./music:/music
-      - ./config/mpd.conf:/etc/mpd.conf:ro
-      - ./config/config:/root/.ncmpcpp/config:ro
-      - mpd-data:/var/lib/mpd
-    # ports:
-    #   - "127.0.0.1:6600:6600"
-    #   - "127.0.0.1:8000:8000"
-    restart: unless-stopped
+- [`compose.yaml`](../compose.yaml): MPD、mpc-bridge、Tunnel の起動・接続・ボリューム定義
+- [`Dockerfile`](../Dockerfile): Alpine ベースの MPD 実行イメージ
+- [`config/mpd.conf`](../config/mpd.conf): MPD の再生・HTTPD 出力設定
+- [`scripts/entrypoint.sh`](../scripts/entrypoint.sh): 起動時の自動キュー投入・再生
 
-  mpc-bridge:
-    build: ./mpc-bridge
-    environment:
-      MPD_HOST: mpd
-      MPD_PORT: "6600"
-      POOL_SIZE: "4"
-    depends_on:
-      mpd:
-        condition: service_healthy
-
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    command: tunnel run --token ${TUNNEL_TOKEN:-}
-    depends_on:
-      mpd:
-        condition: service_healthy
-      mpc-bridge:
-        condition: service_healthy
-
-volumes:
-  mpd-data:
-```
-
-**設定のポイント**:
-- `mpc-bridge` → Workers が Tunnel 経由で MPD コマンドを実行する HTTP ゲートウェイ
-- `build: .` → ルート `Dockerfile` から MPD 環境をビルド
-- `./config/config:/root/.ncmpcpp/config:ro` → ncmpcpp 設定をコンテナ内にマウント
-- `ports` を **コメントアウト** → デフォルトではホスト側へのポート公開を避ける。アクセスは Tunnel 経由または `docker compose exec` のみ
-- `networks` → `radio-network` として明示的に命名
-- Web UI は `workers/` を Cloudflare Workers へ deploy（compose には含めない）
-
-### `Dockerfile`
-
-```dockerfile
-FROM alpine:3.20
-
-RUN apk add --no-cache mpd mpc ncmpcpp && \
-    mkdir -p /var/lib/mpd/playlists /music && \
-    touch /var/lib/mpd/mpd.pid \
-        /var/lib/mpd/state \
-        /var/lib/mpd/sticker.sql && \
-    chown -R mpd:audio /var/lib/mpd
-
-COPY config/mpd.conf /etc/mpd.conf
-COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-EXPOSE 6600 8000
-
-ENTRYPOINT ["/entrypoint.sh"]
-```
-
-**設定のポイント**:
-- `--no-cache` で apk キャッシュ削除（イメージサイズ削減）
-- `apk add` と `mkdir`/`touch`/`chown` を同じ `RUN` 内で実行 — `mpd` パッケージの `pre-install` で作成された `mpd:audio` ユーザー/グループが確実に存在する状態で権限設定
-- `touch` で空ファイルを事前作成 — MPD 初回起動時の `pid`/`state`/`sticker` 不存在エラーを防止（`database` は MPD が自動作成するため `touch` しない）
-- `chown mpd:audio` — Alpine の `mpd` パッケージは `mpd` ユーザー + `audio` グループで実行される（`mpd:mpd` ではなく `audio` グループ）
-- `entrypoint.sh` で MPD 起動後にキューが空なら自動で曲を追加・再生（`make up` 後に `make play` 不要）
-- `ENTRYPOINT` + `exec mpd` → PID 1 で実行。シグナル処理も適切（Docker のプロセス管理に最適）
+設定ファイルのコピーを本書へ埋め込まない。変更時のドリフトを防ぐ。
 
 ### `config/config`（ncmpcpp 設定）
 

@@ -73,12 +73,9 @@ export function mountOpenApi<T extends Hono<Env>>(
           },
         },
         schemas: {
-          MpdAgentState: (() => {
-            // SAFETY: valibot JSON Schema output matches OpenAPIV3_1.SchemaObject for documentation.
-            return toJsonSchema(
-              mpdAgentStateSchema,
-            ) as OpenAPIV3_1.SchemaObject;
-          })(),
+          // SAFETY: valibot JSON Schema output matches OpenAPIV3_1.SchemaObject for documentation.
+          MpdAgentState:
+            toJsonSchema(mpdAgentStateSchema) as OpenAPIV3_1.SchemaObject,
         },
       },
       paths: AGENT_PATHS,

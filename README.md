@@ -148,37 +148,7 @@ make ncmpcpp   # TUI プレイヤーを開く
 
 ## 操作ガイド
 
-### Make コマンド一覧
-
-```bash
-# ライフサイクル
-make up-build   # 初回: ビルド + 起動
-make up         # 起動のみ
-make down       # 停止
-make restart    # 再起動
-make build      # イメージ再ビルド（キャッシュ無し）
-make clean      # 停止 + ボリューム削除
-
-# 再生制御
-make play       # 再生
-make stop       # 停止
-make pause      # 一時停止 / 再開
-make next       # 次の曲
-make prev       # 前の曲
-make random     # ランダム再生 ON
-make sequential # ランダム再生 OFF
-
-# ライブラリ
-make reload     # ライブラリ再スキャン + キュー再構築 + 再生
-
-# ツール
-make status     # 現在の状態を表示
-make ncmpcpp    # TUI プレイヤーを開く
-make test       # 統合テスト実行
-make logs       # ログを tail
-```
-
-> `make` だけ打つと全コマンドのヘルプが表示されます。
+完全な Make target 一覧は `make help` を参照。
 
 ### MPC コマンド（コンテナ内直接操作）
 
@@ -241,7 +211,6 @@ docker compose exec -it mpd ncmpcpp
 | [docs/design.md](docs/design.md) | システム設計・アーキテクチャ・ADR |
 | [docs/tech.md](docs/tech.md) | 技術スタック・環境構築手順・`make` コマンド一覧 |
 | [docs/test.md](docs/test.md) | テスト戦略・検証手順 |
-| [docs/tasks.md](docs/tasks.md) | ロードマップ・タスク管理 |
 | [docs/directory.md](docs/directory.md) | ディレクトリ構造・規約 |
 | [docs/problems.md](docs/problems.md) | 既知の問題・リスク |
 | [docs/references.md](docs/references.md) | 参考資料リンク集 |

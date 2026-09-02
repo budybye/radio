@@ -4,7 +4,6 @@
 
 | ティア | 対象 URL | 内容 | コマンド |
 |--------|----------|------|----------|
-| **stub** | （なし） | vitest（fixture parse + mpd-stub HTTP） | `make test-e2e-stub` |
 | **workers** | `https://radio.*.workers.dev` | deploy 後の構造 smoke | `make test-e2e-workers` |
 | **prod** | カスタムドメイン | 読み取りのみ | `RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod` |
 

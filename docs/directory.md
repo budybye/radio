@@ -75,7 +75,6 @@ radio/
     ├── design.md
     ├── tech.md
     ├── test.md
-    ├── tasks.md
     ├── directory.md      # 本ファイル
     ├── problems.md
     └── references.md

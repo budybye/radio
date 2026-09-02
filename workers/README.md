@@ -107,7 +107,7 @@ workers/
 | `MPC_HOST` | `mpc.your-domain.com` | mpc-bridge ホスト |
 | `MPC_BRIDGE_BASE_URL` | _(未設定)_ | **E2E のみ**: `http://127.0.0.1:18080` で mpd-stub に向ける |
 
-Wrangler secrets（`bunx wrangler secret put <NAME>`）:
+Wrangler secrets（`cd workers && bun run cf-secret`）:
 
 | Secret | 用途 |
 |--------|------|
