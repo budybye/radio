@@ -21,8 +21,7 @@ async function getStatusResult() {
   return (await mpdCommand("status")).map(parseMpdStatus);
 }
 
-export function createMpdRoutes() {
-  return new Hono<Env>()
+export const mpd = new Hono<Env>()
   .get(
     "/status",
     describeRoute({
@@ -128,6 +127,3 @@ export function createMpdRoutes() {
       return c.json(body satisfies MpdPingResponse);
     },
   );
-}
-
-export const mpd = createMpdRoutes();

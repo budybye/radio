@@ -37,7 +37,6 @@ git clone <repo-url>
 cd radio
 
 # 2a. Docker で起動（推奨）
-bash scripts/setup.sh  # Docker 環境構築（初回のみ）
 make setup             # .env 作成 + music/ 作成
 make up-build          # 初回: ビルド + 起動
 make up                # 2回目以降: 起動のみ（高速）
@@ -138,17 +137,9 @@ mpd_music_dir = /music
 | `mpd.your-domain.com` | MP3 ストリーム（Tunnel → MPD HTTPD） | ✅ 聴取のみ |
 | `mpc.your-domain.com` | mpc-bridge（MPD 制御 HTTP） | 🔒 Access Service Token のみ |
 
-### Home データフロー（曲メタ / リスナー数）
+### Home データフロー
 
-図: [diagrams.md#mpd-home-data-flow](diagrams.md#mpd-home-data-flow)
-
-| データ | SSR (`GET /`) | CSR（Play クリック後） |
-|--------|---------------|----------------------|
-| **現在曲** | `fetchCurrentSongResult()` → mpc-bridge 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
-| **リスナー数** | `fetchListenerCountResult()` → bridge `status` 直叩き（短 TTL キャッシュ） | `useAgent` `onStateUpdate` |
-| **MPD state** | — | `useAgent` `onStateUpdate` |
-
-**設計意図**: SSR / ops は mpc-bridge 直叩き（DO を起こさない）。ライブ更新は Play 後に `useAgent` が接続し、DO の `tick()` が正本。preview HTTP smoke の `listenerCount` は SSR 値、opencli はハイドレーション後のライブ値。
+詳細な経路と設計意図は [design.md](design.md) を参照。
 
 ### 現在曲の取得経路
 

@@ -114,7 +114,7 @@ flowchart TD
 ```mermaid
 flowchart TB
   subgraph e2e["E2E（opencli + HTTP smoke）"]
-    Stub["stub: vitest + mpd-stub contract"]
+    Stub["stub: vp test + mpd-stub contract"]
     Workers["workers: radio.*.workers.dev"]
     Prod["prod: カスタムドメイン（読み取り専用）"]
   end
@@ -125,9 +125,9 @@ flowchart TB
   end
 
   subgraph unit["Unit / Static"]
-    Vitest["vitest（workers/）"]
+    Vitest["vp test（Vitest 4.1.11）"]
     Lint["vp lint + tsc"]
-    Build["vpr build"]
+    Build["vp build"]
   end
 
   e2e --> integration

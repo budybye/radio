@@ -13,7 +13,7 @@ import type { CurrentSongView } from "./types";
 import { type MpdErrorWire } from "./serialize-wire";
 
 export type { MpdErrorWire, RpcSerializedEnvelopeWire } from "./serialize-wire";
-export { parseSerializedCurrentSongView, parseSerializedCurrentSongFromAgentCall } from "./serialize-wire";
+export { parseSerializedCurrentSongView } from "./serialize-wire";
 
 export type CurrentSongClient = Exclude<
   CurrentSongView,

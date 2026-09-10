@@ -1,3 +1,4 @@
+import type { ConfiguredRadioStation } from "./stations";
 import type { CurrentSongClient } from "./serialize";
 
 const INSTRUMENTAL_TITLE_SUFFIX = /\s*[(–—-]\s*instrumental\s*\)?\s*$/i;
@@ -39,4 +40,21 @@ export function formatNowPlayingDisplay(
     album: song.album.trim(),
     variant,
   };
+}
+
+export function formatStationDisplay(
+  station: ConfiguredRadioStation | undefined,
+  song: Pick<CurrentSongClient, "title" | "artist" | "album" | "file"> | null,
+  titleFallback: string,
+): NowPlayingDisplay {
+  if (station?.kind === "external") {
+    return {
+      headline: station.label,
+      artist: "",
+      album: "",
+      variant: null,
+    };
+  }
+
+  return formatNowPlayingDisplay(song, titleFallback);
 }

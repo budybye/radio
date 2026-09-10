@@ -3,25 +3,11 @@
  * Deployed E2E HTTP smoke — tier guards + Inertia shell assertions.
  * Hydrated UI checks stay in scripts/e2e/opencli-home.sh (opencli).
  */
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import * as v from "valibot";
-
-const FIXTURES = join(import.meta.dirname, "fixtures", "mpd", "contract.json");
-
-const uiContractSchema = v.object({
-  ui: v.object({
-    listenersLabel: v.string(),
-    speakerClass: v.string(),
-    titleFallback: v.string(),
-  }),
-});
-
-type UiContract = v.InferOutput<typeof uiContractSchema>;
+import { loadMpdFixtureContract } from "./fixtures/mpd/contract";
 type E2ETier = "workers" | "prod";
 
 function parseTier(raw: string | undefined): E2ETier {
-  if (raw === "preview" || raw === "workers" || raw === undefined) {
+  if (raw === "workers" || raw === undefined) {
     return "workers";
   }
   if (raw === "prod") {
@@ -39,15 +25,13 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-function resolveBaseUrl(): string {
-  const tier = parseTier(process.env.RADIO_E2E_TIER);
+function resolveBaseUrl(tier: E2ETier): string {
   let base = process.env.RADIO_E2E_BASE_URL;
 
   if (!base) {
     if (tier === "workers") {
       base =
         process.env.RADIO_E2E_WORKERS_URL ??
-        process.env.RADIO_E2E_PREVIEW_URL ??
         `https://radio.${process.env.CLOUDFLARE_ACCOUNT_SUBDOMAIN ?? "<account>"}.workers.dev`;
     } else {
       base = process.env.RADIO_E2E_PROD_URL;
@@ -65,14 +49,7 @@ function resolveBaseUrl(): string {
   return base.replace(/\/$/, "");
 }
 
-function guardTier(base: string): E2ETier {
-  const rawTier = process.env.RADIO_E2E_TIER;
-
-  if (rawTier === "local") {
-    fail("local tier removed — use workers tier or vitest + mpd-stub contract");
-  }
-
-  const tier = parseTier(rawTier);
+function guardTier(base: string, tier: E2ETier): E2ETier {
 
   if (tier === "prod") {
     if (process.env.RADIO_E2E_ALLOW_PROD !== "1") {
@@ -92,9 +69,10 @@ function guardTier(base: string): E2ETier {
   return tier;
 }
 
-async function loadUiContract(): Promise<UiContract["ui"]> {
-  const raw = await readFile(FIXTURES, "utf8");
-  return v.parse(uiContractSchema, JSON.parse(raw)).ui;
+async function loadUiContract() {
+  const { ui } = await loadMpdFixtureContract();
+  if (!ui) fail("Fixture contract missing ui section");
+  return ui;
 }
 
 function assertInertiaShell(html: string, titleFallback: string): void {
@@ -130,6 +108,7 @@ async function httpSmoke(base: string, tier: E2ETier): Promise<void> {
   log(`PASS: Home smoke (HTTP ${response.status}, tier=${tier})`);
 }
 
-const base = resolveBaseUrl();
-const tier = guardTier(base);
+const tier = parseTier(process.env.RADIO_E2E_TIER);
+const base = resolveBaseUrl(tier);
+guardTier(base, tier);
 await httpSmoke(base, tier);

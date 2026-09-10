@@ -11,8 +11,11 @@ export type CurrentSongView =
   | CurrentSongPayload
   | null;
 
+import type { ConfiguredRadioStation, RadioStationId } from "./stations";
+
 /** SSR → クライアント注入（stream URL 等） */
 export type RadioConfig = {
-  streamUrl: string;
+  stations: readonly ConfiguredRadioStation[];
+  defaultStationId: RadioStationId;
   titleFallback: string;
 };

@@ -1,5 +1,4 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
-import { Scalar } from "@scalar/hono-api-reference";
 import { openAPIRouteHandler } from "hono-openapi";
 import type { Context, Hono } from "hono";
 import type { OpenAPIV3_1 } from "openapi-types";
@@ -36,25 +35,17 @@ const AGENT_PATHS: OpenAPIV3_1.PathsObject = {
   },
 };
 
-/** ローカル dev と `*.workers.dev` のみ OpenAPI + Scalar を公開（カスタムドメインは 404） */
+/** ローカル dev と `*.workers.dev` のみ OpenAPI を公開（カスタムドメインは 404） */
 function openApiEnabled(c: Context<Env>): boolean {
   if (import.meta.env.DEV) return true;
   const hostname = new URL(c.req.url).hostname;
   return hostname.endsWith(".workers.dev");
 }
 
-const scalarUi = Scalar<Env>({
-  url: "/openapi.json",
-  pageTitle: "radio API",
-  theme: "default",
-});
 
 /** `/openapi.json` — ローカル dev と `*.workers.dev` のみ */
-export function mountOpenApi<T extends Hono<Env>>(
-  app: T,
-  documented: Hono<Env>,
-) {
-  const handler = openAPIRouteHandler(documented, {
+export function mountOpenApi<T extends Hono<Env>>(app: T) {
+  const handler = openAPIRouteHandler(app, {
     documentation: {
       openapi: "3.1.0",
       info: OPENAPI_INFO,
@@ -83,16 +74,10 @@ export function mountOpenApi<T extends Hono<Env>>(
     exclude: ["/", /^\/posts(\/|$)/],
   });
 
-  const serveScalar = async (c: Context<Env>) => {
-    if (!openApiEnabled(c)) return c.notFound();
-    return scalarUi(c, async () => {});
-  };
 
   return app
     .get("/openapi.json", async (c, next) => {
       if (!openApiEnabled(c)) return c.notFound();
       return handler(c, next);
-    })
-    .get("/scalar", serveScalar)
-    .get("/docs", serveScalar);
+    });
 }

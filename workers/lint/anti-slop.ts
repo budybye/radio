@@ -1,3 +1,5 @@
+import type { OxlintConfig } from "oxlint";
+
 /** Shared ignore list for `vp lint` / `vp fmt` (agent dirs + vendored plugin sources). */
 export const lintIgnorePatterns = [
   ".agent/**",
@@ -46,7 +48,7 @@ export const antiSlopRules = {
 } as const;
 
 /** `vite.config.ts` → `lint` block consumed by `bun run lint` (`vp lint`). */
-export const antiSlopLintConfig = {
+export const antiSlopLintConfig: OxlintConfig = {
   ignorePatterns: [...lintIgnorePatterns],
   jsPlugins: [...antiSlopJsPlugins],
   rules: {
@@ -56,4 +58,4 @@ export const antiSlopLintConfig = {
     ],
     ...antiSlopRules,
   },
-} as const;
+};

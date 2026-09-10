@@ -2,11 +2,11 @@
 
 Wire スキーマ: `workers/app/schemas/openapi/`
 
-## Scalar UI
+## OpenAPI JSON
 
 ```bash
 cd workers && bun run dev
-# http://localhost:5173/scalar
+# http://localhost:5173/openapi.json
 ```
 
-`/scalar` と `/openapi.json` は **ローカル dev** と **`*.workers.dev`** のみ。カスタムドメインでは 404。
+`/openapi.json` は **ローカル dev** と **`*.workers.dev`** のみ。カスタムドメインでは 404。

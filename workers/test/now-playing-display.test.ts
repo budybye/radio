@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { formatNowPlayingDisplay } from "../app/lib/radio/now-playing";
+import {
+  formatNowPlayingDisplay,
+  formatStationDisplay,
+} from "../app/lib/radio/now-playing";
 import { parseMpdRecord } from "../app/server/mpd/parse";
 import { recordToCurrentSong } from "../app/server/mpd/song";
 import {
@@ -51,5 +54,32 @@ describe("now-playing display from MPD fixtures", () => {
     expect(formatNowPlayingDisplay(null, contract.ui!.titleFallback)).toEqual(
       contract.display!.noSong,
     );
+  });
+});
+
+describe("external station display", () => {
+  it("uses station identity instead of unrelated MPD metadata", async () => {
+    const contract = await loadMpdFixtureContract();
+    const song = recordToCurrentSong(
+      parseMpdRecord(await readMpdFixture("currentsong.txt")),
+    );
+
+    expect(
+      formatStationDisplay(
+        {
+          id: "irie-fm",
+          label: "IRIE FM 107.5 MHz",
+          kind: "external",
+          streamUrl: "https://stream.iriefm.net:8006/stream",
+        },
+        song ?? null,
+        contract.ui!.titleFallback,
+      ),
+    ).toEqual({
+      headline: "IRIE FM 107.5 MHz",
+      artist: "",
+      album: "",
+      variant: null,
+    });
   });
 });

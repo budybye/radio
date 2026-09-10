@@ -23,16 +23,15 @@ import {
   updateSong,
 } from "../mpd/playlist";
 
-const API_SECURITY = [
+const API_SECURITY: OpenAPIV3.SecurityRequirementObject[] = [
   { basicAuth: [] },
   { bearerAuth: [] },
-] satisfies OpenAPIV3.SecurityRequirementObject[];
+];
 
 const postId = (c: Context) => Number(c.req.param("id"));
 
 /** OpenAPI 対象の JSON キュー API（Inertia `/posts` とは別） */
-export function createApiPostsRoutes() {
-  return new Hono<Env>()
+export const apiPosts = new Hono<Env>()
   .use(basicOrBearer)
   .get(
     "/",
@@ -141,6 +140,3 @@ export function createApiPostsRoutes() {
       return c.body(null, 204);
     },
   );
-}
-
-export const apiPosts = createApiPostsRoutes();

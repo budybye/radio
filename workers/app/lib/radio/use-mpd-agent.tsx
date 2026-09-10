@@ -16,7 +16,7 @@ import {
 import {
   currentSongFromSerialized,
   mpdWireMessage,
-  parseSerializedCurrentSongFromAgentCall,
+  parseSerializedCurrentSongView,
   type CurrentSongClient,
   type RpcSerializedEnvelopeWire,
 } from "./serialize";
@@ -122,8 +122,8 @@ function useMpdAgentWatch({
       );
 
       // SAFETY: Agents RPC returns structured-clone JSON; invalid shapes fail envelope parse.
-      const serialized = parseSerializedCurrentSongFromAgentCall(
-        wire as RpcSerializedEnvelopeWire | null,
+      const serialized = parseSerializedCurrentSongView(
+        wire as RpcSerializedEnvelopeWire | null | undefined,
       );
       if (!serialized) return songRef.current;
       const next = currentSongFromSerialized(serialized, songRef.current);

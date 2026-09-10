@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 import { mpdStatusSchema } from "../../server/mpd/parse";
+import { serializedEnvelopeSchema } from "../../lib/radio/serialize-wire";
 
 /** GET /status 応答（parseMpdStatus の wire 形） */
 export const mpdStatusResponseSchema = v.pipe(
@@ -13,44 +14,9 @@ export const mpdStatusResponseSchema = v.pipe(
   v.metadata({ ref: "MpdStatusResponse" }),
 );
 
-export const currentSongPayloadSchema = v.pipe(
-  v.object({
-    title: v.string(),
-    artist: v.string(),
-    album: v.string(),
-    file: v.string(),
-    songid: v.string(),
-  }),
-  v.metadata({ ref: "CurrentSongPayload" }),
-);
-
-const currentSongUnchangedSchema = v.object({
-  unchanged: v.literal(true),
-  songid: v.string(),
-});
-
-/** GET /currentsong の value スロット */
-export const currentSongViewSchema = v.union([
-  currentSongUnchangedSchema,
-  currentSongPayloadSchema,
-  v.null(),
-]);
-
 /** DO RPC / GET /currentsong の SerializedMpdResult wire 形 */
 export const serializedMpdResultSchema = v.pipe(
-  v.union([
-    v.object({
-      status: v.literal("ok"),
-      value: currentSongViewSchema,
-    }),
-    v.object({
-      status: v.literal("error"),
-      error: v.object({
-        _tag: v.string(),
-        message: v.optional(v.string()),
-      }),
-    }),
-  ]),
+  serializedEnvelopeSchema,
   v.description("better-result wire envelope for MPD RPC/JSON"),
   v.metadata({ ref: "SerializedMpdResult" }),
 );

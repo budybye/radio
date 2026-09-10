@@ -30,7 +30,7 @@ radio/
 │   ├── .env.example      # workers/.env テンプレート
 │   ├── tools/
 │   │   └── oxlint/anti-slop/   # Oxlint プラグイン（vendored）
-│   ├── test/             # E2E フィクスチャ（mpd-stub contract + vitest）
+│   ├── test/             # E2E フィクスチャ（mpd-stub contract + Vite+ test runner）
 │   │   └── fixtures/mpd/contract.json   # E2E 期待値の正本
 │   ├── worker/           # Wrangler entry + MpdAgent DO
 │   └── app/
@@ -55,10 +55,8 @@ radio/
 ├── music/                # 配信対象音楽ファイル
 ├── scripts/
 │   ├── entrypoint.sh
-│   ├── setup.sh
 │   ├── test.sh
 │   └── e2e/              # E2E スクリプト（deployed smoke + opencli）
-│       ├── lib/contract.sh
 │       ├── smoke-deployed.sh
 │       └── start-mpd-stub.sh
 ├── openspec/
@@ -88,7 +86,6 @@ radio/
 | `workers/` | Web UI（Vite + Hono Workers）。MpdAgent DO + Inertia SPA |
 | `workers/app/components/GlobeSpeaker.tsx` | リスナー Home 中央の cobe 地球儀 |
 | `workers/test/fixtures/mpd/contract.json` | mpd-stub / opencli E2E の期待値正本 |
-| `scripts/e2e/lib/contract.sh` | contract.json 読み取り・HTML アサーション |
 | `workers/tools/oxlint/` | anti-slop Oxlint プラグイン（vendored） |
 | `scripts/e2e/` | opencli E2E スクリプト・mpd-stub |
 | `openspec/` | 振る舞い仕様（specs）と変更計画（changes） |
@@ -112,7 +109,7 @@ radio/
 - **Web UI 変更** → `workers/` 編集後、フォークは `wrangler deploy --config wrangler.jsonc`、メンテナは `bun run deploy`（`--env production --config wrangler.jsonc`）
 - **新しいサービス追加** → `compose.yaml` に追加、`docs/tech.md` 更新
 - **新しい make ターゲット** → `Makefile` + `docs/tech.md` のコマンド表
-- **新しいテスト** → `scripts/test.sh` または `workers/` vitest + `docs/test.md`
+- **新しいテスト** → `scripts/test.sh` または `workers/` の Vite+ test runner + `docs/test.md`
 - **ドキュメント追加** → `docs/` に配置し `docs/README.md` の一覧にリンク
 - **環境変数追加** → `.env.example` + `docs/tech.md` + `AGENTS.md`
 

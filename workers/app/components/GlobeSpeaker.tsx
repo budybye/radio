@@ -1,9 +1,12 @@
 import createGlobe from "cobe";
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 import { BROADCAST_HUB } from "../lib/radio/constants";
+import { readAudioMetrics } from "../lib/radio/audio-reactivity";
 
 type GlobeSpeakerProps = {
+  /** 解析対象の live audio */
+  audioRef: RefObject<HTMLAudioElement | null>;
   /** ローカル audio 再生中 */
   active?: boolean;
   /** MpdAgent ブロードキャスト */
@@ -20,6 +23,7 @@ function prefersReducedMotion(): boolean {
 }
 
 export function GlobeSpeaker({
+  audioRef,
   active = false,
   listenerCount = 0,
   mpdState = null,
@@ -40,11 +44,20 @@ export function GlobeSpeaker({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    const audio = audioRef.current;
     if (!canvas) return;
 
     let width = 0;
     let phi = 0;
     let frameId = 0;
+    let visualLevel = 0;
+    let visualBass = 0;
+    let visualPulse = 0;
+    let audioContext: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let audioSource: MediaElementAudioSourceNode | null = null;
+    let frequencyData: Uint8Array<ArrayBuffer> | null = null;
+    let resumeAudioContext: (() => void) | null = null;
     const reducedMotion = prefersReducedMotion();
 
     const measure = () => {
@@ -52,6 +65,29 @@ export function GlobeSpeaker({
     };
 
     const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+
+    if (audio && "AudioContext" in globalThis) {
+      try {
+        audioContext = new globalThis.AudioContext();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = 0.75;
+        audioSource = audioContext.createMediaElementSource(audio);
+        audioSource.connect(analyser);
+        analyser.connect(audioContext.destination);
+        frequencyData = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
+        resumeAudioContext = () => {
+          void audioContext?.resume();
+        };
+        audio.addEventListener("play", resumeAudioContext);
+      } catch {
+        void audioContext?.close();
+        audioContext = null;
+        analyser = null;
+        audioSource = null;
+        frequencyData = null;
+      }
+    }
 
     measure();
 
@@ -93,22 +129,46 @@ export function GlobeSpeaker({
       const errored = errorRef.current;
       const live =
         localActive || state === "play" || (listeners > 0 && !errored);
+
+      if (analyser && frequencyData && localActive && !errored) {
+        analyser.getByteFrequencyData(frequencyData);
+        const metrics = readAudioMetrics(frequencyData, visualBass);
+        visualLevel +=
+          (metrics.level - visualLevel) *
+          (metrics.level > visualLevel ? 0.2 : 0.06);
+        visualBass +=
+          (metrics.bass - visualBass) *
+          (metrics.bass > visualBass ? 0.2 : 0.08);
+        visualPulse = Math.max(metrics.pulse, visualPulse * 0.82);
+      } else {
+        visualLevel *= 0.9;
+        visualBass *= 0.9;
+        visualPulse *= 0.78;
+      }
+
       const boost = listeners > 0 ? 0.02 : 0;
+      const audioSpin = reducedMotion
+        ? 0
+        : visualLevel * 0.0025 + visualPulse * 0.006;
       const spin = reducedMotion
         ? 0
         : errored
           ? 0.0015
           : live
-            ? 0.009 + boost * 0.25
+            ? 0.009 + boost * 0.25 + audioSpin
             : 0.0035;
 
       if (spin > 0) phi += spin;
 
-      const hubSize = (live ? 0.09 : 0.065) + boost;
+      const hubSize = (live ? 0.09 : 0.065) + boost + visualPulse * 0.025;
 
       globe.update({
         phi,
-        mapBrightness: errored ? 3.2 : live ? 7.8 + boost * 8 : 4.5,
+        mapBrightness: errored
+          ? 3.2
+          : live
+            ? 7.8 + boost * 8 + visualLevel * 4 + visualPulse * 3
+            : 4.5 + visualLevel * 1.5,
         glowColor: errored
           ? [0.55, 0.18, 0.16]
           : live
@@ -126,9 +186,15 @@ export function GlobeSpeaker({
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
+      if (audio && resumeAudioContext) {
+        audio.removeEventListener("play", resumeAudioContext);
+      }
+      audioSource?.disconnect();
+      analyser?.disconnect();
+      void audioContext?.close();
       globe.destroy();
     };
-  }, []);
+  }, [audioRef]);
 
   return (
     <canvas

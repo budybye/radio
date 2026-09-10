@@ -22,7 +22,7 @@ make test-e2e-workers
 | `workers/test/smoke.ts` | HTTP 200 + Inertia shell |
 | `opencli-home.sh` | ハイドレーション後 `LISTENERS` / `.globe-speaker` |
 
-fixture 値（リスナー数 3 等）は **vitest**（`mpd-fixture-contract.test.ts` + `mpd-stub-http.test.ts`）で検証（deploy 不要）。
+fixture 値（リスナー数 3 等）は **Vite+ の Vitest 4.1.11 runner**（`mpd-fixture-contract.test.ts` + `mpd-stub-http.test.ts`）で検証（deploy 不要）。
 
 ### prod ティア
 
@@ -43,7 +43,7 @@ cd workers && bun run test
 
 | ワークフロー | 内容 |
 |-------------|------|
-| `workers-test.yaml` | vitest（mpd-stub HTTP 含む）→ lint → build |
+| `workers-test.yaml` | Vite+ の Vitest 4.1.11 runner（mpd-stub HTTP 含む）→ lint → build |
 
 CI に opencli / workers.dev smoke は入れません（手動）。
 

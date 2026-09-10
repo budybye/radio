@@ -52,7 +52,7 @@ help:
 	@echo ""
 	@echo "Test:"
 	@echo "  test          Docker integration tests"
-	@echo "  test-workers  Workers unit tests (vitest)"
+	@echo "  test-workers  Workers unit tests (Vite+ / Vitest 4.1.11)"
 	@echo "  test-all      test-workers + test"
 	@echo "  test-e2e-workers  Deployed smoke (HTTP + opencli when installed)"
 	@echo "  test-e2e-prod     Prod HTTP smoke (RADIO_E2E_PROD_URL)"

@@ -81,11 +81,11 @@ make setup   # 両方の .env を example から作成
 | `bun run deploy`（`workers/.env` あり） | 同じ Worker `radio` + 実ホスト名 vars |
 | `bun run deploy`（`workers/.env` なし） | フォーク既定 |
 
-### `vpr build` 落とし穴 {#deploy-pitfall}
+### `vp build` 落とし穴 {#deploy-pitfall}
 
-`bun run deploy` は `vpr build` のあと **`dist/radio/wrangler.json`** をデプロイします（ビルド済み Worker + `dist/client` アセット）。
+`bun run deploy` は `vp build` のあと **`dist/radio/wrangler.json`** をデプロイします（ビルド済み Worker + `dist/client` アセット）。
 
-- `wrangler.jsonc` は **ソース設定**（`vpr build` の入力）— これを直接 deploy すると dev 用パス（`/@vite/client`）が出て UI が壊れます
+- `wrangler.jsonc` は **ソース設定**（`vp build` の入力）— これを直接 deploy すると dev 用パス（`/@vite/client`）が出て UI が壊れます
 - `workers/.env` の `MPD_HOST` / `MPC_HOST` は deploy 時に `--var` で注入（`dist/radio/wrangler.json` のプレースホルダを上書き）
 
 ## デプロイ後

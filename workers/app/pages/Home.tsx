@@ -1,9 +1,9 @@
 import type { HomePageProps } from "../types/inertia-pages";
 import { GlobeSpeaker } from "../components/GlobeSpeaker";
-import { formatNowPlayingDisplay } from "../lib/radio/now-playing";
+import { formatStationDisplay } from "../lib/radio/now-playing";
 import { useRadioPlayer } from "../lib/radio/use-radio-player";
 
-function ListenerCountBadge({ count }: { count: number }) {
+function ListenerCountBadge({ count }: { count: number | null }) {
   return (
     <span
       className="badge badge-outline badge-sm gap-2 tracking-wide"
@@ -12,7 +12,7 @@ function ListenerCountBadge({ count }: { count: number }) {
       aria-atomic="true"
     >
       <span className="opacity-70">LISTENERS</span>
-      <span className="text-accent">{count}</span>
+      <span className="text-accent">{count ?? "—"}</span>
     </span>
   );
 }
@@ -55,6 +55,9 @@ export default function Home({
     audioRef,
     agentSync,
     isMuted,
+    station,
+    stationId,
+    selectStation,
     streamConnected,
     streamAudible,
     toggle,
@@ -65,19 +68,27 @@ export default function Home({
     listenerCount,
     mpdState,
     agentError,
+    streamError,
     agentEngaged,
     agentConnected,
     agentConnecting,
   } = useRadioPlayer({
     initialSong: song ?? null,
     initialListenerCount,
-    streamUrl: config.streamUrl,
+    stations: config.stations,
+    defaultStationId: config.defaultStationId,
   });
 
-  const nowPlaying = formatNowPlayingDisplay(currentSong, config.titleFallback);
+  const isExternalStation = station?.kind === "external";
+  const stationLabel = station?.label ?? config.titleFallback;
+  const nowPlaying = formatStationDisplay(
+    station,
+    currentSong,
+    config.titleFallback,
+  );
   const { headline: title, artist, album, variant } = nowPlaying;
   const statusFlags = {
-    agentError,
+    agentError: agentError ?? streamError,
     agentEngaged,
     agentConnected,
     agentConnecting,
@@ -88,20 +99,22 @@ export default function Home({
   const headerStatus = statusLabel(statusFlags);
   const dockStatus = statusLabel({ ...statusFlags, detailed: true });
   const onAirVisual =
-    mpdState === "play" || streamAudible || (streamConnected && !isMuted);
+    !streamError &&
+    (mpdState === "play" || streamAudible || (streamConnected && !isMuted));
+
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden overscroll-y-contain font-sans">
+    <div className="home-shell flex min-h-dvh flex-col overflow-x-hidden overscroll-y-contain font-sans">
       {agentSync}
 
       <header className="navbar sticky top-0 z-10 border-b border-base-300 bg-base-200/95 px-4 backdrop-blur-md">
         <div className="navbar-start">
           <span className="text-sm font-semibold tracking-wide sm:text-base">
-            mpd radio
+            {stationLabel}
           </span>
         </div>
         <div className="navbar-center">
-          <ListenerCountBadge count={listenerCount} />
+          <ListenerCountBadge count={isExternalStation ? null : listenerCount} />
         </div>
         <div className="navbar-end">
           <span
@@ -120,17 +133,44 @@ export default function Home({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-8 px-2 py-8 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-12 sm:pb-32">
+      <div className="mx-auto w-full max-w-xs px-2 pt-4 sm:px-4">
+        <label
+          className="label px-1 text-xs tracking-[0.2em] text-base-content/55 uppercase"
+          htmlFor="station-select"
+        >
+          Station
+        </label>
+        <select
+          id="station-select"
+          className="select select-bordered w-full"
+          value={stationId}
+          onChange={(event) => {
+            const station = config.stations.find(
+              ({ id }) => id === event.currentTarget.value,
+            );
+            if (station) selectStation(station.id);
+          }}
+          >
+          {config.stations.map((configuredStation) => (
+            <option key={configuredStation.id} value={configuredStation.id}>
+              {configuredStation.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <main className="home-main mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col justify-center gap-8 overflow-y-auto px-2 py-8 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-12 sm:pb-32">
         <section
           aria-labelledby="now-playing-title"
           className="flex w-full flex-col items-center gap-6 sm:gap-8"
         >
-          <div className="w-full max-w-[min(100vw-1rem,64rem)] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl">
+          <div className="home-globe-frame w-full max-w-[min(100vw-1rem,64rem)] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl">
             <GlobeSpeaker
+              audioRef={audioRef}
               active={streamConnected}
-              listenerCount={listenerCount}
+              listenerCount={isExternalStation ? 0 : listenerCount}
               mpdState={mpdState}
-              hasError={Boolean(agentError)}
+              hasError={Boolean(agentError ?? streamError)}
             />
           </div>
 
@@ -149,6 +189,12 @@ export default function Home({
             >
               {title}
             </h1>
+
+            {isExternalStation ? (
+              <p className="mt-2 text-xs tracking-[0.18em] text-base-content/50 uppercase">
+                {streamError ?? "Metadata unavailable"}
+              </p>
+            ) : null}
             {variant === "instrumental" ? (
               <p className="mt-2 text-xs tracking-[0.18em] text-base-content/45 uppercase">
                 Instrumental
@@ -165,6 +211,7 @@ export default function Home({
         className="hidden"
         ref={audioRef}
         preload="none"
+        crossOrigin="anonymous"
         aria-label="Live radio stream"
         onError={onAudioError}
       >
@@ -186,11 +233,13 @@ export default function Home({
           <span className="dock-label block truncate opacity-60">
             {artist
               ? title
-              : streamAudible
-                ? "Live"
-                : streamConnected
-                  ? "Muted"
-                  : "Press play"}
+              : isExternalStation
+                ? streamError ?? "External station"
+                : streamAudible
+                  ? "Live"
+                  : streamConnected
+                    ? "Muted"
+                    : "Press play"}
           </span>
         </div>
 
@@ -228,7 +277,7 @@ export default function Home({
         >
           <span
             className={`status ${
-              agentError
+              (agentError ?? streamError)
                 ? "status-error"
                 : streamAudible
                   ? "status-success led-live"

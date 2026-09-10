@@ -33,7 +33,7 @@ bun install
 bun run dev          # 任意: 手動 UI 確認のみ（E2E では使わない）
 bun run build
 bun run lint         # vp lint + vendored anti-slop rules
-bun run test         # vitest (parse / serialize / bridge-url)
+bun run test         # Vite+ の Vitest 4.1.11 runner（parse / serialize / bridge-url）
 bun run deploy       # Worker "radio" → radio.*.workers.dev
 bunx tsc --noEmit    # package.json に script 未登録
 ```
@@ -79,7 +79,6 @@ workers/
 | GET | `/` | なし | リスナー Home（SSR + DO watch） |
 | ALL | `/agents/MpdAgent/*` | なし | Agents SDK（ライブ watch） |
 | GET | `/openapi.json` | なし (dev / `*.workers.dev`) | OpenAPI 3.1 spec |
-| GET | `/scalar` | なし (dev / `*.workers.dev`) | Scalar API Reference UI |
 | GET | `/status` | Basic | MPD status JSON（診断） |
 | GET | `/currentsong` | Basic | 現在曲 JSON（ops / 外部） |
 | GET | `/mpd/ping` | Basic | mpc-bridge + MPD 到達性 |

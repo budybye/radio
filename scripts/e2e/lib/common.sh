@@ -15,45 +15,14 @@ radio_e2e_load_root_env() {
 # - workers: radio.*.workers.dev (after bun run deploy)
 # - prod:    custom domain — read-only smoke (RADIO_E2E_PROD_URL)
 
-radio_e2e_default_base_url() {
-  case "${RADIO_E2E_TIER:-workers}" in
-    workers)
-      if [[ -n "${RADIO_E2E_WORKERS_URL:-}" ]]; then
-        echo "${RADIO_E2E_WORKERS_URL}"
-      elif [[ -n "${RADIO_E2E_PREVIEW_URL:-}" ]]; then
-        # legacy alias
-        echo "${RADIO_E2E_PREVIEW_URL}"
-      else
-        echo "https://radio.${CLOUDFLARE_ACCOUNT_SUBDOMAIN:-<account>}.workers.dev"
-      fi
-      ;;
-    prod)
-      if [[ -n "${RADIO_E2E_BASE_URL:-}" ]]; then
-        echo "${RADIO_E2E_BASE_URL}"
-      elif [[ -n "${RADIO_E2E_PROD_URL:-}" ]]; then
-        echo "${RADIO_E2E_PROD_URL}"
-      else
-        echo "Set RADIO_E2E_PROD_URL or RADIO_E2E_BASE_URL for prod tier" >&2
-        return 1
-      fi
-      ;;
-    *)
-      echo "unknown RADIO_E2E_TIER: ${RADIO_E2E_TIER} (use workers | prod)" >&2
-      return 1
-      ;;
-  esac
-}
-
-radio_e2e_resolve_base_url() {
-  local base="${RADIO_E2E_BASE_URL:-$(radio_e2e_default_base_url)}"
-  base="${base%/}"
-  printf '%s' "$base"
-}
-
 radio_e2e_guard_tier() {
   local tier="${RADIO_E2E_TIER:-workers}"
-  local base
-  base="$(radio_e2e_resolve_base_url)"
+  local base="${RADIO_E2E_BASE_URL:-}"
+  if [[ -z "$base" ]]; then
+    echo "Set RADIO_E2E_BASE_URL before running E2E" >&2
+    exit 2
+  fi
+  base="${base%/}"
 
   case "$tier" in
     prod)
@@ -66,19 +35,11 @@ radio_e2e_guard_tier() {
         exit 2
       fi
       ;;
-    workers|preview)
-      # preview: legacy tier name → workers
-      if [[ "$tier" == "preview" ]]; then
-        tier=workers
-      fi
+    workers)
       if [[ "$base" != *".workers.dev"* ]]; then
         echo "workers tier expects *.workers.dev base URL (got $base)" >&2
         exit 2
       fi
-      ;;
-    local)
-      echo "local tier removed — use workers tier (radio.*.workers.dev) or vitest + mpd-stub contract" >&2
-      exit 2
       ;;
     *)
       echo "unknown RADIO_E2E_TIER=$tier" >&2
@@ -101,6 +62,3 @@ radio_e2e_require_cmd() {
 radio_e2e_log() {
   printf '[e2e] %s\n' "$*"
 }
-
-# shellcheck source=scripts/e2e/lib/contract.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/contract.sh"

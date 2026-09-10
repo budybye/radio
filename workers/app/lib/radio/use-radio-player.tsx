@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
+import type { ConfiguredRadioStation, RadioStationId } from "./stations";
 import type { CurrentSongClient } from "./serialize";
 import {
   MpdAgentSync,
@@ -39,6 +40,34 @@ function disconnectAudio(audio: HTMLAudioElement): void {
   audio.load();
 }
 
+export function stationPlaybackTransition(
+  station: ConfiguredRadioStation,
+  playbackIntent: boolean,
+) {
+  const mpdState = station.kind === "mpd";
+  return {
+    streamUrl: station.streamUrl,
+    reconnect: playbackIntent,
+    mpdState,
+    engageAgent: mpdState && playbackIntent,
+    clearMpdState: !mpdState,
+  };
+}
+
+export function mediaErrorMode(
+  station: ConfiguredRadioStation,
+): "unavailable" | "reconnect" {
+  return station.kind === "external" ? "unavailable" : "reconnect";
+}
+
+export function canApplyPlaybackResult(
+  resultGeneration: number,
+  currentGeneration: number,
+  playbackIntent: boolean,
+): boolean {
+  return resultGeneration === currentGeneration && playbackIntent;
+}
+
 function initialPageVisible(): boolean {
   if (!("document" in globalThis)) return true;
   return globalThis.document.visibilityState === "visible";
@@ -47,7 +76,8 @@ function initialPageVisible(): boolean {
 type UseRadioPlayerOptions = {
   initialSong: CurrentSongClient | null;
   initialListenerCount: number;
-  streamUrl: string;
+  stations: readonly ConfiguredRadioStation[];
+  defaultStationId: RadioStationId;
 };
 
 /**
@@ -57,7 +87,8 @@ type UseRadioPlayerOptions = {
 export function useRadioPlayer({
   initialSong,
   initialListenerCount,
-  streamUrl,
+  stations,
+  defaultStationId,
 }: UseRadioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const agentApiRef = useRef<MpdAgentApi | null>(null);
@@ -69,6 +100,7 @@ export function useRadioPlayer({
   const [listenerCount, setListenerCount] = useState(initialListenerCount);
   const [mpdState, setMpdState] = useState<string | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const [agentConnection, setAgentConnection] =
     useState<MpdAgentConnectionStatus>({
       connected: false,
@@ -77,6 +109,11 @@ export function useRadioPlayer({
   const songRef = useRef(currentSong);
   const intentRef = useRef(false);
   const genRef = useRef(0);
+  const [stationId, setStationId] = useState(defaultStationId);
+  const selectedStation = stations.find(({ id }) => id === stationId) ?? stations[0];
+  const isMpdStation = selectedStation?.kind === "mpd";
+  const streamUrl = selectedStation?.streamUrl ?? "";
+  const reconnectOnStationChangeRef = useRef(false);
   const lastMetaRefreshRef = useRef(0);
 
   useEffect(() => {
@@ -87,12 +124,16 @@ export function useRadioPlayer({
     setAgentEngaged(true);
   }, []);
 
-  const handleAgentUpdate = useCallback((update: MpdAgentWatchUpdate) => {
-    setCurrentSong(update.song);
-    setListenerCount(update.listenerCount);
-    setMpdState(update.mpdState);
-    setAgentError(update.lastError);
-  }, []);
+  const handleAgentUpdate = useCallback(
+    (update: MpdAgentWatchUpdate) => {
+      if (!isMpdStation) return;
+      setCurrentSong(update.song);
+      setListenerCount(update.listenerCount);
+      setMpdState(update.mpdState);
+      setAgentError(update.lastError);
+    },
+    [isMpdStation],
+  );
 
   const handleAgentConnectionStatus = useCallback(
     (status: MpdAgentConnectionStatus) => {
@@ -101,12 +142,12 @@ export function useRadioPlayer({
     [],
   );
 
-  const watchActive = agentEngaged && pageVisible;
+  const watchActive = isMpdStation && agentEngaged && pageVisible;
 
   const agentSync = useMemo(
     () => (
       <MpdAgentSync
-        engaged={agentEngaged}
+        engaged={isMpdStation && agentEngaged}
         watchActive={watchActive}
         playbackActive={isPlaying}
         onUpdate={handleAgentUpdate}
@@ -116,6 +157,7 @@ export function useRadioPlayer({
       />
     ),
     [
+      isMpdStation,
       agentEngaged,
       watchActive,
       isPlaying,
@@ -127,6 +169,7 @@ export function useRadioPlayer({
   const stop = useCallback(() => {
     genRef.current++;
     intentRef.current = false;
+    reconnectOnStationChangeRef.current = false;
     const audio = audioRef.current;
     if (audio) disconnectAudio(audio);
     setIsPlaying(false);
@@ -164,12 +207,17 @@ export function useRadioPlayer({
 
       try {
         await audio.play();
-        if (gen !== genRef.current) return;
-        if (!intentRef.current) {
-          disconnectAudio(audio);
+        if (
+          !canApplyPlaybackResult(
+            gen,
+            genRef.current,
+            intentRef.current,
+          )
+        ) {
           return;
         }
         setIsPlaying(true);
+        setStreamError(null);
       } catch {
         if (gen === genRef.current) stop();
       }
@@ -177,16 +225,49 @@ export function useRadioPlayer({
     [isMuted, stop, streamUrl],
   );
 
+  useEffect(() => {
+    if (!reconnectOnStationChangeRef.current || !streamUrl) return;
+    reconnectOnStationChangeRef.current = false;
+    void connect();
+  }, [connect, streamUrl]);
+
   const toggle = useCallback(() => {
-    engageAgent();
+    if (isMpdStation) engageAgent();
     if (intentRef.current) {
       stop();
       return;
     }
+    setStreamError(null);
     intentRef.current = true;
     setIsPlaying(true);
     void connect();
-  }, [connect, engageAgent, stop]);
+  }, [connect, engageAgent, isMpdStation, setStreamError, stop]);
+
+  const selectStation = useCallback(
+    (nextStationId: RadioStationId) => {
+      const nextStation = stations.find(({ id }) => id === nextStationId);
+      if (!nextStation || nextStation.id === stationId) return;
+
+      const transition = stationPlaybackTransition(
+        nextStation,
+        intentRef.current,
+      );
+      reconnectOnStationChangeRef.current = transition.reconnect;
+      genRef.current++;
+      const audio = audioRef.current;
+      if (audio) disconnectAudio(audio);
+      setStationId(nextStation.id);
+      setIsPlaying(false);
+      setCurrentSong(null);
+      setListenerCount(0);
+      setMpdState(null);
+      setAgentError(null);
+      setStreamError(null);
+      setAgentEngaged(transition.engageAgent);
+      setAgentConnection({ connected: false, connecting: false });
+    },
+    [stationId, stations],
+  );
 
   const toggleMute = useCallback(() => {
     setIsMuted((muted) => !muted);
@@ -201,6 +282,20 @@ export function useRadioPlayer({
     if (!intentRef.current) return;
     void connect({ forceReload: true });
   }, [connect]);
+
+  const onAudioError = useCallback(() => {
+    if (selectedStation && mediaErrorMode(selectedStation) === "unavailable") {
+      genRef.current++;
+      intentRef.current = false;
+      const audio = audioRef.current;
+      if (audio) disconnectAudio(audio);
+      setIsPlaying(false);
+      setStreamError("Station unavailable");
+      setAgentEngaged(false);
+      return;
+    }
+    reconnectAudioIfWanted();
+  }, [reconnectAudioIfWanted, selectedStation]);
 
   const refreshMetadata = useCallback(async () => {
     const api = agentApiRef.current;
@@ -252,27 +347,30 @@ export function useRadioPlayer({
   const streamConnected = isPlaying;
   const streamAudible = isPlaying && !isMuted;
   const agentConnected = agentConnection.connected;
-  /** MPD httpd の listeners が取れない環境でも、再生中は自分を 1 とみなす */
-  const displayListeners = Math.max(
-    listenerCount,
-    streamAudible ? 1 : 0,
-  );
+
+  const displayListeners = isMpdStation
+    ? Math.max(listenerCount, streamAudible ? 1 : 0)
+    : 0;
 
   return {
     audioRef,
     agentSync,
     isPlaying,
     isMuted,
+    station: selectedStation,
+    stationId,
+    selectStation,
     streamConnected,
     streamAudible,
     toggle,
     toggleMute,
     prepareStream,
-    onAudioError: reconnectAudioIfWanted,
+    onAudioError,
     currentSong,
     listenerCount: displayListeners,
     mpdState,
     agentError,
+    streamError,
     agentEngaged,
     agentConnected,
     agentConnecting: agentConnection.connecting,

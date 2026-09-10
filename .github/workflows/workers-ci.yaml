@@ -1,4 +1,4 @@
-# Reusable Workers verification: unit → lint → build (mpd-stub HTTP in vitest).
+# Reusable Workers verification: unit → lint → build (Vite+ / Vitest 4.1.11 with mpd-stub HTTP).
 # Called from workers-test.yaml, tag.yaml, and build.yaml.
 name: Workers CI (reusable)
 
@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Unit tests (vitest)
+      - name: Unit tests (Vite+ / Vitest 4.1.11)
         run: bun run test
 
       - name: Lint

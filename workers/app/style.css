@@ -71,3 +71,24 @@
     animation: none !important;
   }
 }
+.home-globe-frame {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .home-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .home-main {
+    min-height: 0;
+    padding-block: clamp(1rem, 2dvh, 2rem);
+  }
+
+  .home-globe-frame {
+    width: min(100%, min(64rem, calc(100dvh - 24rem)));
+    max-width: none;
+  }
+}

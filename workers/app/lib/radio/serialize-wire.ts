@@ -68,15 +68,8 @@ export { mpdErrorWireSchema, serializedEnvelopeSchema };
 
 /** DO/RPC 越しの payload を SerializedResult に絞る。壊れていれば null */
 export function parseSerializedCurrentSongView(
-  wire: RpcSerializedEnvelopeWire | null,
+  wire: RpcSerializedEnvelopeWire | null | undefined,
 ): SerializedCurrentSongEnvelope | null {
-  const parsed = v.safeParse(serializedEnvelopeSchema, wire);
+  const parsed = v.safeParse(serializedEnvelopeSchema, wire ?? null);
   return parsed.success ? parsed.output : null;
-}
-
-/** Agents `call` 直後: structured-clone 値を envelope parse 入力へ正規化 */
-export function parseSerializedCurrentSongFromAgentCall(
-  value: RpcSerializedEnvelopeWire | null | undefined,
-): SerializedCurrentSongEnvelope | null {
-  return parseSerializedCurrentSongView(value ?? null);
 }
