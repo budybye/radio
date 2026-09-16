@@ -3,7 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
 import type { ConfiguredRadioStation, RadioStationId } from "./stations";
 import type { CurrentSongClient } from "./serialize";
-import { MpdAgentSync, type MpdAgentApi, type MpdAgentWatchUpdate } from "./use-mpd-agent";
+import {
+  MpdAgentSync,
+  type MpdAgentConnectionStatus,
+  type MpdAgentApi,
+  type MpdAgentWatchUpdate,
+} from "./use-mpd-agent";
 
 function getStreamOrigin(streamUrl: string): string {
   return new URL(streamUrl).origin;
@@ -77,8 +82,14 @@ export function useRadioPlayer({
   const [pageVisible, setPageVisible] = useState(getInitialPageVisibility);
   const [currentSong, setCurrentSong] = useState(initialSong ?? null);
   const [listenerCount, setListenerCount] = useState(initialListenerCount);
+  const [mpdState, setMpdState] = useState<string | null>(null);
   const [agentErrorMessage, setAgentErrorMessage] = useState<string | null>(null);
   const [streamErrorMessage, setStreamErrorMessage] = useState<string | null>(null);
+
+  const [, setAgentConnection] = useState<MpdAgentConnectionStatus>({
+    isConnected: false,
+    isConnecting: false,
+  });
 
   const songRef = useRef(currentSong);
   const playbackIntentRef = useRef(false);
@@ -103,10 +114,15 @@ export function useRadioPlayer({
       if (!isMpdStation) return;
       setCurrentSong(update.song);
       setListenerCount(update.listenerCount);
+      setMpdState(update.mpdState);
       setAgentErrorMessage(update.lastError);
     },
     [isMpdStation],
   );
+
+  const handleAgentConnectionStatus = useCallback((status: MpdAgentConnectionStatus) => {
+    setAgentConnection(status);
+  }, []);
 
   const isWatchActive = isMpdStation && isMpdAgentEnabled && pageVisible;
 
@@ -119,9 +135,17 @@ export function useRadioPlayer({
         onUpdate={handleAgentUpdate}
         songRef={songRef}
         apiRef={agentApiRef}
+        onConnectionStatus={handleAgentConnectionStatus}
       />
     ),
-    [isMpdStation, isMpdAgentEnabled, isWatchActive, isPlaying, handleAgentUpdate],
+    [
+      isMpdStation,
+      isMpdAgentEnabled,
+      isWatchActive,
+      isPlaying,
+      handleAgentUpdate,
+      handleAgentConnectionStatus,
+    ],
   );
 
   const stopStreamPlayback = useCallback(() => {
@@ -251,6 +275,7 @@ export function useRadioPlayer({
       setStationId(nextStation.id);
       setIsPlaying(transition.shouldReconnect);
       setIsBuffering(transition.shouldReconnect);
+      setMpdState(null);
 
       if (transition.shouldClearMpdState) setCurrentSong(null);
 
@@ -258,6 +283,7 @@ export function useRadioPlayer({
       setIsMpdAgentEnabled(transition.shouldEngageAgent);
       setStreamErrorMessage(null);
       setAgentErrorMessage(null);
+      setAgentConnection({ isConnected: false, isConnecting: false });
     },
     [stationId, stations],
   );
@@ -375,6 +401,7 @@ export function useRadioPlayer({
     onAudioError,
     currentSong,
     listenerCount: displayListeners,
+    mpdState,
     agentErrorMessage,
     streamErrorMessage,
   };
