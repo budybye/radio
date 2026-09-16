@@ -59,8 +59,7 @@ radio/
 │   ├── entrypoint.sh
 │   ├── test.sh
 │   └── e2e/              # E2E スクリプト（deployed smoke + opencli）
-│       ├── smoke-deployed.sh
-│       └── start-mpd-stub.sh
+│       └── smoke-deployed.sh
 ├── openspec/             # 任意のローカル計画（Git 対象外）
 │   ├── config.yaml       # docs/ と DESIGN.md を参照
 │   └── changes/          # 手元の提案・タスク・履歴
@@ -88,7 +87,7 @@ radio/
 | `workers/app/lib/radio/globe-view.ts` | 地球儀 heading・放送アーク |
 | `workers/test/fixtures/mpd/contract.json` | mpd-stub / opencli E2E の期待値正本 |
 | `workers/tools/oxlint/` | anti-slop Oxlint プラグイン（vendored） |
-| `scripts/e2e/` | opencli E2E スクリプト・mpd-stub |
+| `scripts/e2e/` | deployed smoke / opencli E2E スクリプト |
 | `openspec/` | 任意のローカル計画。Git 対象外。仕様は `docs/` と `DESIGN.md` を参照 |
 | `config/` | MPD / ncmpcpp 設定。コンテナ起動時に read-only マウント |
 | `music/` | 配信対象音楽ファイル。`auto_update` で自動反映 |
