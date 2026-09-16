@@ -61,13 +61,13 @@ function atmosphereClass(
   isBuffering: boolean,
   hasError: boolean,
 ): string {
-  if (hasError) return "bg-error/20";
+  if (hasError) return "bg-error/15";
 
-  if (isBuffering) return "bg-warning/20";
+  if (isBuffering) return "bg-warning/15";
 
-  if (isStreamAudible) return "bg-primary/25";
+  if (isStreamAudible) return "bg-primary/20";
 
-  return "bg-primary/10";
+  return "bg-primary/6";
 }
 
 export function GlobeSpeaker({
@@ -478,11 +478,11 @@ export function GlobeSpeaker({
   return (
     <div className="relative">
       <div
-        className={`pointer-events-none absolute inset-[-18%] rounded-full blur-3xl motion-reduce:opacity-40 ${atmosphereClass(isStreamAudible, isBuffering, hasError)}`}
+        className={`pointer-events-none absolute inset-[-16%] rounded-full blur-3xl motion-reduce:opacity-35 ${atmosphereClass(isStreamAudible, isBuffering, hasError)}`}
         aria-hidden="true"
       />
       <svg
-        className="pointer-events-none absolute inset-[-4%] size-[108%] motion-reduce:opacity-50"
+        className="pointer-events-none absolute inset-[-3%] size-[106%] motion-reduce:opacity-40"
         viewBox="0 0 100 100"
         aria-hidden="true"
       >
@@ -492,8 +492,8 @@ export function GlobeSpeaker({
           rx="39"
           ry="13"
           fill="none"
-          className="stroke-base-content/15"
-          strokeWidth="0.4"
+          className="stroke-base-content/10"
+          strokeWidth="0.35"
         />
       </svg>
       <canvas

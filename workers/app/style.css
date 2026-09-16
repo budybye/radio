@@ -47,3 +47,71 @@
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
+
+@layer components {
+  .broadcast-eyebrow {
+    @apply text-[0.6875rem] tracking-[0.22em] text-base-content/55 uppercase;
+  }
+
+  .broadcast-brand {
+    @apply text-[0.8125rem] font-semibold tracking-[0.28em] text-primary;
+  }
+
+  .broadcast-hairline {
+    @apply border-base-300/70;
+  }
+
+  .broadcast-console {
+    @apply rounded-box border border-base-300/70 bg-base-200;
+  }
+
+  .broadcast-status {
+    @apply inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-base-300/70 bg-base-200/50 px-2.5 text-[0.625rem] font-medium tracking-[0.14em] text-base-content/70 sm:px-3 sm:text-[0.6875rem] sm:tracking-[0.18em];
+  }
+
+  .station-chip {
+    @apply btn btn-ghost min-h-11 shrink-0 snap-start rounded-full border px-3 text-xs sm:px-4 sm:text-sm;
+  }
+
+  .station-chip[data-selected="true"] {
+    @apply border-primary/55 text-primary;
+  }
+
+  .station-chip[data-selected="false"] {
+    @apply border-base-300/60 text-base-content/75 hover:border-base-300 hover:bg-base-200/30 hover:text-base-content/90;
+  }
+
+  .station-scroll {
+    @apply flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0;
+
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 0.75rem,
+      #000 calc(100% - 0.75rem),
+      transparent
+    );
+  }
+
+  .station-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .station-scroll {
+      mask-image: none;
+    }
+  }
+
+  .volume-range {
+    @apply range range-primary range-xs box-content w-full border-y-10 border-transparent;
+  }
+
+  .volume-range::-webkit-slider-runnable-track {
+    height: 0.1875rem;
+  }
+
+  .volume-range::-moz-range-track {
+    height: 0.1875rem;
+  }
+}

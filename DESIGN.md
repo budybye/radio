@@ -184,7 +184,7 @@ Play は configured stream URL に接続し、Stop は停止する。MPD 局の 
 
 ## 実装の入口
 
-- テーマトークン（`radio` daisyUI theme）: [`style.css`](workers/app/style.css)
+- テーマトークンと放送卓ユーティリティ（`broadcast-*` / `station-chip` / `volume-range`）: [`style.css`](workers/app/style.css)
 - レイアウト: [`Home.tsx`](workers/app/pages/Home.tsx)
 - 地球儀と局カタログ: [`GlobeSpeaker.tsx`](workers/app/components/GlobeSpeaker.tsx)、[`stations.ts`](workers/app/lib/radio/stations.ts)、[`globe-view.ts`](workers/app/lib/radio/globe-view.ts)
 - 音声反応（96 BPM / 16 beats）: [`audio-reactivity.ts`](workers/app/lib/radio/audio-reactivity.ts)
