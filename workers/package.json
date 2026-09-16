@@ -25,6 +25,7 @@
     "agents": "^0.23.0",
     "better-result": "^3.0.1",
     "cobe": "^2.0.1",
+    "hls.js": "^1.7.3",
     "hono": "^4.13.7",
     "hono-agents": "^3.0.12",
     "hono-openapi": "^1.3.3",

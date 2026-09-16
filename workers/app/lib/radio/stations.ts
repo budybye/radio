@@ -13,7 +13,7 @@ export type RadioStation = {
       kind: "mpd";
     }
   | {
-      id: "irie-fm" | "zip-103" | "fame-95" | "hot-97" | "reprezent";
+      id: "irie-fm" | "zip-103" | "fame-95" | "hot-97" | "reprezent" | "bbc-1xtra";
       label: string;
       kind: "external";
       streamUrl: string;
@@ -65,6 +65,14 @@ export const RADIO_STATIONS = [
     kind: "external",
     streamUrl: "https://reprezent.streammachine.co.uk/stream/reprezent",
     broadcastLocation: { label: "Brixton, London, UK", coordinates: [51.4613, -0.1156] },
+  },
+  {
+    id: "bbc-1xtra",
+    label: "BBC Radio 1Xtra",
+    kind: "external",
+    streamUrl:
+      "https://as-hls-ww-live.akamaized.net/pool_92079267/live/ww/bbc_1xtra/bbc_1xtra.isml/bbc_1xtra-audio%3d96000.norewind.m3u8",
+    broadcastLocation: { label: "London, UK", coordinates: [51.5185, -0.1441] },
   },
 ] as const satisfies readonly RadioStation[];
 

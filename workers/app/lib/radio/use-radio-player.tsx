@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
 import type { ConfiguredRadioStation, RadioStationId } from "./stations";
 import type { CurrentSongClient } from "./serialize";
+import { attachStreamToAudio, type StreamAttachment } from "./stream-playback";
 import {
   MpdAgentSync,
   type MpdAgentConnectionStatus,
@@ -19,7 +20,14 @@ function buildReconnectStreamUrl(streamUrl: string): string {
   return `${streamUrl}?_${Date.now()}`;
 }
 
-function resetAudioElement(audio: HTMLAudioElement): void {
+function teardownStreamPlayback(
+  audio: HTMLAudioElement,
+  attachmentRef: { current: StreamAttachment | null },
+  loadedStreamUrlRef: { current: string | null },
+): void {
+  attachmentRef.current?.destroy();
+  attachmentRef.current = null;
+  loadedStreamUrlRef.current = null;
   audio.pause();
   audio.removeAttribute("src");
   audio.load();
@@ -73,6 +81,7 @@ export function useRadioPlayer({
   defaultStationId,
 }: UseRadioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const loadedStreamUrlRef = useRef<string | null>(null);
   const agentApiRef = useRef<MpdAgentApi | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -154,7 +163,7 @@ export function useRadioPlayer({
     reconnectOnStationChangeRef.current = false;
     const audio = audioRef.current;
 
-    if (audio) resetAudioElement(audio);
+    if (audio) teardownStreamPlayback(audio, streamAttachmentRef, loadedStreamUrlRef);
     setIsPlaying(false);
     setIsBuffering(false);
     setIsMpdAgentEnabled(false);
@@ -171,10 +180,14 @@ export function useRadioPlayer({
       setIsBuffering(true);
       const playbackGeneration = ++playbackGenerationRef.current;
 
-      if (audio.getAttribute("src") !== streamUrl || connectOptions?.forceReload) {
-        resetAudioElement(audio);
-        audio.src = connectOptions?.forceReload ? buildReconnectStreamUrl(streamUrl) : streamUrl;
-        audio.load();
+      const playbackUrl = connectOptions?.forceReload
+        ? buildReconnectStreamUrl(streamUrl)
+        : streamUrl;
+
+      if (loadedStreamUrlRef.current !== playbackUrl) {
+        teardownStreamPlayback(audio, streamAttachmentRef, loadedStreamUrlRef);
+        streamAttachmentRef.current = attachStreamToAudio(audio, playbackUrl);
+        loadedStreamUrlRef.current = playbackUrl;
       }
 
       audio.muted = isMuted;
@@ -207,13 +220,14 @@ export function useRadioPlayer({
   const isCurrentAudioEvent = useCallback(
     (event: SyntheticEvent<HTMLAudioElement>) => {
       const audio = audioRef.current;
-      const source = audio?.getAttribute("src");
+      const loaded = loadedStreamUrlRef.current;
 
       return (
         audio !== null &&
         event.currentTarget === audio &&
         playbackIntentRef.current &&
-        (source === streamUrl || source?.startsWith(`${streamUrl}?_`))
+        loaded !== null &&
+        (loaded === streamUrl || loaded.startsWith(`${streamUrl}?_`))
       );
     },
     [streamUrl],
@@ -271,7 +285,7 @@ export function useRadioPlayer({
       playbackGenerationRef.current++;
       const audio = audioRef.current;
 
-      if (audio) resetAudioElement(audio);
+      if (audio) teardownStreamPlayback(audio, streamAttachmentRef, loadedStreamUrlRef);
       setStationId(nextStation.id);
       setIsPlaying(transition.shouldReconnect);
       setIsBuffering(transition.shouldReconnect);

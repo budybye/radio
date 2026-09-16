@@ -12,7 +12,7 @@ describe("radio station catalog", () => {
   });
 
   it("serves the named external stations over https", () => {
-    for (const id of ["irie-fm", "zip-103", "fame-95", "hot-97", "reprezent"]) {
+    for (const id of ["irie-fm", "zip-103", "fame-95", "hot-97", "reprezent", "bbc-1xtra"]) {
       const station = RADIO_STATIONS.find((entry) => entry.id === id);
 
       if (station?.kind !== "external") throw new Error(`Missing external station: ${id}`);
