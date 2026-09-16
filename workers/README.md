@@ -37,7 +37,7 @@ bun run test         # Vite+ の Vitest 4.1.11 runner（MPD parse / serialize / 
 bun run deploy       # Worker "radio" → radio.*.workers.dev
 ```
 
-anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。`require-readable-spacing` を含む汎用ルールを有効化しています。整形と lint の一括確認は `bunx vp check`、自動修正は `bunx vp check --fix` を使います。
+anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。整形と lint の一括確認は `bunx vp check`、自動修正は `bunx vp check --fix` を使います。
 
 ## ディレクトリ構成
 

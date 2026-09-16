@@ -29,7 +29,6 @@ function toMpdAgentWatchUpdate(state: MpdAgentState): MpdAgentWatchUpdate {
   return {
     song: currentSongFromAgentState(state),
     listenerCount: state.listenerCount ?? 0,
-    mpdState: state.mpdState ?? null,
     lastError: mpdWireMessage(state.lastError),
   };
 }
@@ -39,7 +38,6 @@ type CurrentSongRef = { current: CurrentSongClient | null };
 export type MpdAgentWatchUpdate = {
   song: CurrentSongClient | null;
   listenerCount: number;
-  mpdState: string | null;
   lastError: string | null;
 };
 
@@ -48,18 +46,12 @@ export type MpdAgentApi = {
   refreshCurrentSong: () => Promise<CurrentSongClient | null>;
 };
 
-export type MpdAgentConnectionStatus = {
-  isConnected: boolean;
-  isConnecting: boolean;
-};
-
 type MpdAgentSyncInnerProps = {
   isWatchActive: boolean;
   hasPlaybackIntent: boolean;
   onUpdate: (update: MpdAgentWatchUpdate) => void;
   songRef: CurrentSongRef;
   apiRef: MutableRefObject<MpdAgentApi | null>;
-  onConnectionStatus?: (status: MpdAgentConnectionStatus) => void;
 };
 
 /**
@@ -73,18 +65,12 @@ function useMpdAgentWatch({
   onUpdate,
   songRef,
   apiRef,
-  onConnectionStatus,
 }: MpdAgentSyncInnerProps) {
   const onUpdateRef = useRef(onUpdate);
-  const onConnectionStatusRef = useRef(onConnectionStatus);
 
   useEffect(() => {
     onUpdateRef.current = onUpdate;
   }, [onUpdate]);
-
-  useEffect(() => {
-    onConnectionStatusRef.current = onConnectionStatus;
-  }, [onConnectionStatus]);
 
   const agent = useAgent<MpdAgentState>({
     agent: MPD_AGENT_NAME,
@@ -93,18 +79,6 @@ function useMpdAgentWatch({
       onUpdateRef.current(toMpdAgentWatchUpdate(state));
     },
   });
-
-  const isConnected = agent.readyState === WebSocket.OPEN;
-
-  const isConnecting =
-    agent.readyState === WebSocket.CONNECTING || agent.readyState === WebSocket.CLOSING;
-
-  useEffect(() => {
-    onConnectionStatusRef.current?.({
-      isConnected,
-      isConnecting,
-    });
-  }, [isConnected, isConnecting]);
 
   const isAgentConnected = useCallback(() => agent.readyState === WebSocket.OPEN, [agent]);
 
@@ -216,7 +190,6 @@ export type MpdAgentSyncProps = {
   onUpdate: (update: MpdAgentWatchUpdate) => void;
   songRef: CurrentSongRef;
   apiRef: MutableRefObject<MpdAgentApi | null>;
-  onConnectionStatus?: (status: MpdAgentConnectionStatus) => void;
 };
 
 /** Play クリック後にのみマウントし、WS 接続コストを抑える */
@@ -227,7 +200,6 @@ export function MpdAgentSync({
   onUpdate,
   songRef,
   apiRef,
-  onConnectionStatus,
 }: MpdAgentSyncProps): ReactElement | null {
   if (!isEngaged) return null;
 
@@ -238,7 +210,6 @@ export function MpdAgentSync({
       onUpdate={onUpdate}
       songRef={songRef}
       apiRef={apiRef}
-      onConnectionStatus={onConnectionStatus}
     />
   );
 }
