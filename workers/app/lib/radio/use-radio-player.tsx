@@ -82,6 +82,7 @@ export function useRadioPlayer({
 }: UseRadioPlayerOptions) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const loadedStreamUrlRef = useRef<string | null>(null);
+  const streamAttachmentRef = useRef<StreamAttachment | null>(null);
   const agentApiRef = useRef<MpdAgentApi | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
