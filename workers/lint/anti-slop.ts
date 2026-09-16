@@ -30,6 +30,9 @@ export const antiSlopJsPlugins = [
 ] as const;
 
 export const antiSlopRules = {
+  "oxc/no-accumulating-spread": "error",
+  "anti-slop/no-array-filter-map": "error",
+  "anti-slop/no-reduce-accumulator-copy": "error",
   "anti-slop/no-chained-type-assertions": "error",
   "anti-slop/no-conditional-empty-object-spread": "error",
   "anti-slop/no-known-value-widening": "error",
@@ -44,6 +47,7 @@ export const antiSlopRules = {
   "anti-slop/no-unknown-type-aliases": "error",
   "anti-slop/no-unsafe-dictionary-type": "error",
   "anti-slop/no-widen-then-assert": "error",
+  "anti-slop/require-readable-spacing": "error",
   "anti-slop/require-safety-comment-for-type-assertion": "error",
 } as const;
 
@@ -52,10 +56,7 @@ export const antiSlopLintConfig: OxlintConfig = {
   ignorePatterns: [...lintIgnorePatterns],
   jsPlugins: [...antiSlopJsPlugins],
   rules: {
-    "eslint/no-unused-expressions": [
-      "error",
-      { allowTaggedTemplates: true },
-    ],
+    "eslint/no-unused-expressions": ["error", { allowTaggedTemplates: true }],
     ...antiSlopRules,
   },
 };
