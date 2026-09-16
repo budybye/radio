@@ -19,6 +19,7 @@
 | mpc (Music Player Client) | https://www.musicpd.org/clients/mpc/ | コマンドラインクライアントのリファレンス |
 | ncmpcpp | https://ncmpcpp.rybczak.net/ | TUI クライアントの公式サイトとキーバインド一覧 |
 | ラボヒット — MPD 導入メモ | https://www.labohyt.net/server/post-927/ | 日本語による MPD 導入・設定の解説記事 |
+| DESIGN.md 形式仕様 | https://github.com/google-labs-code/design.md | コーディングエージェント向けデザインシステム記述フォーマット（本リポジトリの [DESIGN.md](../DESIGN.md) は `style.css` をトークン正本とするハイブリッド） |
 
 ## 関連規格・プロトコル
 
@@ -27,18 +28,6 @@
 | ICY プロトコル（Shoutcast メタデータ） | https://cast.readme.io/docs/icy | HTTP ストリーミングにおけるタイトルメタデータ伝送方式 |
 | MPEG Audio Layer III | https://www.iso.org/standard/22412.html | MP3 フォーマットの ISO 規格 |
 
-## 内部ドキュメントリンク
+## 内部ドキュメント
 
-| ドキュメント | パス | 内容 |
-|--------------|------|------|
-| 索引 | [README.md](README.md) | 読む順・ドキュメント一覧 |
-| 図解 | [diagrams.md](diagrams.md) | アーキテクチャ・認証・デプロイ（Mermaid） |
-| 要件定義 | [requirements.md](requirements.md) | 機能要件・非機能要件 |
-| 設計仕様 | [design.md](design.md) | モジュール責務・ADR |
-| フォークデプロイ | [deploy-fork.md](deploy-fork.md) | Deploy to Cloudflare 手順 |
-| OpenSpec | [openspec.md](openspec.md) | ワークフロー・archive |
-| コードパターン | [patterns/README.md](patterns/README.md) | better-result 等テンプレート |
-| 技術仕様 | [tech.md](tech.md) | スタック詳細・設定ファイル解説 |
-| テスト方針 | [test.md](test.md) | テスト戦略と検証手順 |
-| ディレクトリ構造 | [directory.md](directory.md) | ファイル配置規則 |
-| 既知の問題 | [problems.md](problems.md) | 未解決課題・リスク |
+文書ごとの責務と入口は [ルート README のドキュメント一覧](../README.md#ドキュメント) を参照。作業時は [AGENTS.md](../AGENTS.md) から該当文書へ進む。

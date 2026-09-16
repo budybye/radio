@@ -1,28 +1,65 @@
 # テスト方針
 
-## E2E ティア（localhost なし）
+<a id="test-pyramid"></a>
+## テストピラミッド
 
-| ティア | 対象 URL | 内容 | コマンド |
-|--------|----------|------|----------|
-| **workers** | `https://radio.*.workers.dev` | deploy 後の構造 smoke | `make test-e2e-workers` |
-| **prod** | カスタムドメイン | 読み取りのみ | `RADIO_E2E_ALLOW_PROD=1 make test-e2e-prod` |
+```mermaid
+flowchart TB
+  subgraph e2e["E2E（opencli + HTTP smoke）"]
+    Workers["workers: radio.*.workers.dev / radio-preview.*.workers.dev"]
+    Prod["prod: カスタムドメイン（読み取り専用）"]
+  end
+
+  subgraph integration["Integration"]
+    MakeTest["make test（Docker MPD）"]
+    MpdStub["mpd-stub contract（CI）"]
+  end
+
+  subgraph unit["Unit / Static"]
+    Vitest["vp test（Vitest 4.1.11）"]
+    Lint["vp lint"]
+    Build["vp build"]
+  end
+
+  e2e --> integration
+  integration --> unit
+```
+
+| 層 | コマンド | 備考 |
+|----|----------|------|
+| Unit | `cd workers && bun run test` | serialize、parse、bridge 等 |
+| Integration | `make test` | Docker MPD ヘルスチェック |
+| CI | `.github/workflows/workers-test.yaml` → `.github/workflows/workers-ci.yaml` | PR/push トリガー → unit → lint → build |
+| E2E workers | `make test-e2e-workers` | `radio.*.workers.dev` / `radio-preview.*.workers.dev` |
+
+CI は Vite+ の Vitest runner、lint、build を実行します。`tsc` 単独の CI ゲートはありません。
+
+<a id="e2e-workers-flow"></a>
+## E2E フロー（localhost なし）
+
+```mermaid
+flowchart LR
+  Deploy["cd workers && bun run deploy<br/>vpr build → dist/radio/wrangler.json"]
+  Http["workers/test/smoke.ts<br/>HTTP 200 + Inertia shell"]
+  Opencli["scripts/e2e/opencli-home.sh<br/>ハイドレーション後 UI"]
+  Checks["LISTENERS / .globe-speaker"]
+
+  Deploy --> Http --> Opencli --> Checks
+```
 
 `localhost:5173` / `vp dev` は **E2E に含めません**。UI の手動確認用に `bun run dev` は残しています。
 
 ### workers ティア
 
 ```bash
-cd workers && bun run deploy
-# ルート .env に RADIO_E2E_WORKERS_URL=https://radio.<account>.workers.dev
+(cd workers && bun run deploy)
+# ルート .env に RADIO_E2E_WORKERS_URL または RADIO_E2E_PREVIEW_URL を設定
 make test-e2e-workers
 ```
 
-| ステップ | 検証 |
-|----------|------|
-| `workers/test/smoke.ts` | HTTP 200 + Inertia shell |
-| `opencli-home.sh` | ハイドレーション後 `LISTENERS` / `.globe-speaker` |
+`make test-e2e-workers` は `scripts/e2e/smoke-deployed.sh workers` を実行し、`workers/test/smoke.ts` の HTTP smoke を行います。`RADIO_E2E_WORKERS_URL` または `RADIO_E2E_PREVIEW_URL` を使用できます。`opencli` が利用可能な場合は `scripts/e2e/opencli-home.sh` でハイドレーション後の `LISTENERS` / `.globe-speaker` も確認します。`opencli` がない場合、その UI smoke はスキップされます。
 
-fixture 値（リスナー数 3 等）は **Vite+ の Vitest 4.1.11 runner**（`mpd-fixture-contract.test.ts` + `mpd-stub-http.test.ts`）で検証（deploy 不要）。
+fixture 値（リスナー数 3 等）は **Vite+ の Vitest 4.1.11 runner**（`bridge-current-song.test.ts`、`now-playing-display.test.ts`、`mpd-stub-http.test.ts`）で検証します（deploy 不要）。
 
 ### prod ティア
 
@@ -30,23 +67,26 @@ fixture 値（リスナー数 3 等）は **Vite+ の Vitest 4.1.11 runner**（`
 make test-e2e-prod
 ```
 
-`smoke-deployed.sh prod` が `RADIO_E2E_ALLOW_PROD=1` を設定。ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込み。
+`smoke-deployed.sh prod` は `RADIO_E2E_ALLOW_PROD=1` を設定し、読み取り専用 smoke として実行します。ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込みます。
 
 ## Workers ユニットテスト
 
 ```bash
 cd workers && bun run test
-# または make test-workers
+# リポジトリルートからは make test-workers
 ```
 
 ## CI
 
 | ワークフロー | 内容 |
 |-------------|------|
-| `workers-test.yaml` | Vite+ の Vitest 4.1.11 runner（mpd-stub HTTP 含む）→ lint → build |
+| `workers-test.yaml` | PR/push トリガー。検証本体は再利用ワークフロー [`workers-ci.yaml`](../.github/workflows/workers-ci.yaml) |
+| `tag.yaml` / `build.yaml` | main のタグ・リリース、GHCR イメージビルドでも `workers-ci.yaml` を利用 |
 
 CI に opencli / workers.dev smoke は入れません（手動）。
 
 ## 環境変数
 
-ルート [`.env.example`](../.env.example) — `RADIO_E2E_WORKERS_URL`, `RADIO_E2E_PROD_URL`
+ルート [`.env.example`](../.env.example) — `RADIO_E2E_WORKERS_URL`, `RADIO_E2E_PREVIEW_URL`, `RADIO_E2E_PROD_URL`
+
+デプロイ手順と `workers/.env` は [maintenance.md](maintenance.md) を参照してください。
