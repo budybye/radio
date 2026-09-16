@@ -92,8 +92,9 @@ export function GlobeSpeaker({
     hasError,
   });
 
+  propsRef.current = { location, stationId, stations, isStreamAudible, isBuffering, hasError };
+
   useEffect(() => {
-    propsRef.current = { location, stationId, stations, isStreamAudible, isBuffering, hasError };
     wakeRef.current?.();
   }, [location, stationId, stations, isStreamAudible, isBuffering, hasError]);
 

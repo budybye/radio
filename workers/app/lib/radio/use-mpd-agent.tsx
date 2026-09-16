@@ -78,13 +78,8 @@ function useMpdAgentWatch({
   const onUpdateRef = useRef(onUpdate);
   const onConnectionStatusRef = useRef(onConnectionStatus);
 
-  useEffect(() => {
-    onUpdateRef.current = onUpdate;
-  }, [onUpdate]);
-
-  useEffect(() => {
-    onConnectionStatusRef.current = onConnectionStatus;
-  }, [onConnectionStatus]);
+  onUpdateRef.current = onUpdate;
+  onConnectionStatusRef.current = onConnectionStatus;
 
   const agent = useAgent<MpdAgentState>({
     agent: MPD_AGENT_NAME,
@@ -192,13 +187,13 @@ function useMpdAgentWatch({
     };
   }, [agent, hasPlaybackIntent]);
 
-  useEffect(() => {
-    apiRef.current = { isConnected: isAgentConnected, refreshCurrentSong };
+  apiRef.current = { isConnected: isAgentConnected, refreshCurrentSong };
 
+  useEffect(() => {
     return () => {
       apiRef.current = null;
     };
-  }, [apiRef, isAgentConnected, refreshCurrentSong]);
+  }, [apiRef]);
 }
 
 function MpdAgentSyncInner(props: MpdAgentSyncInnerProps): null {

@@ -108,12 +108,9 @@ export function useRadioPlayer({
   const selectedStation = stations.find(({ id }) => id === stationId) ?? stations[0];
   const isMpdStation = selectedStation?.kind === "mpd";
   const streamUrl = selectedStation?.streamUrl ?? "";
-  const reconnectOnStationChangeRef = useRef(false);
   const lastMetaRefreshRef = useRef(0);
 
-  useEffect(() => {
-    songRef.current = currentSong;
-  }, [currentSong]);
+  songRef.current = currentSong;
 
   const enableMpdAgent = useCallback(() => {
     setIsMpdAgentEnabled(true);
@@ -161,7 +158,6 @@ export function useRadioPlayer({
   const stopStreamPlayback = useCallback(() => {
     playbackGenerationRef.current++;
     playbackIntentRef.current = false;
-    reconnectOnStationChangeRef.current = false;
     const audio = audioRef.current;
 
     if (audio) teardownStreamPlayback(audio, streamAttachmentRef, loadedStreamUrlRef);
@@ -171,7 +167,7 @@ export function useRadioPlayer({
   }, []);
 
   const startStreamPlayback = useCallback(
-    async (connectOptions?: { forceReload?: boolean }) => {
+    async (connectOptions?: { forceReload?: boolean; streamUrl?: string }) => {
       if (!playbackIntentRef.current) return;
 
       const audio = audioRef.current;
@@ -181,9 +177,11 @@ export function useRadioPlayer({
       setIsBuffering(true);
       const playbackGeneration = ++playbackGenerationRef.current;
 
+      const targetStreamUrl = connectOptions?.streamUrl ?? streamUrl;
+
       const playbackUrl = connectOptions?.forceReload
-        ? buildReconnectStreamUrl(streamUrl)
-        : streamUrl;
+        ? buildReconnectStreamUrl(targetStreamUrl)
+        : targetStreamUrl;
 
       if (loadedStreamUrlRef.current !== playbackUrl) {
         teardownStreamPlayback(audio, streamAttachmentRef, loadedStreamUrlRef);
@@ -254,12 +252,6 @@ export function useRadioPlayer({
     [isCurrentAudioEvent],
   );
 
-  useEffect(() => {
-    if (!reconnectOnStationChangeRef.current || !streamUrl) return;
-    reconnectOnStationChangeRef.current = false;
-    void startStreamPlayback();
-  }, [startStreamPlayback, streamUrl]);
-
   const togglePlayback = useCallback(() => {
     if (isMpdStation) enableMpdAgent();
 
@@ -282,7 +274,6 @@ export function useRadioPlayer({
       if (!nextStation || nextStation.id === stationId) return;
 
       const transition = getStationPlaybackTransition(nextStation, playbackIntentRef.current);
-      reconnectOnStationChangeRef.current = transition.shouldReconnect;
       playbackGenerationRef.current++;
       const audio = audioRef.current;
 
@@ -299,22 +290,32 @@ export function useRadioPlayer({
       setStreamErrorMessage(null);
       setAgentErrorMessage(null);
       setAgentConnection({ isConnected: false, isConnecting: false });
+
+      if (transition.shouldReconnect) {
+        void startStreamPlayback({ streamUrl: nextStation.streamUrl });
+      }
     },
-    [stationId, stations],
+    [stationId, stations, startStreamPlayback],
   );
 
-  const toggleMute = useCallback(() => {
-    setIsMuted((muted) => !muted);
-  }, []);
-
-  useEffect(() => {
+  const setVolumeLevel = useCallback((nextVolume: number) => {
+    const clamped = Math.max(0, Math.min(1, nextVolume));
+    setVolume(clamped);
     const audio = audioRef.current;
 
-    if (audio) {
-      audio.muted = isMuted;
-      audio.volume = volume;
-    }
-  }, [isMuted, volume]);
+    if (audio) audio.volume = clamped;
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((muted) => {
+      const next = !muted;
+      const audio = audioRef.current;
+
+      if (audio) audio.muted = next;
+
+      return next;
+    });
+  }, []);
 
   const reconnectAudioIfWanted = useCallback(() => {
     if (!playbackIntentRef.current) return;
@@ -401,7 +402,7 @@ export function useRadioPlayer({
     isPlaying,
     isMuted,
     volume,
-    setVolume,
+    setVolume: setVolumeLevel,
     station: selectedStation,
     stationId,
     selectStation,
