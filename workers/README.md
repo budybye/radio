@@ -40,14 +40,15 @@ bun install
 | `bun run test:smoke` | デプロイ済み HTTP smoke（`smoke-deployed.sh` から呼ぶ） |
 | `bun run lint`       | Oxlint + anti-slop                                      |
 | `bun run format`     | 整形（`vp fmt`）                                        |
-| `bun run check`      | format + lint + typecheck 一括                          |
+| `bun run typecheck`  | TypeScript（`tsc --noEmit`）                            |
+| `bun run check`      | format + lint（`vp check`）+ typecheck                  |
 | `bun run deploy`     | `scripts/deploy.sh` → `radio.*.workers.dev`             |
 | `bun run cf-secret`  | `workers/.env` から secrets を登録                      |
 | `bun run cf-typegen` | Wrangler 型生成                                         |
 
 Workers の開発・検証は **`cd workers && bun run …`** が正本です。ルート `Makefile` は Docker MPD スタックと E2E 用です。
 
-anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。`require-readable-spacing` を含む汎用ルールを有効化しています。一括確認は `bun run check`、自動修正は `bun run check -- --fix` を使います。
+anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。`require-readable-spacing` を含む汎用ルールを有効化しています。一括確認は `bun run check`（`vp check` + `tsc --noEmit`）。format/lint の自動修正は `bun run check -- --fix`（typecheck は別途 `bun run typecheck`）。
 
 ## ディレクトリ構成
 

@@ -1,4 +1,4 @@
-# Reusable Workers verification: unit → lint → build (Vite+ / Vitest 4.1.11 with mpd-stub HTTP).
+# Reusable Workers verification: unit → lint → typecheck → build (Vite+ / Vitest 4.1.11 with mpd-stub HTTP).
 # Called from workers-test.yaml, tag.yaml, and build.yaml.
 name: Workers CI (reusable)
 
@@ -7,7 +7,7 @@ on:
 
 jobs:
   verify:
-    name: Unit, lint, build
+    name: Unit, lint, typecheck, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -30,6 +30,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
 
       - name: Build
         run: bun run build

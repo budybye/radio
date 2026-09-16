@@ -17,7 +17,7 @@ flowchart TB
 
   subgraph unit["Unit / Static"]
     Vitest["bun run test"]
-    Check["bun run check"]
+    Check["bun run check<br/>(vp check + typecheck)"]
     Build["bun run build"]
   end
 
@@ -28,13 +28,13 @@ flowchart TB
 | 層 | コマンド | 備考 |
 |----|----------|------|
 | Unit | `cd workers && bun run test` | serialize、parse、bridge 等 |
-| Static | `cd workers && bun run check` | format + lint + typecheck |
+| Static | `cd workers && bun run check` | `vp check`（format + lint）+ `tsc --noEmit` |
 | Integration | `make test` | Docker MPD ヘルスチェック |
 | All local | `make test-all` | Workers unit → Docker integration |
-| CI | `.github/workflows/workers-test.yaml` → `.github/workflows/workers-ci.yaml` | PR/push トリガー → unit → lint → build |
+| CI | `.github/workflows/workers-test.yaml` → `.github/workflows/workers-ci.yaml` | PR/push トリガー → unit → lint → typecheck → build |
 | E2E workers | `make test-e2e-workers` | `radio.*.workers.dev` / `radio-preview.*.workers.dev` |
 
-CI は Vite+ の Vitest runner、lint、build を実行します。`tsc` 単独の CI ゲートはありません。
+CI は Vite+ の Vitest runner、lint、`tsc --noEmit`、build を実行します。`vp check` は format + lint のみ（型チェックは `bun run typecheck`）。
 
 <a id="e2e-workers-flow"></a>
 ## E2E フロー（localhost なし）
@@ -75,7 +75,7 @@ make test-e2e-prod
 
 ```bash
 cd workers && bun run test    # ユニット
-cd workers && bun run check   # format + lint + typecheck
+cd workers && bun run check   # vp check + tsc --noEmit
 cd workers && bun run build
 ```
 
