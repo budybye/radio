@@ -12,12 +12,12 @@ import {
 import { basic } from "../middleware";
 import { mpdJsonErrorResponses } from "../openapi/responses";
 import type { MpdPingOk, MpdPingResponse } from "../../schemas/mpd";
-import { mpcBaseUrl, mpcBridgePing, mpdPingErr } from "./ping";
-import { getCurrentSongResult } from "./current-song";
+import { createMpdPingError, mpcBridgePing, resolveMpcBaseUrl } from "./ping";
+import { queryCurrentSongFromBridge } from "./current-song";
 import { mpdCommand } from "./bridge";
 import { parseMpdStatus } from "./parse";
 
-async function getStatusResult() {
+async function getParsedStatusResult() {
   return (await mpdCommand("status")).map(parseMpdStatus);
 }
 
@@ -41,9 +41,12 @@ export const mpd = new Hono<Env>()
     }),
     basic,
     async (c) => {
-      const result = await getStatusResult();
-      if (result.isErr()) return respondMpdJsonError(c, result.error);
-      return c.json(result.value);
+      const statusResult = await getParsedStatusResult();
+
+      if (statusResult.isErr()) return respondMpdJsonError(c, statusResult.error);
+      const statusPayload = statusResult.value;
+
+      return c.json(statusPayload);
     },
   )
   .get(
@@ -77,9 +80,10 @@ export const mpd = new Hono<Env>()
     validator("query", currentSongQuerySchema),
     basic,
     async (c) => {
-      const { songid } = c.req.valid("query");
-      const result = await getCurrentSongResult(songid);
-      return c.json(serializeMpdResult(result));
+      const { songid: songId } = c.req.valid("query");
+      const currentSongResult = await queryCurrentSongFromBridge(songId);
+
+      return c.json(serializeMpdResult(currentSongResult));
     },
   )
   .get(
@@ -105,25 +109,29 @@ export const mpd = new Hono<Env>()
     }),
     basic,
     async (c) => {
-      const target = mpcBaseUrl();
-      const ping = await mpcBridgePing();
-      if (ping.isErr()) {
-        return c.json(ping.error, 502);
+      const bridgeUrl = resolveMpcBaseUrl();
+      const bridgePingResult = await mpcBridgePing();
+
+      if (bridgePingResult.isErr()) {
+        return c.json(bridgePingResult.error, 502);
       }
 
-      const status = await getStatusResult();
-      if (status.isErr()) {
-        return c.json(mpdPingErr(target, status.error.message), 502);
+      const statusResult = await getParsedStatusResult();
+
+      if (statusResult.isErr()) {
+        return c.json(createMpdPingError(bridgeUrl, statusResult.error.message), 502);
       }
 
-      const parsed = status.value;
-      const body: MpdPingOk = {
+      const statusPayload = statusResult.value;
+
+      const pingResponse: MpdPingOk = {
         ok: true,
-        target,
+        target: bridgeUrl,
         via: "fetch (tunnel HTTP)",
-        state: parsed.status.state ?? null,
-        fields: parsed.fieldCount,
+        state: statusPayload.status.state ?? null,
+        fields: statusPayload.fieldCount,
       };
-      return c.json(body satisfies MpdPingResponse);
+
+      return c.json(pingResponse satisfies MpdPingResponse);
     },
   );

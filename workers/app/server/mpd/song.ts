@@ -3,21 +3,24 @@ import { safeParse } from "valibot";
 import { mpdSongSchema, songDisplayTitle } from "../../schemas/mpd";
 import type { Song } from "../../schemas/mpd";
 
-export function recordToSong(record: Record<string, string>): Song | undefined {
-  const parsed = safeParse(mpdSongSchema, record);
-  return parsed.success ? parsed.output : undefined;
+export function recordToSong(mpdRecord: Record<string, string>): Song | undefined {
+  const songParseResult = safeParse(mpdSongSchema, mpdRecord);
+
+  return songParseResult.success ? songParseResult.output : undefined;
 }
 
 /** `currentsong` 用。Id/Pos が無くてもタイトル表示できる */
 export function recordToCurrentSong(
-  record: Record<string, string>,
+  mpdRecord: Record<string, string>,
 ): Pick<Song, "title" | "artist" | "album" | "file"> | undefined {
-  const file = record.file;
+  const file = mpdRecord.file;
+
   if (!file) return undefined;
+
   return {
     file,
-    title: songDisplayTitle(file, record.Title),
-    artist: record.Artist ?? "",
-    album: record.Album ?? "",
+    title: songDisplayTitle(file, mpdRecord.Title),
+    artist: mpdRecord.Artist ?? "",
+    album: mpdRecord.Album ?? "",
   };
 }

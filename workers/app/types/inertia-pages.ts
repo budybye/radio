@@ -1,28 +1,28 @@
 import type { CurrentSongPayload, RadioConfig } from "../lib/radio/types";
-import type { PostFormErrors } from "../schemas/posts";
+import type { QueueFormErrors } from "../schemas/queue";
 import type { Song } from "../schemas/mpd";
 
 /** Hono の動的ルートは PageProps 推論から漏れるため明示型を使う */
 export type HomePageProps = {
-  song: CurrentSongPayload | undefined;
+  initialCurrentSong: CurrentSongPayload | undefined;
   listenerCount: number;
   config: RadioConfig;
 };
 
-export type PostsIndexPageProps = {
-  posts: Song[];
+export type QueueIndexPageProps = {
+  tracks: Song[];
 };
 
-export type PostsNewPageProps = {
+export type QueueNewPageProps = {
   values: { file: string };
-  errors: PostFormErrors;
+  errors: QueueFormErrors;
 };
 
-export type PostsEditPageProps = {
-  post: Song;
-  errors: PostFormErrors;
+export type QueueEditPageProps = {
+  song: Song;
+  errors: QueueFormErrors;
 };
 
-export type PostsShowPageProps = {
-  post: Song;
+export type QueueShowPageProps = {
+  song: Song;
 };

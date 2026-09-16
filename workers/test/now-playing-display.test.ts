@@ -1,24 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatNowPlayingDisplay,
-  formatStationDisplay,
-} from "../app/lib/radio/now-playing";
+import { formatNowPlayingDisplay, formatStationDisplay } from "../app/lib/radio/now-playing";
 import { parseMpdRecord } from "../app/server/mpd/parse";
 import { recordToCurrentSong } from "../app/server/mpd/song";
-import {
-  loadMpdFixtureContract,
-  readMpdFixture,
-} from "./fixtures/mpd/contract";
+import { loadMpdFixtureContract, readMpdFixture } from "./fixtures/mpd/contract";
 
 async function displayFromCurrentsongFixture(
   filename: string,
 ): Promise<ReturnType<typeof formatNowPlayingDisplay>> {
   const raw = await readMpdFixture(filename);
   const song = recordToCurrentSong(parseMpdRecord(raw));
+
   if (!song) {
     throw new Error(`fixture ${filename} did not parse to a current song`);
   }
+
   return formatNowPlayingDisplay(song, "unused-fallback");
 }
 
@@ -36,15 +32,13 @@ describe("now-playing display from MPD fixtures", () => {
 
   it("formats instrumental currentsong-instrumental.txt per contract display.instrumental", async () => {
     const contract = await loadMpdFixtureContract();
-    const display = await displayFromCurrentsongFixture(
-      "currentsong-instrumental.txt",
-    );
+    const display = await displayFromCurrentsongFixture("currentsong-instrumental.txt");
 
     expect(contract.display).toBeDefined();
     expect(display).toEqual(contract.display!.instrumental);
-    expect(
-      parseMpdRecord(await readMpdFixture("currentsong-instrumental.txt")),
-    ).toMatchObject(contract.currentsongInstrumental!);
+    expect(parseMpdRecord(await readMpdFixture("currentsong-instrumental.txt"))).toMatchObject(
+      contract.currentsongInstrumental!,
+    );
   });
 
   it("uses titleFallback from contract when song is absent", async () => {
@@ -60,9 +54,7 @@ describe("now-playing display from MPD fixtures", () => {
 describe("external station display", () => {
   it("uses station identity instead of unrelated MPD metadata", async () => {
     const contract = await loadMpdFixtureContract();
-    const song = recordToCurrentSong(
-      parseMpdRecord(await readMpdFixture("currentsong.txt")),
-    );
+    const song = recordToCurrentSong(parseMpdRecord(await readMpdFixture("currentsong.txt")));
 
     expect(
       formatStationDisplay(
@@ -71,6 +63,7 @@ describe("external station display", () => {
           label: "IRIE FM 107.5 MHz",
           kind: "external",
           streamUrl: "https://stream.iriefm.net:8006/stream",
+          broadcastLocation: { label: "Ocho Rios, Jamaica", coordinates: [18.4074, -77.1031] },
         },
         song ?? null,
         contract.ui!.titleFallback,

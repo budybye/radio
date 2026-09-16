@@ -30,12 +30,14 @@ export const mpdSongSchema = pipe(
   check((record) => {
     const id = Number(record.Id);
     const pos = Number(record.Pos);
+
     return Number.isFinite(id) && Number.isFinite(pos);
   }),
   transform((record) => {
     const id = Number(record.Id);
     const pos = Number(record.Pos);
     const time = record.Time ? Number(record.Time) : undefined;
+
     return {
       id,
       pos,

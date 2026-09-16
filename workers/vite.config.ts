@@ -6,10 +6,7 @@ import ssrPlugin from "vite-ssr-components/plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-import {
-  antiSlopLintConfig,
-  lintIgnorePatterns,
-} from "./lint/anti-slop";
+import { antiSlopLintConfig, lintIgnorePatterns } from "./lint/anti-slop";
 
 export default defineConfig({
   environments: {

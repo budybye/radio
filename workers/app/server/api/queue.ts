@@ -3,35 +3,18 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { OpenAPIV3 } from "openapi-types";
 
-import {
-  matchMpdResourceOrHttp,
-  respondMpdJsonError,
-  respondMpdTextError,
-} from "../../lib/radio/mpd-http";
-import {
-  postSongInputSchema,
-  songListSchema,
-  songWireSchema,
-} from "../../schemas/openapi/posts";
+import { matchMpdResourceOrHttp, respondMpdJsonError } from "../../lib/radio/mpd-http";
+import { queueSongInputSchema, songListSchema, songWireSchema } from "../../schemas/openapi/queue";
 import { mpdJsonErrorResponses } from "../openapi/responses";
 import { basicOrBearer } from "../middleware";
-import {
-  createSong,
-  deleteSong,
-  findSong,
-  listSongs,
-  updateSong,
-} from "../mpd/playlist";
+import { createSong, deleteSong, findSong, listSongs, updateSong } from "../mpd/playlist";
 
-const API_SECURITY: OpenAPIV3.SecurityRequirementObject[] = [
-  { basicAuth: [] },
-  { bearerAuth: [] },
-];
+const API_SECURITY: OpenAPIV3.SecurityRequirementObject[] = [{ basicAuth: [] }, { bearerAuth: [] }];
 
-const postId = (c: Context) => Number(c.req.param("id"));
+const getSongIdFromRequest = (c: Context) => Number(c.req.param("id"));
 
-/** OpenAPI 対象の JSON キュー API（Inertia `/posts` とは別） */
-export const apiPosts = new Hono<Env>()
+/** OpenAPI 対象の JSON キュー API（Inertia `/queue` とは別） */
+export const apiQueue = new Hono<Env>()
   .use(basicOrBearer)
   .get(
     "/",
@@ -50,9 +33,11 @@ export const apiPosts = new Hono<Env>()
       },
     }),
     async (c) => {
-      const result = await listSongs();
-      if (result.isErr()) return respondMpdJsonError(c, result.error);
-      return c.json(result.value);
+      const songsResult = await listSongs();
+
+      if (songsResult.isErr()) return respondMpdJsonError(c, songsResult.error);
+
+      return c.json(songsResult.value);
     },
   )
   .post(
@@ -71,11 +56,13 @@ export const apiPosts = new Hono<Env>()
         ...mpdJsonErrorResponses,
       },
     }),
-    validator("json", postSongInputSchema),
+    validator("json", queueSongInputSchema),
     async (c) => {
-      const result = await createSong(c.req.valid("json"));
-      if (result.isErr()) return respondMpdJsonError(c, result.error);
-      return c.json(result.value, 201);
+      const createdSongResult = await createSong(c.req.valid("json"));
+
+      if (createdSongResult.isErr()) return respondMpdJsonError(c, createdSongResult.error);
+
+      return c.json(createdSongResult.value, 201);
     },
   )
   .get(
@@ -96,8 +83,9 @@ export const apiPosts = new Hono<Env>()
       },
     }),
     async (c) => {
-      const result = await findSong(postId(c));
-      return matchMpdResourceOrHttp(c, result, (post) => c.json(post));
+      const foundSongResult = await findSong(getSongIdFromRequest(c));
+
+      return matchMpdResourceOrHttp(c, foundSongResult, (song) => c.json(song));
     },
   )
   .patch(
@@ -117,10 +105,11 @@ export const apiPosts = new Hono<Env>()
         502: mpdJsonErrorResponses[502],
       },
     }),
-    validator("json", postSongInputSchema),
+    validator("json", queueSongInputSchema),
     async (c) => {
-      const result = await updateSong(postId(c), c.req.valid("json"));
-      return matchMpdResourceOrHttp(c, result, (post) => c.json(post));
+      const updatedSongResult = await updateSong(getSongIdFromRequest(c), c.req.valid("json"));
+
+      return matchMpdResourceOrHttp(c, updatedSongResult, (song) => c.json(song));
     },
   )
   .delete(
@@ -135,8 +124,10 @@ export const apiPosts = new Hono<Env>()
       },
     }),
     async (c) => {
-      const result = await deleteSong(postId(c));
-      if (result.isErr()) return respondMpdTextError(c, result.error);
+      const deletedSongResult = await deleteSong(getSongIdFromRequest(c));
+
+      if (deletedSongResult.isErr()) return respondMpdJsonError(c, deletedSongResult.error);
+
       return c.body(null, 204);
     },
   );

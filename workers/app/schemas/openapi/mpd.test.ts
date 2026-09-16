@@ -1,11 +1,7 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import { describe, expect, it } from "vitest";
 
-import {
-  currentSongQuerySchema,
-  mpdStatusResponseSchema,
-  serializedMpdResultSchema,
-} from "./mpd";
+import { currentSongQuerySchema, mpdStatusResponseSchema, serializedMpdResultSchema } from "./mpd";
 
 describe("openapi wire schemas", () => {
   it("converts mpd status to JSON Schema", () => {

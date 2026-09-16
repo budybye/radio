@@ -3,6 +3,7 @@ import type { MpdErrorWire } from "./serialize-wire";
 
 /** MpdAgent DO instance name — shared by client + server */
 export const MPD_AGENT_NAME = "MpdAgent";
+
 export const MPD_AGENT_INSTANCE = "radio";
 
 /** useAgent の state 型 — MpdAgent.setState payload */

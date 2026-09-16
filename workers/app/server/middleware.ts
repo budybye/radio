@@ -17,17 +17,13 @@ export const basic = createMiddleware<Env>(async (c, next) => {
   })(c, next);
 });
 
-const bearer = createMiddleware<Env>(async (c, next) => {
-  await bearerAuth<Env>({
-    token: c.env.TOKEN,
-  })(c, next);
-});
-
 export const basicOrBearer = createMiddleware<Env>(async (c, next) => {
   const auth = c.req.header("Authorization") ?? "";
+
   if (auth.startsWith("Bearer ")) {
-    return bearer(c, next);
+    return bearerAuth<Env>({ token: c.env.TOKEN })(c, next);
   }
+
   return basic(c, next);
 });
 
@@ -41,6 +37,7 @@ function errorFields(cause: unknown) {
 
 function wantsJson(c: { req: { header: (name: string) => string | undefined } }) {
   const accept = c.req.header("Accept") ?? "";
+
   return accept.includes("application/json") && !accept.includes("text/html");
 }
 
@@ -48,43 +45,46 @@ function wantsJson(c: { req: { header: (name: string) => string | undefined } })
 // requestId / secureHeaders より内側（先）に置き、ヘッダ追記で 500 にしない。
 /** HMR ごとに新しい Hono を返す（シングルトンに route を足すと matcher is already built） */
 export function createAppShell(): Hono<Env> {
-  return new Hono<Env>()
-    .use(
-      logger(),
-      agentsMiddleware({
-        options: { prefix: "agents" },
-        onError: (error) =>
-          console.error(JSON.stringify({ tag: "[MpdAgent]", ...errorFields(error) })),
-      }),
-      requestId(),
-      secureHeaders(),
-      inertia({ version: "1", rootView }),
-    )
-    .onError((err, c) => {
-      const reqId = c.get("requestId");
-      const status = err instanceof HTTPException ? err.status : 500;
-
-      console.error(
-        JSON.stringify({
-          tag: "[radio]",
-          level: "error",
-          path: c.req.path,
-          method: c.req.method,
-          requestId: reqId,
-          status,
-          ...errorFields(err),
+  return (
+    new Hono<Env>()
+      .use(
+        logger(),
+        agentsMiddleware({
+          options: { prefix: "agents" },
+          onError: (error) =>
+            console.error(JSON.stringify({ tag: "[MpdAgent]", ...errorFields(error) })),
         }),
-      );
+        requestId(),
+        secureHeaders(),
+        inertia({ version: "1", rootView }),
+      )
+      .onError((err, c) => {
+        const reqId = c.get("requestId");
+        const status = err instanceof HTTPException ? err.status : 500;
 
-      if (err instanceof HTTPException) {
-        return err.getResponse();
-      }
+        console.error(
+          JSON.stringify({
+            tag: "[radio]",
+            level: "error",
+            path: c.req.path,
+            method: c.req.method,
+            requestId: reqId,
+            status,
+            ...errorFields(err),
+          }),
+        );
 
-      const message = "Internal Server Error";
-      return wantsJson(c)
-        ? c.json({ error: "internal_error", message, requestId: reqId }, 500)
-        : c.text(message, 500);
-    })
-    // @hono/inertia が NotFoundResponse を text に固定している
-    .notFound((c) => c.text("404 Not Found", 404));
+        if (err instanceof HTTPException) {
+          return err.getResponse();
+        }
+
+        const message = "Internal Server Error";
+
+        return wantsJson(c)
+          ? c.json({ error: "internal_error", message, requestId: reqId }, 500)
+          : c.text(message, 500);
+      })
+      // @hono/inertia が NotFoundResponse を text に固定している
+      .notFound((c) => c.text("404 Not Found", 404))
+  );
 }

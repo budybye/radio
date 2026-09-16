@@ -1,55 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  MpcHttpError,
-  MpdAckError,
-  MpdInvalidArgumentError,
-  MpdTransportError,
-} from "./errors";
-import { mpdErrorHttpBody, mpdErrorHttpStatus } from "./mpd-http";
+import { MpcHttpError, MpdAckError, MpdInvalidArgumentError, MpdTransportError } from "./errors";
+import { mpdErrorHttpStatus } from "./mpd-http";
 
 describe("mpdErrorHttpStatus", () => {
   it("maps upstream 404 to HTTP 404", () => {
-    expect(
-      mpdErrorHttpStatus(
-        new MpcHttpError({ status: 404, url: "http://mpc/mpd.cgi" }),
-      ),
-    ).toBe(404);
+    expect(mpdErrorHttpStatus(new MpcHttpError({ status: 404, url: "http://mpc/mpd.cgi" }))).toBe(
+      404,
+    );
   });
 
   it("maps bridge and transport failures to HTTP 502", () => {
+    expect(mpdErrorHttpStatus(new MpcHttpError({ status: 503, url: "http://mpc/mpd.cgi" }))).toBe(
+      502,
+    );
     expect(
-      mpdErrorHttpStatus(
-        new MpcHttpError({ status: 503, url: "http://mpc/mpd.cgi" }),
-      ),
+      mpdErrorHttpStatus(new MpdAckError({ cmd: "addid", preview: "ACK [4@0] invalid command" })),
     ).toBe(502);
-    expect(
-      mpdErrorHttpStatus(
-        new MpdAckError({ cmd: "addid", preview: "ACK [4@0] invalid command" }),
-      ),
-    ).toBe(502);
-    expect(
-      mpdErrorHttpStatus(
-        new MpdTransportError({ message: "socket closed" }),
-      ),
-    ).toBe(502);
+    expect(mpdErrorHttpStatus(new MpdTransportError({ message: "socket closed" }))).toBe(502);
   });
 
   it("maps invalid MPD arguments to HTTP 400", () => {
-    expect(
-      mpdErrorHttpStatus(
-        new MpdInvalidArgumentError({ field: "file" }),
-      ),
-    ).toBe(400);
-  });
-});
-
-describe("mpdErrorHttpBody", () => {
-  it("exposes tag and message for JSON boundaries", () => {
-    const error = new MpdTransportError({ message: "timeout" });
-    expect(mpdErrorHttpBody(error)).toEqual({
-      error: "MpdTransportError",
-      message: "timeout",
-    });
+    expect(mpdErrorHttpStatus(new MpdInvalidArgumentError({ field: "file" }))).toBe(400);
   });
 });

@@ -13,9 +13,7 @@ export class MpcHttpError extends TaggedError("MpcHttpError")<{
   }
 }
 
-export class MpdInvalidResponseError extends TaggedError(
-  "MpdInvalidResponseError",
-)<{
+export class MpdInvalidResponseError extends TaggedError("MpdInvalidResponseError")<{
   url: string;
   preview: string;
   message: string;
@@ -41,9 +39,7 @@ export class MpdAckError extends TaggedError("MpdAckError")<{
   }
 }
 
-export class MpdInvalidArgumentError extends TaggedError(
-  "MpdInvalidArgumentError",
-)<{
+export class MpdInvalidArgumentError extends TaggedError("MpdInvalidArgumentError")<{
   field: string;
   message: string;
 }> {
@@ -77,5 +73,6 @@ const isMpdError = (cause: unknown): cause is MpdError =>
 export function mpdErrorFromUnknown(cause: unknown): MpdError {
   if (isMpdError(cause)) return cause;
   const message = cause instanceof Error ? cause.message : String(cause);
+
   return new MpdTransportError({ message, cause });
 }

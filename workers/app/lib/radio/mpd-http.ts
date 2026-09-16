@@ -26,13 +26,9 @@ export function mpdErrorHttpStatus(error: MpdError): ContentfulStatusCode {
   }
 }
 
-export function mpdErrorHttpBody(error: MpdError): MpdErrorHttpBody {
-  return { error: error._tag, message: error.message };
-}
-
 /** JSON ルート: Result.err → `{ error, message }` + status */
 export function respondMpdJsonError(c: Context, error: MpdError) {
-  return c.json(mpdErrorHttpBody(error), mpdErrorHttpStatus(error));
+  return c.json({ error: error._tag, message: error.message }, mpdErrorHttpStatus(error));
 }
 
 /** テキスト / リダイレクト前ルート: Result.err → message + status */
@@ -50,8 +46,7 @@ export function matchMpdResourceOrHttp<T>(
   onFound: (value: T) => Response | Promise<Response>,
 ): Response | Promise<Response> {
   return result.match({
-    ok: (value) =>
-      value !== undefined ? onFound(value) : c.notFound(),
+    ok: (value) => (value !== undefined ? onFound(value) : c.notFound()),
     err: (error) => respondMpdTextError(c, error),
   });
 }

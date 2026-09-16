@@ -9,11 +9,11 @@ import {
   mpdErrorFromUnknown,
   type MpdError,
 } from "../../lib/radio/errors";
-import { mpcBridgeUrl } from "./bridge-url";
+import { buildMpcBridgeUrl } from "./bridge-url";
 
 export { quoteMpdArg } from "./quote-mpd-arg";
 
-export { mpcBridgeOrigin, mpcBridgeUrl } from "./bridge-url";
+export { resolveMpcBridgeOrigin, buildMpcBridgeUrl } from "./bridge-url";
 
 export type MpcAccessCredentials = {
   clientId: string;
@@ -24,11 +24,12 @@ export function mpcAccessFromEnv(env: {
   CF_ACCESS_CLIENT_ID?: string;
   CF_ACCESS_CLIENT_SECRET?: string;
 }): MpcAccessCredentials | undefined {
-  const { CF_ACCESS_CLIENT_ID: clientId, CF_ACCESS_CLIENT_SECRET: clientSecret } =
-    env;
+  const { CF_ACCESS_CLIENT_ID: clientId, CF_ACCESS_CLIENT_SECRET: clientSecret } = env;
+
   if (clientId && clientSecret) {
     return { clientId, clientSecret };
   }
+
   return undefined;
 }
 
@@ -36,10 +37,12 @@ export function mpcBridgeFetchInit(
   access?: MpcAccessCredentials,
 ): Pick<RequestInit, "headers" | "signal" | "cache"> {
   const headers: Record<string, string> = {};
+
   if (access?.clientId && access?.clientSecret) {
     headers["CF-Access-Client-Id"] = access.clientId;
     headers["CF-Access-Client-Secret"] = access.clientSecret;
   }
+
   return {
     headers,
     signal: AbortSignal.timeout(MPD_TIMEOUT_MS),
@@ -47,57 +50,53 @@ export function mpcBridgeFetchInit(
   };
 }
 
-function isValidMpdBody(raw: string): boolean {
-  if (raw.length === 0) return true;
-  return (
-    /^OK MPD /m.test(raw) ||
-    /[\r\n]OK[\r\n]/m.test(raw) ||
-    /^ACK /m.test(raw)
-  );
+function isValidMpdBody(mpdBody: string): boolean {
+  if (mpdBody.length === 0) return true;
+
+  return /^OK MPD /m.test(mpdBody) || /[\r\n]OK[\r\n]/m.test(mpdBody) || /^ACK /m.test(mpdBody);
 }
 
 /** Tunnel HTTP 経由で MPD コマンド実行（mpc-bridge 接続プール利用） */
 export async function mpdBridgeCommand(
   mpcHost: string,
-  cmd: string,
+  command: string,
   access?: MpcAccessCredentials,
   baseUrl?: string,
 ): Promise<Result<string, MpdError>> {
-  const url = mpcBridgeUrl(mpcHost, cmd, baseUrl);
+  const url = buildMpcBridgeUrl(mpcHost, command, baseUrl);
+
   return Result.tryPromise({
     try: async () => {
-      const res = await fetch(url, mpcBridgeFetchInit(access));
-      if (!res.ok) {
-        throw new MpcHttpError({ status: res.status, url });
+      const response = await fetch(url, mpcBridgeFetchInit(access));
+
+      if (!response.ok) {
+        throw new MpcHttpError({ status: response.status, url });
       }
-      const raw = await res.text();
-      if (raw.includes("HTTP/1.")) {
+
+      const responseBody = await response.text();
+
+      if (responseBody.includes("HTTP/1.")) {
         throw new MpdInvalidResponseError({
           url,
-          preview:
-            "HTTP response (tunnel should be http://mpc-bridge:8080, not tcp://mpd:6600)",
+          preview: "HTTP response (tunnel should be http://mpc-bridge:8080, not tcp://mpd:6600)",
         });
       }
-      if (!isValidMpdBody(raw)) {
-        throw new MpdInvalidResponseError({ url, preview: raw.slice(0, 120) });
+
+      if (!isValidMpdBody(responseBody)) {
+        throw new MpdInvalidResponseError({ url, preview: responseBody.slice(0, 120) });
       }
-      if (raw.includes("ACK")) {
-        throw new MpdAckError({ cmd, preview: raw.slice(0, 200) });
+
+      if (responseBody.includes("ACK")) {
+        throw new MpdAckError({ cmd: command, preview: responseBody.slice(0, 200) });
       }
-      return raw;
+
+      return responseBody;
     },
     catch: mpdErrorFromUnknown,
   });
 }
 
 /** Tunnel HTTP 経由で MPD コマンド実行（Worker env 付き） */
-export async function mpdCommand(
-  cmd: string,
-): Promise<Result<string, MpdError>> {
-  return mpdBridgeCommand(
-    env.MPC_HOST,
-    cmd,
-    mpcAccessFromEnv(env),
-    env.MPC_BRIDGE_BASE_URL,
-  );
+export async function mpdCommand(command: string): Promise<Result<string, MpdError>> {
+  return mpdBridgeCommand(env.MPC_HOST, command, mpcAccessFromEnv(env), env.MPC_BRIDGE_BASE_URL);
 }

@@ -9,7 +9,7 @@ const OPENAPI_INFO = {
   title: "radio",
   version: "1.0.0",
   description:
-    "MPD diagnostic JSON, queue automation (`/api/posts`), and MpdAgent WebSocket. Inertia HTML routes (`/`, `/posts`) are excluded.",
+    "MPD diagnostic JSON, queue automation (`/api/queue`), and MpdAgent WebSocket. Inertia HTML routes (`/`, `/queue`) are excluded.",
 } as const;
 
 const AGENT_PATHS: OpenAPIV3_1.PathsObject = {
@@ -39,9 +39,9 @@ const AGENT_PATHS: OpenAPIV3_1.PathsObject = {
 function openApiEnabled(c: Context<Env>): boolean {
   if (import.meta.env.DEV) return true;
   const hostname = new URL(c.req.url).hostname;
+
   return hostname.endsWith(".workers.dev");
 }
-
 
 /** `/openapi.json` — ローカル dev と `*.workers.dev` のみ */
 export function mountOpenApi<T extends Hono<Env>>(app: T) {
@@ -65,19 +65,17 @@ export function mountOpenApi<T extends Hono<Env>>(app: T) {
         },
         schemas: {
           // SAFETY: valibot JSON Schema output matches OpenAPIV3_1.SchemaObject for documentation.
-          MpdAgentState:
-            toJsonSchema(mpdAgentStateSchema) as OpenAPIV3_1.SchemaObject,
+          MpdAgentState: toJsonSchema(mpdAgentStateSchema) as OpenAPIV3_1.SchemaObject,
         },
       },
       paths: AGENT_PATHS,
     },
-    exclude: ["/", /^\/posts(\/|$)/],
+    exclude: ["/", /^\/queue(\/|$)/],
   });
 
+  return app.get("/openapi.json", async (c, next) => {
+    if (!openApiEnabled(c)) return c.notFound();
 
-  return app
-    .get("/openapi.json", async (c, next) => {
-      if (!openApiEnabled(c)) return c.notFound();
-      return handler(c, next);
-    });
+    return handler(c, next);
+  });
 }

@@ -5,10 +5,7 @@ import {
   unchangedCurrentSongIfMatching,
 } from "../app/server/mpd/bridge-current-song";
 import { parseMpdStatus } from "../app/server/mpd/parse";
-import {
-  loadMpdFixtureContract,
-  readMpdFixture,
-} from "./fixtures/mpd/contract";
+import { loadMpdFixtureContract, readMpdFixture } from "./fixtures/mpd/contract";
 
 describe("current song from mpc-bridge MPD responses", () => {
   it("builds CurrentSongPayload from status.txt + currentsong.txt fixtures", async () => {
@@ -18,9 +15,7 @@ describe("current song from mpc-bridge MPD responses", () => {
 
     const song = currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw);
 
-    expect(parseMpdStatus(statusRaw).listenerCount).toBe(
-      contract.status.listeners,
-    );
+    expect(parseMpdStatus(statusRaw).listenerCount).toBe(contract.status.listeners);
     expect(song).toMatchObject({
       songid: contract.status.songid,
       title: contract.currentsong.Title,
@@ -34,17 +29,16 @@ describe("current song from mpc-bridge MPD responses", () => {
     const contract = await loadMpdFixtureContract();
     const statusRaw = await readMpdFixture("status.txt");
 
-    expect(
-      unchangedCurrentSongIfMatching(statusRaw, contract.status.songid),
-    ).toEqual({ unchanged: true, songid: contract.status.songid });
+    expect(unchangedCurrentSongIfMatching(statusRaw, contract.status.songid)).toEqual({
+      unchanged: true,
+      songid: contract.status.songid,
+    });
   });
 
   it("returns undefined when status has no songid", async () => {
     const statusRaw = "state: stop\nOK\n";
     const currentsongRaw = await readMpdFixture("currentsong.txt");
 
-    expect(
-      currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw),
-    ).toBeUndefined();
+    expect(currentSongFromMpdBridgeResponses(statusRaw, currentsongRaw)).toBeUndefined();
   });
 });

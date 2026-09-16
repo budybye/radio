@@ -2,12 +2,7 @@ import { Result } from "better-result";
 import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 
-import {
-  MpcHttpError,
-  MpdAckError,
-  MpdInvalidArgumentError,
-  MpdTransportError,
-} from "./errors";
+import { MpcHttpError, MpdAckError, MpdInvalidArgumentError, MpdTransportError } from "./errors";
 import type { CurrentSongPayload } from "./types";
 import {
   currentSongFromSerialized,
@@ -51,6 +46,7 @@ describe("serializeMpdResult", () => {
     const serialized = serializeMpdResult(
       Result.err(new MpdAckError({ cmd: "status", preview: "ACK [4@0]" })),
     );
+
     expect(serialized).toEqual({
       status: "error",
       error: expect.objectContaining({
@@ -68,7 +64,9 @@ describe("hydrateMpdError", () => {
       status: 404,
       url: "https://mpc.example/mpd.cgi",
     });
+
     expect(MpcHttpError.is(err)).toBe(true);
+
     if (MpcHttpError.is(err)) {
       expect(err.status).toBe(404);
     }
@@ -83,6 +81,7 @@ describe("hydrateMpdError", () => {
     const wire = mpdErrorToWire(new MpdInvalidArgumentError({ field: "file" }));
     const err = hydrateMpdError(wire);
     expect(MpdInvalidArgumentError.is(err)).toBe(true);
+
     if (MpdInvalidArgumentError.is(err)) {
       expect(err.field).toBe("file");
     }
@@ -112,6 +111,7 @@ describe("parseSerializedCurrentSongView", () => {
         songid: "3",
       },
     } satisfies RpcSerializedEnvelopeWire;
+
     expect(parseSerializedCurrentSongView(wire)).toEqual(wire);
   });
 
@@ -120,14 +120,13 @@ describe("parseSerializedCurrentSongView", () => {
       status: "error",
       error: { _tag: "MpdTransportError", message: "timeout" },
     } satisfies RpcSerializedEnvelopeWire;
+
     expect(parseSerializedCurrentSongView(wire)).toEqual(wire);
   });
 
   it("rejects malformed envelopes", () => {
     expect(parseSerializedCurrentSongView(null)).toBeNull();
-    expect(v.safeParse(serializedEnvelopeSchema, { status: "error" }).success).toBe(
-      false,
-    );
+    expect(v.safeParse(serializedEnvelopeSchema, { status: "error" }).success).toBe(false);
     expect(
       v.safeParse(serializedEnvelopeSchema, {
         status: "error",
@@ -146,6 +145,7 @@ describe("deserializeCurrentSongView", () => {
       file: "a.mp3",
       songid: "4",
     };
+
     const result = deserializeCurrentSongView({ status: "ok", value });
     expect(result.isOk() && result.value).toEqual(value);
   });
@@ -155,6 +155,7 @@ describe("deserializeCurrentSongView", () => {
       status: "error",
       error: { _tag: "MpdAckError", cmd: "play", preview: "ACK" },
     });
+
     expect(result.isErr() && MpdAckError.is(result.error)).toBe(true);
   });
 });

@@ -5,6 +5,7 @@ const INSTRUMENTAL_TITLE_SUFFIX = /\s*[(–—-]\s*instrumental\s*\)?\s*$/i;
 
 function cleanSongTitle(title: string): string {
   const cleaned = title.replace(INSTRUMENTAL_TITLE_SUFFIX, "").trim();
+
   return cleaned.length > 0 ? cleaned : title.trim();
 }
 

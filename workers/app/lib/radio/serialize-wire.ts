@@ -50,19 +50,12 @@ const serializedErrSchema = v.object({
   error: mpdErrorWireSchema,
 });
 
-const serializedEnvelopeSchema = v.union([
-  serializedOkSchema,
-  serializedErrSchema,
-]);
+const serializedEnvelopeSchema = v.union([serializedOkSchema, serializedErrSchema]);
 
-export type SerializedCurrentSongEnvelope = v.InferOutput<
-  typeof serializedEnvelopeSchema
->;
+export type SerializedCurrentSongEnvelope = v.InferOutput<typeof serializedEnvelopeSchema>;
 
 /** Agents RPC structured-clone envelope（valibot parse 前） */
-export type RpcSerializedEnvelopeWire = v.InferInput<
-  typeof serializedEnvelopeSchema
->;
+export type RpcSerializedEnvelopeWire = v.InferInput<typeof serializedEnvelopeSchema>;
 
 export { mpdErrorWireSchema, serializedEnvelopeSchema };
 
@@ -71,5 +64,6 @@ export function parseSerializedCurrentSongView(
   wire: RpcSerializedEnvelopeWire | null | undefined,
 ): SerializedCurrentSongEnvelope | null {
   const parsed = v.safeParse(serializedEnvelopeSchema, wire ?? null);
+
   return parsed.success ? parsed.output : null;
 }

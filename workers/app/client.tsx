@@ -5,12 +5,12 @@ import "./style.css";
 
 createInertiaApp({
   resolve: async (name) => {
-    const pages = import.meta.glob<{ default: ResolvedComponent }>(
-      "./pages/**/*.tsx",
-    );
+    const pages = import.meta.glob<{ default: ResolvedComponent }>("./pages/**/*.tsx");
     const loader = pages[`./pages/${name}.tsx`];
+
     if (!loader) throw new Error(`Page not found: ${name}`);
     const page = await loader();
+
     return page.default;
   },
   setup({ el, App, props }) {

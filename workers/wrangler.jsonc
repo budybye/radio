@@ -9,13 +9,7 @@
   "placement": { "region": "gcp:asia-northeast1" },
   "observability": { "enabled": true },
   "durable_objects": {
-    "bindings": [
-      { "name": "MpdAgent", "class_name": "MpdAgent" }
-    ]
+    "bindings": [{ "name": "MpdAgent", "class_name": "MpdAgent" }],
   },
-  "migrations": [
-  	{ "tag": "v1", 
-   	  "new_sqlite_classes": ["MpdAgent"] 
-   	}
-  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MpdAgent"] }],
 }

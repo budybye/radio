@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import { postSongInputSchema as basePostSongInputSchema } from "../posts";
+import { queueSongInputSchema as baseQueueSongInputSchema } from "../queue";
 
 const exampleSong = {
   id: 1,
@@ -26,12 +26,9 @@ export const songWireSchema = v.pipe(
   v.metadata({ ref: "Song" }),
 );
 
-export const songListSchema = v.pipe(
-  v.array(songWireSchema),
-  v.metadata({ ref: "SongList" }),
-);
+export const songListSchema = v.pipe(v.array(songWireSchema), v.metadata({ ref: "SongList" }));
 
-export const postSongInputSchema = v.pipe(
-  basePostSongInputSchema,
+export const queueSongInputSchema = v.pipe(
+  baseQueueSongInputSchema,
   v.examples([{ file: exampleSong.file }]),
 );

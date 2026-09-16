@@ -1,7 +1,7 @@
 import { Link } from "@inertiajs/react";
-import type { PostsIndexPageProps } from "../../types/inertia-pages";
+import type { QueueIndexPageProps } from "../../types/inertia-pages";
 
-export default function Index({ posts }: PostsIndexPageProps) {
+export default function Index({ tracks }: QueueIndexPageProps) {
   return (
     <main>
       <nav>
@@ -10,17 +10,17 @@ export default function Index({ posts }: PostsIndexPageProps) {
 
       <header>
         <h1>Playlist</h1>
-        <Link href="/posts/new">+ 曲を追加</Link>
+        <Link href="/queue/new">+ 曲を追加</Link>
       </header>
 
-      {posts.length === 0 ? (
+      {tracks.length === 0 ? (
         <p>プレイリストに曲がありません</p>
       ) : (
         <ul>
-          {posts.map((song) => (
+          {tracks.map((song) => (
             <li key={song.id}>
               <h2>
-                <Link href={`/posts/${song.id}`}>{song.title}</Link>
+                <Link href={`/queue/${song.id}`}>{song.title}</Link>
               </h2>
               {song.artist && <p>{song.artist}</p>}
               {song.album && <p>{song.album}</p>}

@@ -2,10 +2,7 @@ import { Result } from "better-result";
 
 import type { MpdError } from "../../lib/radio/errors";
 
-import type {
-  CurrentSongPayload,
-  CurrentSongView,
-} from "../../lib/radio/types";
+import type { CurrentSongPayload, CurrentSongView } from "../../lib/radio/types";
 import { SSR_CURRENT_SONG_CACHE_MS } from "../../lib/radio/constants";
 import { mpdCommand } from "./bridge";
 import {
@@ -15,52 +12,66 @@ import {
 import { parseMpdStatus } from "./parse";
 
 let ssrSongCache: {
-  expires: number;
-  song: CurrentSongPayload | undefined;
+  expiresAt: number;
+  payload: CurrentSongPayload | undefined;
 } | null = null;
 
-export async function getCurrentSongResult(
-  clientSongid?: string,
+/**
+ * Live mpc-bridge query (no SSR cache). For Inertia SSR use
+ * {@link getCachedCurrentSongForSsr}.
+ */
+export async function queryCurrentSongFromBridge(
+  clientSongId?: string,
 ): Promise<Result<CurrentSongView, MpdError>> {
-  const status = await mpdCommand("status");
-  if (status.isErr()) return Result.err(status.error);
+  const statusResult = await mpdCommand("status");
 
-  const statusRaw = status.value;
-  const unchanged = unchangedCurrentSongIfMatching(statusRaw, clientSongid);
-  if (unchanged) return Result.ok(unchanged);
-  const songid = parseMpdStatus(statusRaw).status.songid ?? "";
-  if (!songid) return Result.ok(null);
+  if (statusResult.isErr()) return Result.err(statusResult.error);
 
-  const current = await mpdCommand("currentsong");
-  if (current.isErr()) return Result.err(current.error);
+  const rawStatusResponse = statusResult.value;
+  const unchangedView = unchangedCurrentSongIfMatching(rawStatusResponse, clientSongId);
 
-  const song = currentSongFromMpdBridgeResponses(statusRaw, current.value);
-  return Result.ok(song ?? null);
+  if (unchangedView) return Result.ok(unchangedView);
+  const songId = parseMpdStatus(rawStatusResponse).status.songid ?? "";
+
+  if (!songId) return Result.ok(null);
+
+  const currentSongResult = await mpdCommand("currentsong");
+
+  if (currentSongResult.isErr()) return Result.err(currentSongResult.error);
+
+  const currentSong = currentSongFromMpdBridgeResponses(rawStatusResponse, currentSongResult.value);
+
+  return Result.ok(currentSong ?? null);
 }
 
-function currentSongPayloadFromView(
-  view: CurrentSongView,
-): CurrentSongPayload | undefined {
+function currentSongPayloadFromView(view: CurrentSongView): CurrentSongPayload | undefined {
   if (!view || "unchanged" in view) return undefined;
+
   return view;
 }
 
-/** Inertia SSR 用（mpc-bridge 直叩き。DO を起こさない） */
-export async function fetchCurrentSongResult(): Promise<
+/**
+ * Inertia SSR current song (memory cache, does not wake MpdAgent). Live HTTP
+ * routes should use {@link queryCurrentSongFromBridge}.
+ */
+export async function getCachedCurrentSongForSsr(): Promise<
   Result<CurrentSongPayload | undefined, MpdError>
 > {
-  const now = Date.now();
-  if (ssrSongCache && ssrSongCache.expires > now) {
-    return Result.ok(ssrSongCache.song);
+  const currentTime = Date.now();
+
+  if (ssrSongCache && ssrSongCache.expiresAt > currentTime) {
+    return Result.ok(ssrSongCache.payload);
   }
 
-  const result = await getCurrentSongResult();
-  if (result.isErr()) return result;
+  const currentSongResult = await queryCurrentSongFromBridge();
 
-  const song = currentSongPayloadFromView(result.value);
+  if (currentSongResult.isErr()) return currentSongResult;
+
+  const currentSongPayload = currentSongPayloadFromView(currentSongResult.value);
   ssrSongCache = {
-    expires: now + SSR_CURRENT_SONG_CACHE_MS,
-    song,
+    expiresAt: currentTime + SSR_CURRENT_SONG_CACHE_MS,
+    payload: currentSongPayload,
   };
-  return Result.ok(song);
+
+  return Result.ok(currentSongPayload);
 }

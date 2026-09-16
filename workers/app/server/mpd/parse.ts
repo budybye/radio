@@ -1,25 +1,24 @@
-import {
-  object,
-  optional,
-  safeParse,
-  string,
-  type InferOutput,
-} from "valibot";
+import { object, optional, safeParse, string, type InferOutput } from "valibot";
 
 /** OK/ACK 行を除いた MPD レスポンス行 */
-function mpdLines(raw: string): string[] {
-  return raw
+function mpdLines(rawResponse: string): string[] {
+  return rawResponse
     .split("\n")
     .filter((line) => !line.startsWith("OK") && !line.startsWith("ACK"));
 }
 
 /** MPD `key: value` 行をフィールドマップへ */
-export function mpdFields(raw: string): Map<string, string> {
+export function parseMpdFields(rawResponse: string): Map<string, string> {
   const fields = new Map<string, string>();
-  for (const line of mpdLines(raw)) {
-    const idx = line.indexOf(": ");
-    if (idx > 0) fields.set(line.slice(0, idx), line.slice(idx + 2));
+
+  for (const line of mpdLines(rawResponse)) {
+    const separatorIndex = line.indexOf(": ");
+
+    if (separatorIndex > 0) {
+      fields.set(line.slice(0, separatorIndex), line.slice(separatorIndex + 2));
+    }
   }
+
   return fields;
 }
 
@@ -29,14 +28,17 @@ export const mpdStatusSchema = object({
   state: optional(string()),
   listeners: optional(string()),
 });
+
 export type MpdStatus = InferOutput<typeof mpdStatusSchema>;
 
 /** MPD status `listeners` を非負整数へ（欠損・不正は 0） */
-export function parseListenerCount(value: string | undefined): number {
-  if (!value) return 0;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 0) return 0;
-  return parsed;
+export function parseListenerCount(listenerValue: string | undefined): number {
+  if (!listenerValue) return 0;
+  const parsedListenerCount = Number.parseInt(listenerValue, 10);
+
+  if (!Number.isFinite(parsedListenerCount) || parsedListenerCount < 0) return 0;
+
+  return parsedListenerCount;
 }
 
 export type ParsedMpdStatus = {
@@ -46,38 +48,45 @@ export type ParsedMpdStatus = {
   fieldCount: number;
 };
 
-export function parseMpdStatus(raw: string): ParsedMpdStatus {
-  const fields = mpdFields(raw);
-  const parsed = safeParse(mpdStatusSchema, Object.fromEntries(fields));
-  const status = parsed.success ? parsed.output : {};
+export function parseMpdStatus(rawResponse: string): ParsedMpdStatus {
+  const fields = parseMpdFields(rawResponse);
+  const statusValidation = safeParse(mpdStatusSchema, Object.fromEntries(fields));
+  const validatedStatus = statusValidation.success ? statusValidation.output : {};
+
   return {
-    status,
-    listenerCount: parseListenerCount(status.listeners),
+    status: validatedStatus,
+    listenerCount: parseListenerCount(validatedStatus.listeners),
     fieldCount: fields.size,
   };
 }
 
 /** currentsong / addid 系レコードの生フィールド。スキーマ解析は呼び出し側（song.ts など） */
-export function parseMpdRecord(raw: string) {
-  return Object.fromEntries(mpdFields(raw));
+export function parseMpdRecord(rawResponse: string) {
+  return Object.fromEntries(parseMpdFields(rawResponse));
 }
 
-export function parseMpdRecords(raw: string): Record<string, string>[] {
+export function parseMpdRecords(rawResponse: string): Record<string, string>[] {
   const records: Record<string, string>[] = [];
-  let current: Record<string, string> | null = null;
-  for (const line of mpdLines(raw)) {
+  let currentRecord: Record<string, string> | null = null;
+
+  for (const line of mpdLines(rawResponse)) {
     if (line === "") continue;
-    const idx = line.indexOf(": ");
-    if (idx <= 0) continue;
-    const key = line.slice(0, idx);
-    const value = line.slice(idx + 2);
+    const separatorIndex = line.indexOf(": ");
+
+    if (separatorIndex <= 0) continue;
+    const key = line.slice(0, separatorIndex);
+    const value = line.slice(separatorIndex + 2);
+
     if (key === "file") {
-      if (current) records.push(current);
-      current = { file: value };
+      if (currentRecord) records.push(currentRecord);
+      currentRecord = { file: value };
       continue;
     }
-    if (current) current[key] = value;
+
+    if (currentRecord) currentRecord[key] = value;
   }
-  if (current) records.push(current);
+
+  if (currentRecord) records.push(currentRecord);
+
   return records;
 }

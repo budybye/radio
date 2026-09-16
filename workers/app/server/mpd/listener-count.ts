@@ -5,24 +5,28 @@ import type { MpdError } from "../../lib/radio/errors";
 import { mpdCommand } from "./bridge";
 import { parseMpdStatus } from "./parse";
 
-let ssrListenerCache: { expires: number; count: number } | null = null;
+let ssrListenerCache: { expiresAt: number; listenerCount: number } | null = null;
 
-/** Inertia SSR 用（短 TTL キャッシュで MPD 連打を抑える） */
-export async function fetchListenerCountResult(): Promise<
-  Result<number, MpdError>
-> {
-  const now = Date.now();
-  if (ssrListenerCache && ssrListenerCache.expires > now) {
-    return Result.ok(ssrListenerCache.count);
+/**
+ * Inertia SSR listener count (short TTL cache). Live HTTP routes should call
+ * `mpdCommand("status")` directly instead of this helper.
+ */
+export async function getCachedListenerCountForSsr(): Promise<Result<number, MpdError>> {
+  const currentTime = Date.now();
+
+  if (ssrListenerCache && ssrListenerCache.expiresAt > currentTime) {
+    return Result.ok(ssrListenerCache.listenerCount);
   }
 
-  const result = await mpdCommand("status");
-  if (result.isErr()) return result;
+  const statusResult = await mpdCommand("status");
 
-  const count = parseMpdStatus(result.value).listenerCount;
+  if (statusResult.isErr()) return statusResult;
+
+  const listenerCount = parseMpdStatus(statusResult.value).listenerCount;
   ssrListenerCache = {
-    expires: now + SSR_CURRENT_SONG_CACHE_MS,
-    count,
+    expiresAt: currentTime + SSR_CURRENT_SONG_CACHE_MS,
+    listenerCount,
   };
-  return Result.ok(count);
+
+  return Result.ok(listenerCount);
 }

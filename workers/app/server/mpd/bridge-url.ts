@@ -1,23 +1,18 @@
 /** mpc-bridge の origin。本番は https://MPC_HOST、E2E ダミーは MPC_BRIDGE_BASE_URL */
-export function mpcBridgeOrigin(
-  mpcHost: string,
-  baseUrl?: string,
-): string {
+export function resolveMpcBridgeOrigin(mpcHost: string, baseUrl?: string): string {
   if (baseUrl) {
     const normalized = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+
     try {
       return new URL(normalized).origin;
     } catch {
       // Optional E2E override must not turn production requests into 500s.
     }
   }
+
   return `https://${mpcHost}`;
 }
 
-export function mpcBridgeUrl(
-  mpcHost: string,
-  cmd: string,
-  baseUrl?: string,
-): string {
-  return `${mpcBridgeOrigin(mpcHost, baseUrl)}/mpd.cgi?cmd=${encodeURIComponent(cmd)}`;
+export function buildMpcBridgeUrl(mpcHost: string, command: string, baseUrl?: string): string {
+  return `${resolveMpcBridgeOrigin(mpcHost, baseUrl)}/mpd.cgi?cmd=${encodeURIComponent(command)}`;
 }

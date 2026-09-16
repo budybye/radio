@@ -49,7 +49,4 @@ export const mpdPingErrSchema = v.pipe(
   v.metadata({ ref: "MpdPingErr" }),
 );
 
-export const mpdPingResponseSchema = v.variant("ok", [
-  mpdPingOkSchema,
-  mpdPingErrSchema,
-]);
+export const mpdPingResponseSchema = v.variant("ok", [mpdPingOkSchema, mpdPingErrSchema]);

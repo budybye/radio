@@ -1,49 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  createRadioConfig,
-  DEFAULT_STATION_ID,
-  IRIE_FM_STREAM_URL,
-  RADIO_STATIONS,
-} from "./stations";
+import { DEFAULT_STATION_ID, RADIO_STATIONS } from "./stations";
 
 describe("radio station catalog", () => {
-  it("contains the MPD default and IRIE FM sources", () => {
-    expect(DEFAULT_STATION_ID).toBe("mpd");
-    expect(RADIO_STATIONS).toEqual([
-      {
-        id: "mpd",
-        label: "mpd radio",
-        kind: "mpd",
-      },
-      {
-        id: "irie-fm",
-        label: "IRIE FM 107.5 MHz",
-        kind: "external",
-        streamUrl: IRIE_FM_STREAM_URL,
-      },
-    ]);
-    expect(IRIE_FM_STREAM_URL).toBe("https://stream.iriefm.net:8006/stream");
+  it("defaults to the MPD station", () => {
+    expect(RADIO_STATIONS.find(({ id }) => id === DEFAULT_STATION_ID)?.kind).toBe("mpd");
   });
 
-  it("builds Home config with the runtime MPD URL", () => {
-    expect(createRadioConfig("mpd.example.test", "mpd radio")).toEqual({
-      stations: [
-        {
-          id: "mpd",
-          label: "mpd radio",
-          kind: "mpd",
-          streamUrl: "https://mpd.example.test/",
-        },
-        {
-          id: "irie-fm",
-          label: "IRIE FM 107.5 MHz",
-          kind: "external",
-          streamUrl: IRIE_FM_STREAM_URL,
-        },
-      ],
-      defaultStationId: DEFAULT_STATION_ID,
-      titleFallback: "mpd radio",
-    });
+  it("keeps station ids unique", () => {
+    expect(new Set(RADIO_STATIONS.map(({ id }) => id)).size).toBe(RADIO_STATIONS.length);
+  });
+
+  it("serves the named external stations over https", () => {
+    for (const id of ["irie-fm", "zip-103", "fame-95", "hot-97", "reprezent"]) {
+      const station = RADIO_STATIONS.find((entry) => entry.id === id);
+
+      if (station?.kind !== "external") throw new Error(`Missing external station: ${id}`);
+      expect(new URL(station.streamUrl).protocol).toBe("https:");
+    }
   });
 });

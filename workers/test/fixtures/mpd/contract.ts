@@ -42,6 +42,7 @@ export type MpdFixtureContract = v.InferOutput<typeof mpdFixtureContractSchema>;
 
 export async function loadMpdFixtureContract(): Promise<MpdFixtureContract> {
   const raw = await readFile(join(MPD_FIXTURES_DIR, "contract.json"), "utf8");
+
   return v.parse(mpdFixtureContractSchema, JSON.parse(raw));
 }
 

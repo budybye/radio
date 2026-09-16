@@ -5,21 +5,26 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadMpdFixtureContract } from "./fixtures/mpd/contract";
 
 const HOST = "127.0.0.1";
+
 const PORT = 18_081;
+
 const BASE = `http://${HOST}:${PORT}`;
 
 async function waitForStubReady(): Promise<void> {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
       const response = await fetch(`${BASE}/mpd.cgi?cmd=ping`);
+
       if (response.ok) {
         return;
       }
     } catch {
       // retry until stub listens
     }
+
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
+
   throw new Error("mpd-stub did not become ready in time");
 }
 

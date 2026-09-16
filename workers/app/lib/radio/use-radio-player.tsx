@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 
 import { METADATA_REFRESH_DEBOUNCE_MS } from "./constants";
 import type { ConfiguredRadioStation, RadioStationId } from "./stations";
@@ -16,47 +10,34 @@ import {
   type MpdAgentWatchUpdate,
 } from "./use-mpd-agent";
 
-function streamOrigin(streamUrl: string): string {
+function getStreamOrigin(streamUrl: string): string {
   return new URL(streamUrl).origin;
 }
 
-/** エラー再接続時のみ cache bust（初回 play は warm した接続を再利用） */
-function liveStreamUrl(base: string): string {
-  return `${base}?_${Date.now()}`;
+/** エラー再接続時のみ cache bust */
+function buildReconnectStreamUrl(streamUrl: string): string {
+  return `${streamUrl}?_${Date.now()}`;
 }
 
-function hasWarmStreamSrc(audio: HTMLAudioElement, streamUrl: string): boolean {
-  if (!audio.src) return false;
-  try {
-    return new URL(audio.src).origin === streamOrigin(streamUrl);
-  } catch {
-    return false;
-  }
-}
-
-function disconnectAudio(audio: HTMLAudioElement): void {
+function resetAudioElement(audio: HTMLAudioElement): void {
   audio.pause();
   audio.removeAttribute("src");
   audio.load();
 }
 
-export function stationPlaybackTransition(
-  station: ConfiguredRadioStation,
-  playbackIntent: boolean,
-) {
-  const mpdState = station.kind === "mpd";
+export function getStationPlaybackTransition(station: ConfiguredRadioStation, shouldPlay: boolean) {
+  const isMpdStation = station.kind === "mpd";
+
   return {
     streamUrl: station.streamUrl,
-    reconnect: playbackIntent,
-    mpdState,
-    engageAgent: mpdState && playbackIntent,
-    clearMpdState: !mpdState,
+    shouldReconnect: shouldPlay,
+    isMpdStation,
+    shouldEngageAgent: shouldPlay && isMpdStation,
+    shouldClearMpdState: !isMpdStation,
   };
 }
 
-export function mediaErrorMode(
-  station: ConfiguredRadioStation,
-): "unavailable" | "reconnect" {
+export function getMediaErrorMode(station: ConfiguredRadioStation): "unavailable" | "reconnect" {
   return station.kind === "external" ? "unavailable" : "reconnect";
 }
 
@@ -68,13 +49,14 @@ export function canApplyPlaybackResult(
   return resultGeneration === currentGeneration && playbackIntent;
 }
 
-function initialPageVisible(): boolean {
-  if (!("document" in globalThis)) return true;
-  return globalThis.document.visibilityState === "visible";
+function getInitialPageVisibility(): boolean {
+  if (typeof document === "undefined") return true;
+
+  return document.visibilityState === "visible";
 }
 
 type UseRadioPlayerOptions = {
-  initialSong: CurrentSongClient | null;
+  initialSong: CurrentSongClient | null | undefined;
   initialListenerCount: number;
   stations: readonly ConfiguredRadioStation[];
   defaultStationId: RadioStationId;
@@ -94,21 +76,24 @@ export function useRadioPlayer({
   const agentApiRef = useRef<MpdAgentApi | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [agentEngaged, setAgentEngaged] = useState(false);
-  const [pageVisible, setPageVisible] = useState(initialPageVisible);
-  const [currentSong, setCurrentSong] = useState(initialSong);
+  const [volume, setVolume] = useState(1);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [isMpdAgentEnabled, setIsMpdAgentEnabled] = useState(false);
+  const [pageVisible, setPageVisible] = useState(getInitialPageVisibility);
+  const [currentSong, setCurrentSong] = useState(initialSong ?? null);
   const [listenerCount, setListenerCount] = useState(initialListenerCount);
   const [mpdState, setMpdState] = useState<string | null>(null);
-  const [agentError, setAgentError] = useState<string | null>(null);
-  const [streamError, setStreamError] = useState<string | null>(null);
-  const [agentConnection, setAgentConnection] =
-    useState<MpdAgentConnectionStatus>({
-      connected: false,
-      connecting: false,
-    });
+  const [agentErrorMessage, setAgentErrorMessage] = useState<string | null>(null);
+  const [streamErrorMessage, setStreamErrorMessage] = useState<string | null>(null);
+
+  const [, setAgentConnection] = useState<MpdAgentConnectionStatus>({
+    isConnected: false,
+    isConnecting: false,
+  });
+
   const songRef = useRef(currentSong);
-  const intentRef = useRef(false);
-  const genRef = useRef(0);
+  const playbackIntentRef = useRef(false);
+  const playbackGenerationRef = useRef(0);
   const [stationId, setStationId] = useState(defaultStationId);
   const selectedStation = stations.find(({ id }) => id === stationId) ?? stations[0];
   const isMpdStation = selectedStation?.kind === "mpd";
@@ -120,8 +105,8 @@ export function useRadioPlayer({
     songRef.current = currentSong;
   }, [currentSong]);
 
-  const engageAgent = useCallback(() => {
-    setAgentEngaged(true);
+  const enableMpdAgent = useCallback(() => {
+    setIsMpdAgentEnabled(true);
   }, []);
 
   const handleAgentUpdate = useCallback(
@@ -130,26 +115,23 @@ export function useRadioPlayer({
       setCurrentSong(update.song);
       setListenerCount(update.listenerCount);
       setMpdState(update.mpdState);
-      setAgentError(update.lastError);
+      setAgentErrorMessage(update.lastError);
     },
     [isMpdStation],
   );
 
-  const handleAgentConnectionStatus = useCallback(
-    (status: MpdAgentConnectionStatus) => {
-      setAgentConnection(status);
-    },
-    [],
-  );
+  const handleAgentConnectionStatus = useCallback((status: MpdAgentConnectionStatus) => {
+    setAgentConnection(status);
+  }, []);
 
-  const watchActive = isMpdStation && agentEngaged && pageVisible;
+  const isWatchActive = isMpdStation && isMpdAgentEnabled && pageVisible;
 
-  const agentSync = useMemo(
+  const mpdAgentSync = useMemo(
     () => (
       <MpdAgentSync
-        engaged={isMpdStation && agentEngaged}
-        watchActive={watchActive}
-        playbackActive={isPlaying}
+        isEngaged={isMpdStation && isMpdAgentEnabled}
+        isWatchActive={isWatchActive}
+        hasPlaybackIntent={isPlaying}
         onUpdate={handleAgentUpdate}
         songRef={songRef}
         apiRef={agentApiRef}
@@ -158,48 +140,40 @@ export function useRadioPlayer({
     ),
     [
       isMpdStation,
-      agentEngaged,
-      watchActive,
+      isMpdAgentEnabled,
+      isWatchActive,
       isPlaying,
       handleAgentUpdate,
       handleAgentConnectionStatus,
     ],
   );
 
-  const stop = useCallback(() => {
-    genRef.current++;
-    intentRef.current = false;
+  const stopStreamPlayback = useCallback(() => {
+    playbackGenerationRef.current++;
+    playbackIntentRef.current = false;
     reconnectOnStationChangeRef.current = false;
     const audio = audioRef.current;
-    if (audio) disconnectAudio(audio);
+
+    if (audio) resetAudioElement(audio);
     setIsPlaying(false);
-    setAgentEngaged(false);
+    setIsBuffering(false);
+    setIsMpdAgentEnabled(false);
   }, []);
 
-  /** ホバー時にストリームを温めるだけ（DO / WS は Play 時まで接続しない） */
-  const prepareStream = useCallback(() => {
-    if (intentRef.current) return;
-    const audio = audioRef.current;
-    if (!audio || hasWarmStreamSrc(audio, streamUrl)) return;
-    audio.src = streamUrl;
-    audio.load();
-  }, [streamUrl]);
-
-  const connect = useCallback(
-    async (options?: { forceReload?: boolean }) => {
-      if (!intentRef.current) return;
+  const startStreamPlayback = useCallback(
+    async (connectOptions?: { forceReload?: boolean }) => {
+      if (!playbackIntentRef.current) return;
 
       const audio = audioRef.current;
+
       if (!audio) return;
 
-      const gen = ++genRef.current;
-      const warm = hasWarmStreamSrc(audio, streamUrl);
+      setIsBuffering(true);
+      const playbackGeneration = ++playbackGenerationRef.current;
 
-      if (!warm || options?.forceReload) {
-        disconnectAudio(audio);
-        audio.src = options?.forceReload
-          ? liveStreamUrl(streamUrl)
-          : streamUrl;
+      if (audio.getAttribute("src") !== streamUrl || connectOptions?.forceReload) {
+        resetAudioElement(audio);
+        audio.src = connectOptions?.forceReload ? buildReconnectStreamUrl(streamUrl) : streamUrl;
         audio.load();
       }
 
@@ -207,64 +181,109 @@ export function useRadioPlayer({
 
       try {
         await audio.play();
+
         if (
           !canApplyPlaybackResult(
-            gen,
-            genRef.current,
-            intentRef.current,
+            playbackGeneration,
+            playbackGenerationRef.current,
+            playbackIntentRef.current,
           )
         ) {
           return;
         }
+
         setIsPlaying(true);
-        setStreamError(null);
+        setStreamErrorMessage(null);
       } catch {
-        if (gen === genRef.current) stop();
+        if (playbackGeneration === playbackGenerationRef.current) {
+          stopStreamPlayback();
+          setStreamErrorMessage((error) => error ?? "Playback could not start");
+        }
       }
     },
-    [isMuted, stop, streamUrl],
+    [isMuted, stopStreamPlayback, streamUrl],
+  );
+
+  const isCurrentAudioEvent = useCallback(
+    (event: SyntheticEvent<HTMLAudioElement>) => {
+      const audio = audioRef.current;
+      const source = audio?.getAttribute("src");
+
+      return (
+        audio !== null &&
+        event.currentTarget === audio &&
+        playbackIntentRef.current &&
+        (source === streamUrl || source?.startsWith(`${streamUrl}?_`))
+      );
+    },
+    [streamUrl],
+  );
+
+  const onAudioWaiting = useCallback(
+    (event: SyntheticEvent<HTMLAudioElement>) => {
+      if (isCurrentAudioEvent(event)) setIsBuffering(true);
+    },
+    [isCurrentAudioEvent],
+  );
+
+  const onAudioPlaying = useCallback(
+    (event: SyntheticEvent<HTMLAudioElement>) => {
+      if (
+        isCurrentAudioEvent(event) &&
+        !event.currentTarget.paused &&
+        event.currentTarget.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+      ) {
+        setIsBuffering(false);
+      }
+    },
+    [isCurrentAudioEvent],
   );
 
   useEffect(() => {
     if (!reconnectOnStationChangeRef.current || !streamUrl) return;
     reconnectOnStationChangeRef.current = false;
-    void connect();
-  }, [connect, streamUrl]);
+    void startStreamPlayback();
+  }, [startStreamPlayback, streamUrl]);
 
-  const toggle = useCallback(() => {
-    if (isMpdStation) engageAgent();
-    if (intentRef.current) {
-      stop();
+  const togglePlayback = useCallback(() => {
+    if (isMpdStation) enableMpdAgent();
+
+    if (playbackIntentRef.current) {
+      stopStreamPlayback();
+
       return;
     }
-    setStreamError(null);
-    intentRef.current = true;
+
+    setStreamErrorMessage(null);
+    playbackIntentRef.current = true;
     setIsPlaying(true);
-    void connect();
-  }, [connect, engageAgent, isMpdStation, setStreamError, stop]);
+    void startStreamPlayback();
+  }, [startStreamPlayback, enableMpdAgent, isMpdStation, stopStreamPlayback]);
 
   const selectStation = useCallback(
     (nextStationId: RadioStationId) => {
       const nextStation = stations.find(({ id }) => id === nextStationId);
+
       if (!nextStation || nextStation.id === stationId) return;
 
-      const transition = stationPlaybackTransition(
-        nextStation,
-        intentRef.current,
-      );
-      reconnectOnStationChangeRef.current = transition.reconnect;
-      genRef.current++;
+      const transition = getStationPlaybackTransition(nextStation, playbackIntentRef.current);
+      reconnectOnStationChangeRef.current = transition.shouldReconnect;
+      playbackGenerationRef.current++;
       const audio = audioRef.current;
-      if (audio) disconnectAudio(audio);
+
+      if (audio) resetAudioElement(audio);
       setStationId(nextStation.id);
-      setIsPlaying(false);
-      setCurrentSong(null);
-      setListenerCount(0);
+      setIsPlaying(transition.shouldReconnect);
+      setIsBuffering(transition.shouldReconnect);
       setMpdState(null);
-      setAgentError(null);
-      setStreamError(null);
-      setAgentEngaged(transition.engageAgent);
-      setAgentConnection({ connected: false, connecting: false });
+
+      if (transition.shouldClearMpdState) setCurrentSong(null);
+
+      setListenerCount(0);
+      setIsMpdAgentEnabled(transition.shouldEngageAgent);
+      setStreamErrorMessage(null);
+      setAgentErrorMessage(null);
+      setAgentConnection({ isConnected: false, isConnecting: false });
     },
     [stationId, stations],
   );
@@ -275,104 +294,115 @@ export function useRadioPlayer({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) audio.muted = isMuted;
-  }, [isMuted]);
+
+    if (audio) {
+      audio.muted = isMuted;
+      audio.volume = volume;
+    }
+  }, [isMuted, volume]);
 
   const reconnectAudioIfWanted = useCallback(() => {
-    if (!intentRef.current) return;
-    void connect({ forceReload: true });
-  }, [connect]);
+    if (!playbackIntentRef.current) return;
+    void startStreamPlayback({ forceReload: true });
+  }, [startStreamPlayback]);
 
   const onAudioError = useCallback(() => {
-    if (selectedStation && mediaErrorMode(selectedStation) === "unavailable") {
-      genRef.current++;
-      intentRef.current = false;
-      const audio = audioRef.current;
-      if (audio) disconnectAudio(audio);
-      setIsPlaying(false);
-      setStreamError("Station unavailable");
-      setAgentEngaged(false);
+    setIsBuffering(false);
+
+    if (selectedStation && getMediaErrorMode(selectedStation) === "unavailable") {
+      playbackGenerationRef.current++;
+      stopStreamPlayback();
+      setStreamErrorMessage("Station unavailable");
+      setIsMpdAgentEnabled(false);
+
       return;
     }
+
     reconnectAudioIfWanted();
-  }, [reconnectAudioIfWanted, selectedStation]);
+  }, [reconnectAudioIfWanted, selectedStation, stopStreamPlayback]);
 
   const refreshMetadata = useCallback(async () => {
+    if (!isMpdStation) return;
+
     const api = agentApiRef.current;
-    if (!api || api.isActive()) return;
+
+    if (!api?.isConnected()) return;
 
     const now = Date.now();
-    if (now - lastMetaRefreshRef.current < METADATA_REFRESH_DEBOUNCE_MS) {
-      return;
-    }
+
+    if (now - lastMetaRefreshRef.current < METADATA_REFRESH_DEBOUNCE_MS) return;
+
     lastMetaRefreshRef.current = now;
 
     try {
-      await api.refresh();
+      await api.refreshCurrentSong();
     } catch {
-      /* 前の曲名を維持 */
+      /* keep previous title */
     }
-  }, []);
+  }, [isMpdStation]);
 
   useEffect(() => {
     let link: HTMLLinkElement | null = null;
+
     try {
-      const origin = streamOrigin(streamUrl);
       link = document.createElement("link");
       link.rel = "preconnect";
-      link.href = origin;
+      link.href = getStreamOrigin(streamUrl);
       document.head.appendChild(link);
     } catch {
-      /* invalid streamUrl – skip preconnect */
+      /* invalid streamUrl */
     }
+
     return () => {
       link?.remove();
     };
   }, [streamUrl]);
 
   useEffect(() => {
-    const onVis = () => {
+    const onVisibilityChange = () => {
       const visible = document.visibilityState === "visible";
       setPageVisible(visible);
+
       if (!visible) return;
+
       reconnectAudioIfWanted();
       void refreshMetadata();
     };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [reconnectAudioIfWanted, refreshMetadata]);
 
-  useEffect(() => () => stop(), [stop]);
+  useEffect(() => () => stopStreamPlayback(), [stopStreamPlayback]);
 
-  const streamConnected = isPlaying;
-  const streamAudible = isPlaying && !isMuted;
-  const agentConnected = agentConnection.connected;
+  const isStreamAudible = isPlaying && !isMuted && volume > 0 && !isBuffering;
 
   const displayListeners = isMpdStation
-    ? Math.max(listenerCount, streamAudible ? 1 : 0)
+    ? Math.max(listenerCount, isStreamAudible ? 1 : 0)
     : 0;
 
   return {
     audioRef,
-    agentSync,
+    mpdAgentSync,
     isPlaying,
     isMuted,
+    volume,
+    setVolume,
     station: selectedStation,
     stationId,
     selectStation,
-    streamConnected,
-    streamAudible,
-    toggle,
+    isStreamAudible,
+    isBuffering,
+    onAudioWaiting,
+    onAudioPlaying,
+    togglePlayback,
     toggleMute,
-    prepareStream,
     onAudioError,
     currentSong,
     listenerCount: displayListeners,
     mpdState,
-    agentError,
-    streamError,
-    agentEngaged,
-    agentConnected,
-    agentConnecting: agentConnection.connecting,
+    agentErrorMessage,
+    streamErrorMessage,
   };
 }

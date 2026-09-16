@@ -13,12 +13,10 @@ import type { CurrentSongView } from "./types";
 import { type MpdErrorWire } from "./serialize-wire";
 
 export type { MpdErrorWire, RpcSerializedEnvelopeWire } from "./serialize-wire";
+
 export { parseSerializedCurrentSongView } from "./serialize-wire";
 
-export type CurrentSongClient = Exclude<
-  CurrentSongView,
-  null | { unchanged: true }
->;
+export type CurrentSongClient = Exclude<CurrentSongView, null | { unchanged: true }>;
 
 /** TaggedError → DO/RPC wire 形（structuredClone 前に平オブジェクト化） */
 export function mpdErrorToWire(error: MpdError): MpdErrorWire {
@@ -27,10 +25,9 @@ export function mpdErrorToWire(error: MpdError): MpdErrorWire {
 }
 
 /** UI / ログ向けに wire から表示メッセージを取り出す */
-export function mpdWireMessage(
-  wire: MpdErrorWire | null | undefined,
-): string | null {
+export function mpdWireMessage(wire: MpdErrorWire | null | undefined): string | null {
   if (!wire) return null;
+
   return wire.message ?? wire._tag;
 }
 
@@ -40,17 +37,18 @@ export function mpdWireEqual(
   b: MpdErrorWire | null | undefined,
 ): boolean {
   if (a === b) return true;
+
   if (!a || !b) return false;
+
   return a._tag === b._tag && (a.message ?? "") === (b.message ?? "");
 }
 
 export type SerializedMpdResult<T> = SerializedResult<T, MpdErrorWire>;
 
 /** MPD Result を RPC 用 envelope へ。error スロットは hydrateMpdError が復元する wire 形 */
-export function serializeMpdResult<T>(
-  result: Result<T, MpdError>,
-): SerializedMpdResult<T> {
+export function serializeMpdResult<T>(result: Result<T, MpdError>): SerializedMpdResult<T> {
   if (result.isOk()) return { status: "ok", value: result.value };
+
   return {
     status: "error",
     error: mpdErrorToWire(result.error),
@@ -94,12 +92,12 @@ export function deserializeCurrentSongView(
   serialized: SerializedMpdResult<CurrentSongView>,
 ): Result<CurrentSongView, MpdError> {
   if (serialized.status === "ok") return Result.ok(serialized.value);
+
   if (serialized.status === "error") {
     return Result.err(hydrateMpdError(serialized.error));
   }
-  return Result.err(
-    new MpdTransportError({ message: "invalid SerializedResult envelope" }),
-  );
+
+  return Result.err(new MpdTransportError({ message: "invalid SerializedResult envelope" }));
 }
 
 /** `SerializedResult` → 表示用（unchanged / err は cache を維持） */
@@ -110,7 +108,9 @@ export function currentSongFromSerialized(
   return deserializeCurrentSongView(serialized).match({
     ok: (data) => {
       if (data === null) return null;
+
       if ("unchanged" in data) return cache;
+
       return data;
     },
     err: () => cache,

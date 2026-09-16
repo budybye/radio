@@ -1,6 +1,6 @@
 import { Result } from "better-result";
 
-import type { PostSongInput } from "../../schemas/posts";
+import type { QueueSongInput } from "../../schemas/queue";
 import type { Song } from "../../schemas/mpd";
 import { MpdTransportError, type MpdError } from "../../lib/radio/errors";
 import { mpdCommand, quoteMpdArg } from "./bridge";
@@ -8,70 +8,68 @@ import { parseMpdRecords, parseMpdRecord } from "./parse";
 import { recordToSong } from "./song";
 
 export async function listSongs(): Promise<Result<Song[], MpdError>> {
-  return (await mpdCommand("playlistinfo")).map((raw) =>
-    parseMpdRecords(raw)
+  return (await mpdCommand("playlistinfo")).map((rawResponse) =>
+    parseMpdRecords(rawResponse)
       .map(recordToSong)
       .filter((song): song is Song => song !== undefined)
-      .sort((a, b) => a.pos - b.pos),
+      .sort((firstSong, secondSong) => firstSong.pos - secondSong.pos),
   );
 }
 
-export async function findSong(
-  id: number,
-): Promise<Result<Song | undefined, MpdError>> {
-  return (await mpdCommand(`playlistid ${id}`)).map((raw) =>
-    recordToSong(parseMpdRecord(raw)),
+export async function findSong(songId: number): Promise<Result<Song | undefined, MpdError>> {
+  return (await mpdCommand(`playlistid ${songId}`)).map((rawResponse) =>
+    recordToSong(parseMpdRecord(rawResponse)),
   );
 }
 
-export async function createSong(
-  input: PostSongInput,
-): Promise<Result<Song, MpdError>> {
-  const quoted = quoteMpdArg(input.file);
-  if (quoted.isErr()) return quoted;
+export async function createSong(songInput: QueueSongInput): Promise<Result<Song, MpdError>> {
+  const quotedFilePath = quoteMpdArg(songInput.file);
 
-  return (await mpdCommand(`addid ${quoted.value}`)).andThenAsync(
-    async (raw) => {
-      const added = parseMpdRecord(raw);
-      const id = Number(added.Id);
-      if (!Number.isFinite(id)) {
-        return Result.err(
-          new MpdTransportError({ message: "failed to add song to playlist" }),
-        );
-      }
-      const song = await findSong(id);
-      return song.andThen((s) =>
-        s
-          ? Result.ok(s)
-          : Result.err(
-              new MpdTransportError({
-                message: "failed to fetch added song",
-              }),
-            ),
-      );
-    },
-  );
+  if (quotedFilePath.isErr()) return quotedFilePath;
+
+  return (await mpdCommand(`addid ${quotedFilePath.value}`)).andThenAsync(async (addResponse) => {
+    const addedSongRecord = parseMpdRecord(addResponse);
+    const songId = Number(addedSongRecord.Id);
+
+    if (!Number.isFinite(songId)) {
+      return Result.err(new MpdTransportError({ message: "failed to add song to playlist" }));
+    }
+
+    const foundSongResult = await findSong(songId);
+
+    return foundSongResult.andThen((song) =>
+      song
+        ? Result.ok(song)
+        : Result.err(
+            new MpdTransportError({
+              message: "failed to fetch added song",
+            }),
+          ),
+    );
+  });
 }
 
 export async function updateSong(
-  id: number,
-  input: PostSongInput,
+  songId: number,
+  songInput: QueueSongInput,
 ): Promise<Result<Song | undefined, MpdError>> {
-  const existing = await findSong(id);
-  if (existing.isErr()) return existing;
-  if (!existing.value) return Result.ok(undefined);
+  const existingSongResult = await findSong(songId);
 
-  const created = await createSong(input);
-  if (created.isErr()) return created;
+  if (existingSongResult.isErr()) return existingSongResult;
 
-  const del = await mpdCommand(`deleteid ${id}`);
-  if (del.isErr()) return del;
+  if (!existingSongResult.value) return Result.ok(undefined);
 
-  return created;
+  const createdSongResult = await createSong(songInput);
+
+  if (createdSongResult.isErr()) return createdSongResult;
+
+  const deleteResult = await mpdCommand(`deleteid ${songId}`);
+
+  if (deleteResult.isErr()) return deleteResult;
+
+  return createdSongResult;
 }
 
-export async function deleteSong(
-  id: number,
-): Promise<Result<boolean, MpdError>> {
-  return (await mpdCommand(`deleteid ${id}`)).map(() => true);
+export async function deleteSong(songId: number): Promise<Result<boolean, MpdError>> {
+  return (await mpdCommand(`deleteid ${songId}`)).map(() => true);
 }

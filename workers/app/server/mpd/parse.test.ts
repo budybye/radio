@@ -1,21 +1,18 @@
 import { describe, expect, it } from "vitest";
 
+import { loadMpdFixtureContract, readMpdFixture } from "../../../test/fixtures/mpd/contract";
 import {
-  loadMpdFixtureContract,
-  readMpdFixture,
-} from "../../../test/fixtures/mpd/contract";
-import {
-  mpdFields,
+  parseMpdFields,
   parseListenerCount,
   parseMpdRecord,
   parseMpdRecords,
   parseMpdStatus,
 } from "./parse";
 
-describe("mpdFields", () => {
+describe("parseMpdFields", () => {
   it("drops OK/ACK lines and parses key: value pairs from status.txt fixture", async () => {
     const raw = await readMpdFixture("status.txt");
-    const fields = mpdFields(raw);
+    const fields = parseMpdFields(raw);
     const contract = await loadMpdFixtureContract();
 
     expect(fields.get("state")).toBe(contract.status.state);
@@ -73,6 +70,7 @@ Title: A
 file: b.flac
 Title: B
 OK`;
+
     expect(parseMpdRecords(raw)).toEqual([
       { file: "a.flac", Title: "A" },
       { file: "b.flac", Title: "B" },
