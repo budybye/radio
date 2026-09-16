@@ -84,36 +84,14 @@ https://your-tunnel-domain/
 
 ### Web UI で操作する
 
-Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose には含めない）。
-
-#### フォークして自分の Cloudflare に載せる（Deploy to Cloudflare）
+Web UI は `workers/` を Cloudflare Workers に deploy して使います（compose には含めない）。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/budybye/radio&directory=workers)
 
-ボタンで **Workers のみ** がデプロイされます。MPD / Tunnel は別途 [クイックスタート](#クイックスタート) の Docker スタックが必要です。
+デプロイ手順・環境変数・secrets・メンテナ本番運用の正本は **[docs/maintenance.md](docs/maintenance.md)** です。MPD / Tunnel は別途 [クイックスタート](#クイックスタート) の Docker スタックが必要です。
 
-> **メンテナ本番**: MPD・mpc-bridge・Tunnel の Docker は **Raspberry Pi 上で既に常時稼働**しています。Workers の変更は `cd workers && bun run deploy` のみでよく、Pi 側の compose を毎回起動する必要はありません（詳細: [docs/maintenance.md](docs/maintenance.md#maintainer-production)）。
-
-デプロイ後のチェックリスト（vars・secrets・Access・Tunnel）は **[docs/maintenance.md](docs/maintenance.md)** を参照。
-
-#### このリポジトリのメンテナが手動デプロイする場合
-
-```bash
-cd workers
-bun install
-bun run deploy   # Worker "radio" — workers/.env があれば実ホスト名を注入
-```
-
-> 単一 Worker `radio`。詳細: [docs/maintenance.md](docs/maintenance.md#deploy-targets)
-
-| ホスト | 用途 |
-|--------|------|
-| `your-domain.com` | リスナー Home + 管理 UI（`GET /queue*` は Basic、書き込みは Basic または Bearer） |
-| `mpd.your-domain.com` | MP3 ストリーム URL（Home の `config.stations` 内の MPD 局が参照） |
-
-ローカル UI 確認（任意）: `cd workers && bun run dev`
-
-E2E は `radio.*.workers.dev` / `radio-preview.*.workers.dev` とカスタムドメインで実行できます。詳細は [docs/test.md](docs/test.md)。
+ローカル UI 確認（任意）: `cd workers && bun run dev`  
+E2E: [docs/test.md](docs/test.md)
 
 ## アーキテクチャ
 
@@ -150,24 +128,25 @@ make ncmpcpp   # TUI プレイヤーを開く
 
 完全な Make target 一覧は `make help` を参照。
 
-### MPC コマンド（コンテナ内直接操作）
+### MPC コマンド（`make up` 後）
 
 ```bash
-docker compose exec mpd mpc play
-docker compose exec mpd mpc pause
-docker compose exec mpd mpc next
-docker compose exec mpd mpc prev
-docker compose exec mpd mpc status
-docker compose exec mpd mpc update   # ライブラリ更新
-docker compose exec mpd mpc clear    # プレイリストクリア
+make play        # 再生
+make pause       # 一時停止
+make next        # 次の曲
+make prev        # 前の曲
+make status      # 状態表示
+make reload      # ライブラリ再スキャン + キュー再構築
+make random      # シャッフル ON
+make sequential  # シャッフル OFF
 ```
 
-> `mpc volume` はコンテナ内にハードウェアミキサーがないため無効です。音量調整はクライアント側（VLC / ブラウザ）で行ってください。
+> `mpc volume` はコンテナ内にハードウェアミキサーがないため無効です。音量調整はクライアント側（VLC / ブラウザ）で行ってください。Make は `docker compose` / `docker-compose` を自動判定します（`Makefile` の `DC`）。
 
 ### ncmpcpp（TUI クライアント）
 
 ```bash
-docker compose exec -it mpd ncmpcpp
+make ncmpcpp
 ```
 
 主なキーバインド：
@@ -217,16 +196,16 @@ docker compose exec -it mpd ncmpcpp
 | [docs/problems.md](docs/problems.md) | 既知の問題・リスク |
 | [docs/references.md](docs/references.md) | 参考資料リンク集 |
 | [AGENTS.md](AGENTS.md) | 作業時の禁止事項・読む順 |
-| [workers/README.md](workers/README.md) | Workers 開発・ルート・シークレット |
+| [workers/README.md](workers/README.md) | Workers 開発・ルート・HTTP API |
 
 ## トラブルシューティング
 
 | 症状 | 対処法 |
 |------|--------|
-| 音楽が追加されない | `docker compose exec mpd mpc update` を実行。`auto_update` により自動反映もされます |
+| 音楽が追加されない | `make reload` を実行。`auto_update` により自動反映もされます |
 | ストリームに接続できない | Tunnel の Public Hostname で Service が `http://mpd:8000` になっているか確認 |
-| 音が出ない・エンコードエラー | `docker compose logs mpd` で確認。Alpine の `mpd` パッケージに `lame` が含まれていることを確認済み |
-| ncmpcpp の画面が崩れる | `docker compose exec -it mpd ncmpcpp` で `-it`（TTY + 対話モード）を付けているか確認 |
+| 音が出ない・エンコードエラー | `make logs` で確認。Alpine の `mpd` パッケージに `lame` が含まれていることを確認済み |
+| ncmpcpp の画面が崩れる | `make ncmpcpp` を使う（TTY + 対話モード付き） |
 
 詳細は [docs/problems.md](docs/problems.md) を参照してください。
 

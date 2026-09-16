@@ -33,7 +33,7 @@
 
 Workers 開発・デプロイだけ行う場合は **Pi 上のスタックを再起動する必要は通常ありません**。`workers/.env` の `MPD_HOST` / `MPC_HOST` が Tunnel 経由のホスト名を指していれば、`cd workers && bun run deploy` のみで UI を更新できます。
 
-Pi 側の操作（ログ・再生制御・イメージ更新）はリポジトリを Pi に clone したうえで `make logs` / `make status` 等を **Pi 上で**実行するか、SSH 経由で同等の `docker compose` コマンドを使います。ローカル PC で `make up` するのは開発用の別スタックです。
+Pi 側の操作（ログ・再生制御・イメージ更新）はリポジトリを Pi に clone したうえで **Pi 上で** `make help` を参照（`make logs` / `make status` / `make play` / `make reload` 等）。ローカル PC の `make up` は開発用の別スタックです。MPC 操作の一覧は [README.md の操作ガイド](../README.md#操作ガイド) を参照。
 
 ```bash
 cp workers/.env.example workers/.env

@@ -104,25 +104,9 @@ workers/
 
 ## デプロイとシークレット
 
-環境変数（`wrangler.jsonc` に vars の定義はありません。`MPD_HOST` / `MPC_HOST` は `workers/.env` から deploy 時に注入）:
+運用・デプロイ・環境変数・secrets の正本は [docs/maintenance.md](../docs/maintenance.md)。認証境界は [docs/security.md](../docs/security.md#auth-matrix)。
 
-| 変数                  | 例                    | 説明                                                                     |
-| --------------------- | --------------------- | ------------------------------------------------------------------------ |
-| `MPD_HOST`            | `mpd.your-domain.com` | MP3 ストリーム URL ホスト                                                |
-| `MPC_HOST`            | `mpc.your-domain.com` | mpc-bridge ホスト                                                        |
-| `MPC_BRIDGE_BASE_URL` | _(未設定)_            | **ローカル開発 / E2E 用**: `http://127.0.0.1:18080` で mpd-stub に向ける |
-
-Wrangler secrets（`cd workers && bun run cf-secret`）:
-
-| Secret                    | 用途                                           |
-| ------------------------- | ---------------------------------------------- |
-| `CF_ACCESS_CLIENT_ID`     | mpc.your-domain.com Access Service Token       |
-| `CF_ACCESS_CLIENT_SECRET` | 同上                                           |
-| `USERNAME`                | 管理 UI Basic Auth                             |
-| `PASSWORD`                | 管理 UI Basic Auth                             |
-| `TOKEN`                   | 管理 API Bearer（`basicOrBearer` の write 用） |
-
-mpc.your-domain.com は Cloudflare Access（Service Auth + Block）で保護し、Worker の fetch のみ通す。認証境界は [docs/security.md](../docs/security.md#auth-matrix) を参照。
+ローカル開発用の `MPC_BRIDGE_BASE_URL`（mpd-stub）は [`.env.example`](.env.example) を参照。
 
 ## 触るファイルの目安
 

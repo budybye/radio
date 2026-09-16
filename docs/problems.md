@@ -4,7 +4,7 @@
 
 | ID | 問題 | 影響 | 対応計画 | 担当 |
 |----|------|------|----------|------|
-| P-001 | ~~ncmpcpp の動作確認未完了~~ | — | ✅ 解決済み。コンテナ内で `docker compose exec -it mpd ncmpcpp` を実行し、TUI の表示・操作が正常に機能することを確認済み | — |
+| P-001 | ~~ncmpcpp の動作確認未完了~~ | — | ✅ 解決済み。`make ncmpcpp` で TUI の表示・操作が正常に機能することを確認済み | — |
 | P-002 | `mixer_type none` によるサーバ側音量調整不可 | 低 | クライアント側（VLC / ブラウザ）での音量調整を推奨する運用ドキュメントを整備 | 未設定 |
 | P-003 | MPD HTTPD 出力の `max_clients = 20` 制限 | 高（将来） | 同時接続リスナーが 20 を超える場合、新規接続が拒否される。Phase 2 で Icecast リレーまたは nginx 等のストリームリバースプロキシを MPD 前段に配置して対応を検討 | 未設定 |
 | P-004 | ~~mpc サブドメインが認証なし公開~~ | — | ✅ 解決済み。Cloudflare Access（Service Auth + Block）+ Worker Service Token ヘッダ | — |
@@ -13,7 +13,7 @@
 
 ### ncmpcpp の動作状況
 
-- **状況**: ✅ 動作確認済み。`docker compose exec -it mpd ncmpcpp` で TUI が正常に起動する
+- **状況**: ✅ 動作確認済み。`make ncmpcpp` で TUI が正常に起動する
 - **修正履歴**: `config/config` から非サポートオプション（`volume_normalization`、`visualizer_sync_interval`）を削除し、起動エラーを解決
 
 ### 音量制御の制約
