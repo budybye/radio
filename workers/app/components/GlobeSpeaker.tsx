@@ -82,7 +82,15 @@ export function GlobeSpeaker({
 }: GlobeSpeakerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wakeRef = useRef<(() => void) | null>(null);
-  const propsRef = useRef({ location, stationId, stations, isStreamAudible, isBuffering, hasError });
+
+  const propsRef = useRef({
+    location,
+    stationId,
+    stations,
+    isStreamAudible,
+    isBuffering,
+    hasError,
+  });
 
   useEffect(() => {
     propsRef.current = { location, stationId, stations, isStreamAudible, isBuffering, hasError };

@@ -17,7 +17,7 @@ case "$TIER" in
     fi
     export RADIO_E2E_BASE_URL="${RADIO_E2E_WORKERS_URL:-$RADIO_E2E_PREVIEW_URL}"
     echo "== E2E tier: workers (radio.*.workers.dev) =="
-    echo "   HTTP: Inertia shell. opencli: hydrated LISTENERS + globe-speaker."
+    echo "   HTTP: Inertia shell. opencli: hydrated Listeners + globe-speaker."
     echo "   Deploy: cd workers && bun run deploy"
     ;;
   prod)

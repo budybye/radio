@@ -16,9 +16,9 @@ flowchart TB
   end
 
   subgraph unit["Unit / Static"]
-    Vitest["vp test（Vitest 4.1.11）"]
-    Lint["vp lint"]
-    Build["vp build"]
+    Vitest["bun run test"]
+    Check["bun run check"]
+    Build["bun run build"]
   end
 
   e2e --> integration
@@ -28,7 +28,9 @@ flowchart TB
 | 層 | コマンド | 備考 |
 |----|----------|------|
 | Unit | `cd workers && bun run test` | serialize、parse、bridge 等 |
+| Static | `cd workers && bun run check` | format + lint + typecheck |
 | Integration | `make test` | Docker MPD ヘルスチェック |
+| All local | `make test-all` | Workers unit → Docker integration |
 | CI | `.github/workflows/workers-test.yaml` → `.github/workflows/workers-ci.yaml` | PR/push トリガー → unit → lint → build |
 | E2E workers | `make test-e2e-workers` | `radio.*.workers.dev` / `radio-preview.*.workers.dev` |
 
@@ -42,7 +44,7 @@ flowchart LR
   Deploy["cd workers && bun run deploy<br/>vpr build → dist/radio/wrangler.json"]
   Http["workers/test/smoke.ts<br/>HTTP 200 + Inertia shell"]
   Opencli["scripts/e2e/opencli-home.sh<br/>ハイドレーション後 UI"]
-  Checks["LISTENERS / .globe-speaker"]
+  Checks["Listeners / .globe-speaker"]
 
   Deploy --> Http --> Opencli --> Checks
 ```
@@ -57,7 +59,7 @@ flowchart LR
 make test-e2e-workers
 ```
 
-`make test-e2e-workers` は `scripts/e2e/smoke-deployed.sh workers` を実行し、`workers/test/smoke.ts` の HTTP smoke を行います。`RADIO_E2E_WORKERS_URL` または `RADIO_E2E_PREVIEW_URL` を使用できます。`opencli` が利用可能な場合は `scripts/e2e/opencli-home.sh` でハイドレーション後の `LISTENERS` / `.globe-speaker` も確認します。`opencli` がない場合、その UI smoke はスキップされます。
+`make test-e2e-workers` は `scripts/e2e/smoke-deployed.sh workers` を実行し、`workers/test/smoke.ts` の HTTP smoke を行います。`RADIO_E2E_WORKERS_URL` または `RADIO_E2E_PREVIEW_URL` を使用できます。`opencli` が利用可能な場合は `scripts/e2e/opencli-home.sh` でハイドレーション後の `Listeners` / `.globe-speaker` も確認します。`opencli` がない場合、その UI smoke はスキップされます。
 
 fixture 値（リスナー数 3 等）は **Vite+ の Vitest 4.1.11 runner**（`bridge-current-song.test.ts`、`now-playing-display.test.ts`、`mpd-stub-http.test.ts`）で検証します（deploy 不要）。
 
@@ -69,11 +71,12 @@ make test-e2e-prod
 
 `smoke-deployed.sh prod` は `RADIO_E2E_ALLOW_PROD=1` を設定し、読み取り専用 smoke として実行します。ルート `.env` の `RADIO_E2E_PROD_URL` を自動読み込みます。
 
-## Workers ユニットテスト
+## Workers 開発コマンド
 
 ```bash
-cd workers && bun run test
-# リポジトリルートからは make test-workers
+cd workers && bun run test    # ユニット
+cd workers && bun run check   # format + lint + typecheck
+cd workers && bun run build
 ```
 
 ## CI

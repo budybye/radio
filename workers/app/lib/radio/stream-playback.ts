@@ -14,10 +14,7 @@ export type StreamAttachment = {
   destroy(): void;
 };
 
-export function attachStreamToAudio(
-  audio: HTMLAudioElement,
-  streamUrl: string,
-): StreamAttachment {
+export function attachStreamToAudio(audio: HTMLAudioElement, streamUrl: string): StreamAttachment {
   const teardownNative = (): void => {
     audio.pause();
     audio.removeAttribute("src");

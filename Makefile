@@ -16,7 +16,7 @@ WORKERS := workers
 .PHONY: help setup \
 	up up-build up-tunnel down restart logs build clean \
 	play stop pause next prev random sequential status reload ncmpcpp \
-	lint test test-workers test-all test-e2e-workers test-e2e-prod check-mpd
+	test test-all test-e2e-workers test-e2e-prod check-mpd
 
 ##@ Usage
 help: ## List targets
@@ -100,18 +100,13 @@ reload: ## Re-scan music/ and rebuild the queue
 ncmpcpp: ## Open TUI player
 	$(DC) exec -it mpd ncmpcpp
 
-##@ Workers
-lint: ## Workers lint (vp lint + anti-slop)
-	cd $(WORKERS) && bun run lint
-
 ##@ Test
-test: ## Docker integration tests
+test: ## Docker integration tests (MPD stack health)
 	bash $(SCRIPTS)/test.sh
 
-test-workers: ## Workers unit tests (Vite+ / Vitest 4.1.11)
+test-all: ## Workers unit tests then Docker integration
 	cd $(WORKERS) && bun run test
-
-test-all: test-workers test ## test-workers then test
+	bash $(SCRIPTS)/test.sh
 
 test-e2e-workers: ## Deployed smoke (HTTP + opencli when installed)
 	bash $(E2E)/smoke-deployed.sh workers

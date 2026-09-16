@@ -94,12 +94,10 @@ export default function Home({
 
       <main className="mx-auto max-w-6xl px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:px-8">
         <div className="py-5 sm:py-7">
-          <p className="broadcast-eyebrow mb-3" id="station-label">Tune in</p>
-          <div
-            className="station-scroll"
-            role="radiogroup"
-            aria-labelledby="station-label"
-          >
+          <p className="broadcast-eyebrow mb-3" id="station-label">
+            Tune in
+          </p>
+          <div className="station-scroll" role="radiogroup" aria-labelledby="station-label">
             {radioConfig.stations.map((configuredStation) => {
               const selected = configuredStation.id === stationId;
 

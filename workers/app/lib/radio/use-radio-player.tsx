@@ -392,9 +392,7 @@ export function useRadioPlayer({
 
   const isStreamAudible = isPlaying && !isMuted && volume > 0 && !isBuffering;
 
-  const displayListeners = isMpdStation
-    ? Math.max(listenerCount, isStreamAudible ? 1 : 0)
-    : 0;
+  const displayListeners = isMpdStation ? Math.max(listenerCount, isStreamAudible ? 1 : 0) : 0;
 
   return {
     audioRef,

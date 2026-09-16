@@ -30,14 +30,24 @@ Inertia + React のリスナー画面と管理 UI。MpdAgent DO 経由で MPD �
 cd workers
 cp .env.example .env   # MPD_HOST / MPC_HOST + secrets
 bun install
-bun run dev          # 任意: 手動 UI 確認のみ（E2E では使わない）
-bun run build
-bun run lint         # vp lint + vendored anti-slop rules
-bun run test         # Vite+ の Vitest 4.1.11 runner（MPD parse / serialize / bridge / fixture / OpenAPI）
-bun run deploy       # Worker "radio" → radio.*.workers.dev
 ```
 
-anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。`require-readable-spacing` を含む汎用ルールを有効化しています。整形と lint の一括確認は `bunx vp check`、自動修正は `bunx vp check --fix` を使います。
+| コマンド             | 用途                                                    |
+| -------------------- | ------------------------------------------------------- |
+| `bun run dev`        | 手動 UI 確認（E2E では使わない）                        |
+| `bun run build`      | 本番ビルド                                              |
+| `bun run test`       | Vitest ユニットテスト                                   |
+| `bun run test:smoke` | デプロイ済み HTTP smoke（`smoke-deployed.sh` から呼ぶ） |
+| `bun run lint`       | Oxlint + anti-slop                                      |
+| `bun run format`     | 整形（`vp fmt`）                                        |
+| `bun run check`      | format + lint + typecheck 一括                          |
+| `bun run deploy`     | `scripts/deploy.sh` → `radio.*.workers.dev`             |
+| `bun run cf-secret`  | `workers/.env` から secrets を登録                      |
+| `bun run cf-typegen` | Wrangler 型生成                                         |
+
+Workers の開発・検証は **`cd workers && bun run …`** が正本です。ルート `Makefile` は Docker MPD スタックと E2E 用です。
+
+anti-slop のルール実装はアップストリーム由来のまま維持し、lint エラーはアプリ側のコード・型を修正して解消します。`require-readable-spacing` を含む汎用ルールを有効化しています。一括確認は `bun run check`、自動修正は `bun run check -- --fix` を使います。
 
 ## ディレクトリ構成
 
@@ -83,7 +93,7 @@ workers/
 | --------------------- | -------------------- | ---------------------------- | ----------------------------------------- |
 | GET                   | `/`                  | なし                         | リスナー Home（SSR。DO watch は Play 後） |
 | ALL                   | `/agents/MpdAgent/*` | なし                         | Agents SDK（ライブ watch）                |
-| GET                   | `/og.png`            | なし                         | OGP 画像                                   |
+| GET                   | `/og.png`            | なし                         | OGP 画像                                  |
 | GET                   | `/openapi.json`      | なし (dev / `*.workers.dev`) | OpenAPI 3.1 spec                          |
 | GET                   | `/status`            | Basic                        | MPD status JSON（診断）                   |
 | GET                   | `/currentsong`       | Basic                        | 現在曲 JSON（ops / 外部）                 |

@@ -4,15 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "lint": "vp lint",
-    "format": "vp fmt",
     "build": "vp build",
     "preview": "vp preview --port 5173",
-    "deploy": "bash scripts/deploy.sh",
     "test": "vp test run",
     "test:smoke": "bun run test/smoke.ts",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "check": "vp check",
+    "deploy": "bash scripts/deploy.sh",
     "cf-secret": "bash scripts/cf-secret.sh",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv",
     "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.svg"
   },
   "dependencies": {

@@ -87,7 +87,9 @@ radio/
 | `workers/app/lib/radio/globe-view.ts` | 地球儀 heading・放送アーク |
 | `workers/test/fixtures/mpd/contract.json` | mpd-stub / opencli E2E の期待値正本 |
 | `workers/tools/oxlint/` | anti-slop Oxlint プラグイン（vendored） |
+| `scripts/` | Docker MPD 用（`entrypoint.sh`, `test.sh`） |
 | `scripts/e2e/` | deployed smoke / opencli E2E スクリプト |
+| `workers/scripts/` | Workers deploy / secrets（`deploy.sh`, `cf-secret.sh`） |
 | `openspec/` | 任意のローカル計画。Git 対象外。仕様は `docs/` と `DESIGN.md` を参照 |
 | `config/` | MPD / ncmpcpp 設定。コンテナ起動時に read-only マウント |
 | `music/` | 配信対象音楽ファイル。`auto_update` で自動反映 |
@@ -108,8 +110,9 @@ radio/
 - **MPD 設定変更** → `config/mpd.conf` 編集後 `docker compose restart mpd`
 - **Web UI 変更** → `workers/` 編集後、`cd workers && bun run deploy`（ビルド後の `dist/radio/wrangler.json` を deploy。`workers/.env` があればホスト名を注入）
 - **新しいサービス追加** → `compose.yaml` に追加、`docs/tech.md` 更新
-- **新しい make ターゲット** → `Makefile`（一覧は `make help`）
-- **新しいテスト** → `scripts/test.sh` または `workers/` の Vite+ test runner + `docs/test.md`
+- **新しい make ターゲット** → `Makefile`（Docker / E2E 用。一覧は `make help`）
+- **Workers の npm script** → `workers/package.json`（開発・lint・deploy の正本）
+- **新しいテスト** → `scripts/test.sh`（Docker）または `workers/` の Vitest + `docs/test.md`
 - **ドキュメント追加** → 既存の責務を持つ文書へ統合。独立した責務が必要な場合だけ追加し、ルート `README.md` と `AGENTS.md` の読む順を更新
 - **環境変数追加** → ルート `.env.example` / `workers/.env.example` + [maintenance.md](maintenance.md#env-files)
 
