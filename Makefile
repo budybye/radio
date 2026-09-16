@@ -1,157 +1,120 @@
 # radio — Docker MPD stack + Workers test entrypoints
+# GNU Make 3.81+ (macOS Xcode Make / Linux). Recipe shell is POSIX sh.
 # Run `make` or `make help` for targets.
 
-SHELL := /bin/bash
+SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
-DC      := docker compose
-MPC     := $(DC) exec mpd mpc
+# Compose v2 plugin (`docker compose`) on Docker Desktop / current Engine;
+# fall back to v1 (`docker-compose`) on older Linux installs.
+DC ?= $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo docker-compose)
+MPC     := $(DC) exec -T mpd mpc
 SCRIPTS := scripts
 E2E     := $(SCRIPTS)/e2e
+WORKERS := workers
 
 .PHONY: help setup \
-        up up-build up-tunnel down restart logs build clean \
-        play stop pause next prev random sequential status reload ncmpcpp .check-mpd \
-        lint test test-workers test-all test-e2e-workers test-e2e-prod
+	up up-build up-tunnel down restart logs build clean \
+	play stop pause next prev random sequential status reload ncmpcpp \
+	lint test test-workers test-all test-e2e-workers test-e2e-prod check-mpd
 
-# ─── Help ────────────────────────────────────────────────────────────────────
+##@ Usage
+help: ## List targets
+	@awk 'BEGIN { print "Usage: make <target>" } \
+	/^##@/ { sub(/^##@[ \t]*/, ""); printf "\n%s\n", $$0; next } \
+	/^[a-zA-Z0-9_-][a-zA-Z0-9_-]*:.*##[ \t]/ { name=$$0; desc=$$0; sub(/:.*$$/, "", name); sub(/.*##[ \t]*/, "", desc); printf "  %-18s %s\n", name, desc }' $(MAKEFILE_LIST)
 
-help:
-	@echo "Usage: make <target>"
-	@echo ""
-	@echo "Lifecycle:"
-	@echo "  up            Start mpd + mpc-bridge (no tunnel)"
-	@echo "  up-build      Build & start core services"
-	@echo "  up-tunnel     Start core + Cloudflare tunnel (needs TUNNEL_TOKEN)"
-	@echo "  down          Stop & remove containers"
-	@echo "  restart       Restart all services"
-	@echo "  logs          Tail logs (Ctrl-C to quit)"
-	@echo "  build         Rebuild images (no cache)"
-	@echo "  clean         Stop & remove containers + volumes"
-	@echo ""
-	@echo "Setup:"
-	@echo "  setup         Create .env + music/"
-	@echo ""
-	@echo "Playback:  (requires: make up)"
-	@echo "  play          Resume playback"
-	@echo "  stop          Stop playback"
-	@echo "  pause         Toggle pause"
-	@echo "  next / prev   Skip track"
-	@echo "  random        Enable shuffle"
-	@echo "  sequential    Disable shuffle"
-	@echo "  status        Show current track & state"
-	@echo ""
-	@echo "Library:"
-	@echo "  reload        Re-scan music/ & rebuild queue"
-	@echo ""
-	@echo "Tools:"
-	@echo "  ncmpcpp       Open TUI player"
-	@echo ""
-	@echo "Workers:"
-	@echo "  lint          Workers lint (vp lint + anti-slop)"
-	@echo ""
-	@echo "Test:"
-	@echo "  test          Docker integration tests"
-	@echo "  test-workers  Workers unit tests (Vite+ / Vitest 4.1.11)"
-	@echo "  test-all      test-workers + test"
-	@echo "  test-e2e-workers  Deployed smoke (HTTP + opencli when installed)"
-	@echo "  test-e2e-prod     Prod HTTP smoke (RADIO_E2E_PROD_URL)"
-
-# ─── Guards ──────────────────────────────────────────────────────────────────
-
-.check-mpd:
-	@$(DC) ps --status running --services mpd 2>/dev/null | grep -q mpd \
-		|| { echo "Error: mpd not running — run: make up" >&2; exit 1; }
-
-# ─── Lifecycle ───────────────────────────────────────────────────────────────
-
-up:
+##@ Lifecycle
+up: ## Start mpd + mpc-bridge (no tunnel)
 	$(DC) up -d
 
-up-build:
+up-build: ## Build and start core services
 	$(DC) up -d --build
 
-up-tunnel:
+up-tunnel: ## Start core + Cloudflare tunnel (needs TUNNEL_TOKEN)
 	$(DC) --profile tunnel up -d
 
-down:
+down: ## Stop and remove containers
 	$(DC) down
 
-restart:
+restart: ## Restart all services
 	$(DC) restart
 
-logs:
+logs: ## Tail logs (Ctrl-C to quit)
 	$(DC) logs -f
 
-build:
+build: ## Rebuild images (no cache)
 	$(DC) build --no-cache
 
-clean:
+clean: ## Stop and remove containers + volumes
 	$(DC) down -v
 
-# ─── Setup ───────────────────────────────────────────────────────────────────
-
-setup:
-	@test -f .env || (cp .env.example .env && echo "Created .env — set TUNNEL_TOKEN.")
-	@test -f workers/.env || (cp workers/.env.example workers/.env && echo "Created workers/.env — set MPD_HOST / MPC_HOST.")
+##@ Setup
+setup: ## Create .env, workers/.env, and music/
+	@test -f .env || (cp .env.example .env && echo "Created .env -- set TUNNEL_TOKEN.")
+	@test -f workers/.env || (cp workers/.env.example workers/.env && echo "Created workers/.env -- set MPD_HOST / MPC_HOST.")
 	@mkdir -p music
-	@echo "Drop files in ./music/ → make up"
+	@echo "Drop files in ./music/ then run: make up"
 
-# ─── Playback (needs running mpd) ────────────────────────────────────────────
+##@ Playback (requires: make up)
+play stop pause next prev random sequential status reload ncmpcpp: check-mpd
 
-play stop pause next prev random sequential status reload ncmpcpp: .check-mpd
+check-mpd:
+	@$(DC) exec -T mpd mpc status >/dev/null 2>&1 || { \
+		echo "Error: mpd is not running. Run: make up" >&2; \
+		exit 1; \
+	}
 
-play:
+play: ## Resume playback
 	$(MPC) play
 
-stop:
+stop: ## Stop playback
 	$(MPC) stop
 
-pause:
+pause: ## Toggle pause
 	$(MPC) pause
 
-next:
+next: ## Skip to next track
 	$(MPC) next
 
-prev:
+prev: ## Skip to previous track
 	$(MPC) prev
 
-random:
+random: ## Enable shuffle
 	$(MPC) random on
 
-sequential:
+sequential: ## Disable shuffle
 	$(MPC) random off
 
-status:
+status: ## Show current track and state
 	$(MPC) status
 
-reload:
+##@ Library
+reload: ## Re-scan music/ and rebuild the queue
 	$(MPC) update --wait
 	$(MPC) clear
-	$(MPC) ls | $(DC) exec -T mpd mpc add
+	$(MPC) ls | $(MPC) add
 	$(MPC) play
 
-ncmpcpp:
+##@ Tools
+ncmpcpp: ## Open TUI player
 	$(DC) exec -it mpd ncmpcpp
 
-# ─── Workers ─────────────────────────────────────────────────────────────────
+##@ Workers
+lint: ## Workers lint (vp lint + anti-slop)
+	cd $(WORKERS) && bun run lint
 
-lint:
-	@cd workers && bun run lint
+##@ Test
+test: ## Docker integration tests
+	bash $(SCRIPTS)/test.sh
 
-# ─── Test ────────────────────────────────────────────────────────────────────
+test-workers: ## Workers unit tests (Vite+ / Vitest 4.1.11)
+	cd $(WORKERS) && bun run test
 
-test:
-	@bash $(SCRIPTS)/test.sh
+test-all: test-workers test ## test-workers then test
 
-test-workers:
-	@cd workers && bun run test
+test-e2e-workers: ## Deployed smoke (HTTP + opencli when installed)
+	bash $(E2E)/smoke-deployed.sh workers
 
-test-all: test-workers test
-
-
-test-e2e-workers:
-	@bash $(E2E)/smoke-deployed.sh workers
-
-test-e2e-prod:
-	@bash $(E2E)/smoke-deployed.sh prod
+test-e2e-prod: ## Prod HTTP smoke (RADIO_E2E_PROD_URL)
+	bash $(E2E)/smoke-deployed.sh prod

@@ -24,14 +24,14 @@ const (
 	ackUnreachable = "ACK [52@0] mpc-bridge: mpd unreachable\n"
 )
 
-func getenv(key, fallback string) string {
+func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
 	return fallback
 }
 
-func getenvInt(key string, fallback int) int {
+func getEnvInt(key string, fallback int) int {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
@@ -40,13 +40,13 @@ func getenvInt(key string, fallback int) int {
 	return fallback
 }
 
-type mpdConn struct {
+type mpdConnection struct {
 	conn   net.Conn
 	reader *bufio.Reader
 	mu     sync.Mutex
 }
 
-func dialMpd(host, port string) (*mpdConn, error) {
+func dialMpd(host, port string) (*mpdConnection, error) {
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), defaultDialTimeout)
 	if err != nil {
 		return nil, err
@@ -56,10 +56,10 @@ func dialMpd(host, port string) (*mpdConn, error) {
 		_ = conn.Close()
 		return nil, fmt.Errorf("mpd greeting: %w", err)
 	}
-	return &mpdConn{conn: conn, reader: reader}, nil
+	return &mpdConnection{conn: conn, reader: reader}, nil
 }
 
-func (c *mpdConn) close() {
+func (c *mpdConnection) close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.conn != nil {
@@ -68,7 +68,7 @@ func (c *mpdConn) close() {
 	}
 }
 
-func (c *mpdConn) exec(cmd string, readTimeout time.Duration) (string, error) {
+func (c *mpdConnection) exec(command string, readTimeout time.Duration) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -78,38 +78,38 @@ func (c *mpdConn) exec(cmd string, readTimeout time.Duration) (string, error) {
 	if err := c.conn.SetDeadline(time.Now().Add(readTimeout)); err != nil {
 		return "", err
 	}
-	if _, err := fmt.Fprintf(c.conn, "%s\n", cmd); err != nil {
+	if _, err := fmt.Fprintf(c.conn, "%s\n", command); err != nil {
 		return "", err
 	}
 
-	var out strings.Builder
+	var responseBuilder strings.Builder
 	for {
 		line, err := c.reader.ReadString('\n')
 		if err != nil {
 			return "", err
 		}
-		out.WriteString(line)
+		responseBuilder.WriteString(line)
 		if line == "OK\n" || strings.HasPrefix(line, "ACK") {
 			break
 		}
 	}
 	_ = c.conn.SetDeadline(time.Time{})
-	return out.String(), nil
+	return responseBuilder.String(), nil
 }
 
-type mpdPool struct {
+type mpdConnectionPool struct {
 	host        string
 	port        string
 	readTimeout time.Duration
-	idle        chan *mpdConn
+	idle        chan *mpdConnection
 }
 
-func newMpdPool(host, port string, size int, readTimeout time.Duration) *mpdPool {
-	p := &mpdPool{
+func newMpdPool(host, port string, size int, readTimeout time.Duration) *mpdConnectionPool {
+	p := &mpdConnectionPool{
 		host:        host,
 		port:        port,
 		readTimeout: readTimeout,
-		idle:        make(chan *mpdConn, size),
+		idle:        make(chan *mpdConnection, size),
 	}
 	for i := 0; i < size; i++ {
 		c, err := dialMpd(host, port)
@@ -122,7 +122,7 @@ func newMpdPool(host, port string, size int, readTimeout time.Duration) *mpdPool
 	return p
 }
 
-func (p *mpdPool) acquire() (*mpdConn, error) {
+func (p *mpdConnectionPool) acquire() (*mpdConnection, error) {
 	select {
 	case c := <-p.idle:
 		if c != nil && c.conn != nil {
@@ -133,7 +133,7 @@ func (p *mpdPool) acquire() (*mpdConn, error) {
 	return dialMpd(p.host, p.port)
 }
 
-func (p *mpdPool) release(c *mpdConn, broken bool) {
+func (p *mpdConnectionPool) release(c *mpdConnection, broken bool) {
 	if c == nil {
 		return
 	}
@@ -148,113 +148,113 @@ func (p *mpdPool) release(c *mpdConn, broken bool) {
 	}
 }
 
-func (p *mpdPool) command(cmd string) (string, error) {
+func (p *mpdConnectionPool) command(command string) (string, error) {
 	c, err := p.acquire()
 	if err != nil {
 		return "", err
 	}
-	raw, err := c.exec(cmd, p.readTimeout)
+	rawResponse, err := c.exec(command, p.readTimeout)
 	p.release(c, err != nil)
-	return raw, err
+	return rawResponse, err
 }
 
-func injectStreamListeners(raw string, listeners int) string {
-	if listeners < 0 {
-		return raw
+func withStreamListenerCount(rawResponse string, listenerCount int) string {
+	if listenerCount < 0 {
+		return rawResponse
 	}
 
-	lines := strings.Split(raw, "\n")
-	out := make([]string, 0, len(lines)+1)
-	hasListeners := false
-	hasOK := false
-	for _, line := range lines {
+	responseLines := strings.Split(rawResponse, "\n")
+	outputLines := make([]string, 0, len(responseLines)+1)
+	hasListenerField := false
+	hasOKTerminator := false
+	for _, line := range responseLines {
 		if line == "OK" {
-			hasOK = true
+			hasOKTerminator = true
 			continue
 		}
 		if strings.HasPrefix(line, "listeners:") {
-			hasListeners = true
-			out = append(out, fmt.Sprintf("listeners: %d", listeners))
+			hasListenerField = true
+			outputLines = append(outputLines, fmt.Sprintf("listeners: %d", listenerCount))
 			continue
 		}
 		if line != "" {
-			out = append(out, line)
+			outputLines = append(outputLines, line)
 		}
 	}
-	if !hasListeners {
-		out = append(out, fmt.Sprintf("listeners: %d", listeners))
+	if !hasListenerField {
+		outputLines = append(outputLines, fmt.Sprintf("listeners: %d", listenerCount))
 	}
-	if hasOK {
-		out = append(out, "OK")
+	if hasOKTerminator {
+		outputLines = append(outputLines, "OK")
 	}
-	return strings.Join(out, "\n") + "\n"
+	return strings.Join(outputLines, "\n") + "\n"
 }
 
-func fetchStreamListenerCount(statsURL string, client *http.Client) int {
+func fetchStreamListenerCount(statsURL string, httpClient *http.Client) int {
 	if statsURL == "" {
 		return -1
 	}
-	if client == nil {
-		client = &http.Client{Timeout: 2 * time.Second}
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 2 * time.Second}
 	}
-	resp, err := client.Get(statsURL)
+	response, err := httpClient.Get(statsURL)
 	if err != nil {
 		return -1
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return -1
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 16))
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, 16))
 	if err != nil {
 		return -1
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(string(body)))
-	if err != nil || n < 0 {
+	listenerCount, err := strconv.Atoi(strings.TrimSpace(string(responseBody)))
+	if err != nil || listenerCount < 0 {
 		return -1
 	}
-	return n
+	return listenerCount
 }
 
-func mpdHandler(pool *mpdPool, streamStatsURL string, statsClient *http.Client) http.HandlerFunc {
+func mpdHandler(pool *mpdConnectionPool, streamStatsURL string, statsClient *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cmd := r.URL.Query().Get("cmd")
-		if cmd == "" || strings.ContainsAny(cmd, "\r\n\x00") {
+		command := r.URL.Query().Get("cmd")
+		if command == "" || strings.ContainsAny(command, "\r\n\x00") {
 			w.Header().Set("Content-Type", "text/plain")
 			_, _ = w.Write([]byte(ackInvalid))
 			return
 		}
 
-		if cmd == "ping" {
+		if command == "ping" {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 			return
 		}
 
-		raw, err := pool.command(cmd)
+		rawResponse, err := pool.command(command)
 		w.Header().Set("Content-Type", "text/plain")
-		if err != nil || raw == "" {
+		if err != nil || rawResponse == "" {
 			_, _ = w.Write([]byte(ackUnreachable))
 			return
 		}
-		if cmd == "status" {
+		if command == "status" {
 			if listeners := fetchStreamListenerCount(streamStatsURL, statsClient); listeners >= 0 {
-				raw = injectStreamListeners(raw, listeners)
+				rawResponse = withStreamListenerCount(rawResponse, listeners)
 			}
 		}
-		_, _ = w.Write([]byte(raw))
+		_, _ = w.Write([]byte(rawResponse))
 	}
 }
 
 func main() {
-	mpdHost := getenv("MPD_HOST", "mpd")
-	mpdPort := getenv("MPD_PORT", "6600")
-	poolSize := getenvInt("POOL_SIZE", defaultPoolSize)
-	readTimeout := time.Duration(getenvInt("READ_TIMEOUT_SEC", int(defaultReadTimeout/time.Second))) * time.Second
-	listen := ":" + getenv("PORT", "8080")
+	mpdHost := getEnv("MPD_HOST", "mpd")
+	mpdPort := getEnv("MPD_PORT", "6600")
+	poolSize := getEnvInt("POOL_SIZE", defaultPoolSize)
+	readTimeout := time.Duration(getEnvInt("READ_TIMEOUT_SEC", int(defaultReadTimeout/time.Second))) * time.Second
+	listen := ":" + getEnv("PORT", "8080")
 
 	pool := newMpdPool(mpdHost, mpdPort, poolSize, readTimeout)
-	streamStatsURL := getenv("MPD_STREAM_STATS_URL", "")
+	streamStatsURL := getEnv("MPD_STREAM_STATS_URL", "")
 	log.Printf(
 		"mpc-bridge listening on %s (mpd=%s:%s pool=%d read_timeout=%s stream_stats=%s)",
 		listen, mpdHost, mpdPort, poolSize, readTimeout, streamStatsURL,

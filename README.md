@@ -1,6 +1,6 @@
 # 🎵 Docker MPD Internet Radio
 
-個人の音楽ファイルをインターネットラジオとして配信する Docker 構成です。Docker + MPD + Cloudflare Tunnel で、ポート開放不要・安全に誰でも聴けるストリーミング環境を数分で構築できます。
+個人の音楽ファイルをインターネットラジオとして配信する Docker 構成です。Docker + MPD + Cloudflare Tunnel で、ポート開放なしにストリームを公開します。
 
 ## 目次
 
@@ -16,8 +16,8 @@
 
 ## 機能
 
-- 🎶 **MP3 ストリーミング配信**（320kbps / CD 品質）
-- 🌐 **Cloudflare Tunnel で安全に公開**（ポート開放不要）
+- 🎶 **MP3 ストリーミング配信**（320kbps）
+- 🌐 **Cloudflare Tunnel で公開**（ポート開放不要）
 - 🔄 **音楽フォルダの自動監視 & ライブラリ更新**
 - 📻 **常時配信モード**（停止中もリスナー接続を維持）
 - 🎛️ **mpc / ncmpcpp でのプレイリスト管理**
@@ -27,10 +27,10 @@
 
 ### 前提条件
 
-| ツール | 最低バージョン |
-|--------|---------------|
-| Docker Engine | 24.0+ |
-| Docker Compose | 2.20+ |
+| ツール | 要件 |
+|--------|------|
+| Docker Engine | リポジトリで固定なし |
+| Docker Compose | リポジトリで固定なし |
 
 ### セットアップ & 起動
 
@@ -39,7 +39,7 @@
 git clone <repo-url>
 cd radio
 
-# 2. セットアップ（.env 作成 + music/ 作成）
+# 2. セットアップ（.env + workers/.env + music/ 作成）
 make setup
 
 # 3. TUNNEL_TOKEN を .env に設定（公開配信する場合）
@@ -47,16 +47,16 @@ make setup
 
 # 4. 音楽ファイルを music/ に配置
 
-# 5. 起動（ローカル MPD のみ）
+# 5. 起動（ローカル MPD + mpc-bridge）
 make up-build
 
 # 公開配信する場合（TUNNEL_TOKEN 設定後）
 make up-tunnel
 ```
 
-> ⚠️ `.env` は `.gitignore` に登録済みです。決してコミットしないでください。
+環境ファイルの取り扱いは [AGENTS.md の禁止事項](AGENTS.md#golden-rules-read-before-any-change) を参照してください。
 
-`make up` 後、キューが空の場合は `scripts/entrypoint.sh` が自動で全曲を追加 → ランダム再生を開始します。手動でライブラリを更新したい場合は `make reload` を使ってください。
+`make up` 後、キューが空の場合は `scripts/entrypoint.sh` が自動で全曲を追加 → ランダム再生を開始します。初回でローカルイメージがない場合は `make up-build` を使ってください。手動でライブラリを更新したい場合は `make reload` を使ってください。
 
 全 `make` コマンド一覧は下記「操作ガイド」を参照。詳細は [docs/tech.md](docs/tech.md) もどうぞ。
 
@@ -92,9 +92,9 @@ Web UI は `workers/` を Cloudflare Workers に deploy して使う（compose �
 
 ボタンで **Workers のみ** がデプロイされます。MPD / Tunnel は別途 [クイックスタート](#クイックスタート) の Docker スタックが必要です。
 
-> **メンテナ本番**: MPD・mpc-bridge・Tunnel の Docker は **Raspberry Pi 上で既に常時稼働**しています。Workers の変更は `cd workers && bun run deploy` のみでよく、Pi 側の compose を毎回起動する必要はありません（詳細: [docs/deploy-fork.md](docs/deploy-fork.md#メンテナ本番)）。
+> **メンテナ本番**: MPD・mpc-bridge・Tunnel の Docker は **Raspberry Pi 上で既に常時稼働**しています。Workers の変更は `cd workers && bun run deploy` のみでよく、Pi 側の compose を毎回起動する必要はありません（詳細: [docs/maintenance.md](docs/maintenance.md#maintainer-production)）。
 
-デプロイ後のチェックリスト（vars・secrets・Access・Tunnel）は **[docs/deploy-fork.md](docs/deploy-fork.md)** を参照。
+デプロイ後のチェックリスト（vars・secrets・Access・Tunnel）は **[docs/maintenance.md](docs/maintenance.md)** を参照。
 
 #### このリポジトリのメンテナが手動デプロイする場合
 
@@ -104,16 +104,16 @@ bun install
 bun run deploy   # Worker "radio" — workers/.env があれば実ホスト名を注入
 ```
 
-> 単一 Worker `radio`。詳細: [docs/deploy-fork.md](docs/deploy-fork.md#deploy-targets)
+> 単一 Worker `radio`。詳細: [docs/maintenance.md](docs/maintenance.md#deploy-targets)
 
 | ホスト | 用途 |
 |--------|------|
-| `your-domain.com` | リスナー Home + 管理 UI（`/posts` は Basic Auth） |
-| `mpd.your-domain.com` | MP3 ストリーム URL（Home の `config.streamUrl` が参照） |
+| `your-domain.com` | リスナー Home + 管理 UI（`GET /queue*` は Basic、書き込みは Basic または Bearer） |
+| `mpd.your-domain.com` | MP3 ストリーム URL（Home の `config.stations` 内の MPD 局が参照） |
 
 ローカル UI 確認（任意）: `cd workers && bun run dev`
 
-E2E は `radio.*.workers.dev` とカスタムドメインのみ。詳細は [docs/test.md](docs/test.md)。
+E2E は `radio.*.workers.dev` / `radio-preview.*.workers.dev` とカスタムドメインで実行できます。詳細は [docs/test.md](docs/test.md)。
 
 ## アーキテクチャ
 
@@ -133,11 +133,11 @@ Cloudflare（Workers UI + Tunnel エッジ）
         Docker: MPD + mpc-bridge + cloudflared
 ```
 
-詳細は [docs/diagrams.md](docs/diagrams.md) と [docs/design.md](docs/design.md) を参照してください。
+構成とデータフローは [docs/architecture.md](docs/architecture.md)、認証境界は [docs/security.md](docs/security.md) を参照してください。
 
 ## 開発
 
-開発環境の構築、テスト実行、コーディング規約は `AGENTS.md` に定義されています。
+開発環境は [docs/tech.md](docs/tech.md)、検証は [docs/test.md](docs/test.md)、実装パターンは [docs/pattern.md](docs/pattern.md) を参照。作業時の注意と読む順は [AGENTS.md](AGENTS.md) にあります。
 
 ```bash
 make test      # 統合テスト（7項目のヘルスチェック）
@@ -191,11 +191,11 @@ docker compose exec -it mpd ncmpcpp
 
 ## 設定のポイント
 
-ラジオ配信に最適化した主要設定は以下の3つです。詳細な設定ファイル解説は [docs/tech.md](docs/tech.md) を参照してください。
+詳細な設定ファイル解説は [docs/tech.md](docs/tech.md) を参照してください。
 
 | 設定 | 値 | 理由 |
 |-----|---|------|
-| `always_on yes` | 有効 | 再生停止時もリスナー接続を維持（ラジオ配信に必須） |
+| `always_on yes` | 有効 | 再生停止時もリスナー接続を維持 |
 | `mixer_type none` | 無効 | コンテナ内にハードウェアミキサーがないため |
 | `auto_update yes` | 有効 | ファイル追加後自動反映 |
 
@@ -205,16 +205,18 @@ docker compose exec -it mpd ncmpcpp
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [docs/README.md](docs/README.md) | **索引** — 読む順・ドキュメント一覧 |
-| [docs/diagrams.md](docs/diagrams.md) | **図解** — アーキテクチャ・認証・デプロイ（Mermaid） |
-| [docs/requirements.md](docs/requirements.md) | 要件定義・Phase 3 進捗 |
-| [docs/design.md](docs/design.md) | システム設計・アーキテクチャ・ADR |
-| [docs/tech.md](docs/tech.md) | 技術スタック・環境構築手順・`make` コマンド一覧 |
+| [docs/requirements.md](docs/requirements.md) | 機能要件・受け入れ範囲・バックログ |
+| [docs/architecture.md](docs/architecture.md) | モジュール責務・データモデル・データフロー |
+| [DESIGN.md](DESIGN.md) | Home UI の表示・操作・アクセシビリティ |
+| [docs/security.md](docs/security.md) | 認証・権限・境界 |
+| [docs/tech.md](docs/tech.md) | 技術スタック・ADR |
+| [docs/maintenance.md](docs/maintenance.md) | デプロイ・環境変数・運用 |
+| [docs/pattern.md](docs/pattern.md) | Result・wire・HTTP・フォーム・OpenAPI の実装パターン |
 | [docs/test.md](docs/test.md) | テスト戦略・検証手順 |
 | [docs/directory.md](docs/directory.md) | ディレクトリ構造・規約 |
 | [docs/problems.md](docs/problems.md) | 既知の問題・リスク |
 | [docs/references.md](docs/references.md) | 参考資料リンク集 |
-| [AGENTS.md](AGENTS.md) | 開発ルール・クイックスタート・ガイドライン |
+| [AGENTS.md](AGENTS.md) | 作業時の禁止事項・読む順 |
 | [workers/README.md](workers/README.md) | Workers 開発・ルート・シークレット |
 
 ## トラブルシューティング

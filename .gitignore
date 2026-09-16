@@ -6,3 +6,5 @@ music/*
 !music/123.mp3
 # Local Pi runtime state
 .atl/
+# Local planning only; canonical documentation lives in docs/ and DESIGN.md.
+/openspec/

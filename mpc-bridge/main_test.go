@@ -22,31 +22,31 @@ func TestMpdHandlerRejectsControlCharacters(t *testing.T) {
 	}
 }
 
-func TestInjectStreamListenersAppendsWhenMissing(t *testing.T) {
+func TestWithStreamListenerCountAppendsWhenMissing(t *testing.T) {
 	raw := "state: play\nsongid: 1\nOK\n"
-	got := injectStreamListeners(raw, 3)
+	got := withStreamListenerCount(raw, 3)
 	want := "state: play\nsongid: 1\nlisteners: 3\nOK\n"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }
 
-func TestInjectStreamListenersReplacesExisting(t *testing.T) {
+func TestWithStreamListenerCountReplacesExisting(t *testing.T) {
 	raw := "state: play\nlisteners: 0\nOK\n"
-	got := injectStreamListeners(raw, 5)
+	got := withStreamListenerCount(raw, 5)
 	want := "state: play\nlisteners: 5\nOK\n"
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }
 
-func TestInjectStreamListenersReplacesWorkersFixtureListeners(t *testing.T) {
+func TestWithStreamListenerCountReplacesWorkersFixtureListeners(t *testing.T) {
 	rawBytes, err := os.ReadFile(filepath.Join("..", "workers", "test", "fixtures", "mpd", "status.txt"))
 	if err != nil {
 		t.Fatalf("read workers fixture: %v", err)
 	}
 
-	got := injectStreamListeners(string(rawBytes), 99)
+	got := withStreamListenerCount(string(rawBytes), 99)
 	if !strings.Contains(got, "listeners: 99") {
 		t.Fatalf("expected injected listeners, got %q", got)
 	}

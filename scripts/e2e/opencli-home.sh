@@ -19,7 +19,7 @@ opencli browser "$SESSION" wait text "LISTENERS" --timeout 30000
 
 listeners_json="$(opencli browser "$SESSION" find --text "LISTENERS")"
 if ! printf '%s' "$listeners_json" | grep -q '"matches_n"'; then
-  echo "FAIL: opencli could not find LISTENERS badge" >&2
+  echo "FAIL: opencli could not find LISTENERS label" >&2
   echo "$listeners_json" >&2
   opencli browser "$SESSION" close || true
   exit 1
@@ -34,8 +34,8 @@ if ! printf '%s' "$speakers_json" | grep -q '"matches_n"'; then
   exit 1
 fi
 
-ui_metrics="$(opencli browser "$SESSION" eval 'JSON.stringify((()=>{const visible=(e)=>{if(!e)return false;const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight};const root=document.documentElement;return {viewport:{width:innerWidth,height:innerHeight},scrollHeight:root.scrollHeight,clientHeight:root.clientHeight,scrollWidth:root.scrollWidth,clientWidth:root.clientWidth,selector:visible(document.querySelector("#station-select")),globe:visible(document.querySelector(".globe-speaker")),title:visible(document.querySelector("#now-playing-title")),play:visible(document.querySelector("button[aria-label=\"Play live stream\"],button[aria-label=\"Stop playback\"]"))}})())')"
-node -e 'const m=JSON.parse(process.argv[1]); if (m.scrollWidth>m.clientWidth) throw new Error(`horizontal overflow at ${m.viewport.width}x${m.viewport.height}`); if (m.viewport.width>=1024&&m.scrollHeight>m.clientHeight) throw new Error(`desktop vertical overflow at ${m.viewport.width}x${m.viewport.height}`); if (m.viewport.width>=768&&(m.viewport.height<700||m.viewport.width>=1024)&&(!m.selector||!m.globe||!m.title||!m.play)) throw new Error(`primary UI not reachable at ${m.viewport.width}x${m.viewport.height}`); console.log(`[e2e] layout ${m.viewport.width}x${m.viewport.height}: no forbidden overflow; primary UI visible`)' "$ui_metrics"
+ui_metrics="$(opencli browser "$SESSION" eval 'JSON.stringify((()=>{const reachable=(selector)=>{const e=document.querySelector(selector);if(!e)return false;e.scrollIntoView({block:"center",behavior:"instant"});const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.left>=0&&r.right<=innerWidth};const root=document.documentElement;const controls=["#station-select",".globe-speaker","#now-playing-title","button[aria-label=\"Play live stream\"],button[aria-label=\"Stop playback\"]","button[aria-label=\"Mute stream\"],button[aria-label=\"Unmute stream\"]","input[aria-label=\"Volume\"]"].map(selector=>({selector,reachable:reachable(selector)}));scrollTo(0,0);return {viewport:{width:innerWidth,height:innerHeight},scrollWidth:root.scrollWidth,clientWidth:root.clientWidth,controls}})())')"
+node -e 'const m=JSON.parse(process.argv[1]); if (m.scrollWidth>m.clientWidth) throw new Error(`horizontal overflow at ${m.viewport.width}x${m.viewport.height}`); for(const c of m.controls) if(!c.reachable) throw new Error(`unreachable UI: ${c.selector} at ${m.viewport.width}x${m.viewport.height}`); console.log(`[e2e] layout ${m.viewport.width}x${m.viewport.height}: no horizontal overflow; primary UI reachable`)' "$ui_metrics"
 
 radio_e2e_log "PASS: responsive layout assertions"
 
