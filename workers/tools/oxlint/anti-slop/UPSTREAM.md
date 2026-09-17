@@ -14,14 +14,14 @@
 - Adopted upstream fixes for type-alias resolution, function-parameter analysis, runtime `typeof` existence probes, borrowed member names, and related rule behavior.
 - Enabled every generic rule from the requested install policy at `error`, including `oxc/no-accumulating-spread` and `anti-slop/require-readable-spacing`.
 - Preserved the local `effect/` plugin files and did not register or update them because `effect` is not a direct package dependency in this repository. Upstream Effect changes remain intentionally deferred.
-- Aligned direct `@oxlint/plugins` with the installed Oxlint version at exact version `1.81.0`.
+- Rule imports moved to `vite-plus/lint/plugins`; the direct `@oxlint/plugins` devDependency is removed.
 
 ## Intentional local policy
 
 - The vendored generic source is ignored by the repository's lint and format scans; the registered plugin and configuration remain owned by this repository.
-- The upstream package declares `@oxlint/plugins` `1.78.0`; the repository uses the resolved local Oxlint `1.81.0` pair instead.
+- The repository no longer declares `@oxlint/plugins` directly; `vite-plus` pins the pair (`oxlint` `=1.82.0`, `@oxlint/plugins` `=1.79.0`) and `vite-plus/lint/plugins` re-exports it.
 - `anti-slop/require-readable-spacing` is registered in `index.ts` and enabled at `error` in `workers/lint/anti-slop.ts`.
-- `workers/package.json` retains the repository's existing key order; only the exact `@oxlint/plugins` version changed.
+- `workers/package.json` drops the direct `@oxlint/plugins` devDependency; key order is otherwise unchanged.
 
 ## Verification
 

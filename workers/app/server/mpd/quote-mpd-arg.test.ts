@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { MpdInvalidArgumentError } from "../../lib/radio/errors";
 import { quoteMpdArg } from "./quote-mpd-arg";

@@ -1,5 +1,5 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { mpdAgentStateSchema } from "./agents";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { MpcHttpError, MpdAckError, MpdInvalidArgumentError, MpdTransportError } from "./errors";
 import { mpdErrorHttpStatus } from "./mpd-http";

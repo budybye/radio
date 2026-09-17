@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 
 /** Pure lib tests only — main vite.config loads Cloudflare plugin incompatible with vitest */
 export default defineConfig({

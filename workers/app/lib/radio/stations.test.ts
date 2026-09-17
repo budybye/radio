@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { DEFAULT_STATION_ID, RADIO_STATIONS } from "./stations";
 

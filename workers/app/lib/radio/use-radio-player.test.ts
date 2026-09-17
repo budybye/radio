@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { DEFAULT_STATION_ID, type ConfiguredRadioStation } from "./stations";
 import {

@@ -1,6 +1,6 @@
 import { Result } from "better-result";
 import * as v from "valibot";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { MpcHttpError, MpdAckError, MpdInvalidArgumentError, MpdTransportError } from "./errors";
 import type { CurrentSongPayload } from "./types";

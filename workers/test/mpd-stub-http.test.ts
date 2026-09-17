@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { loadMpdFixtureContract } from "./fixtures/mpd/contract";
 

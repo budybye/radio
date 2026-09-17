@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { formatNowPlayingDisplay, formatStationDisplay } from "../app/lib/radio/now-playing";
 import { parseMpdRecord } from "../app/server/mpd/parse";
